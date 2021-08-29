@@ -54,14 +54,30 @@
     <ClInclude Include="bit\src\bit\windows\windows_common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bit\include\bit\atomics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\critical_section.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\scope_timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\hash_table.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\linked_list.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\intrusive_linked_list.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bit.natvis" />
-  </ItemGroup>
-  <ItemGroup>
-    <NASM Include="bit\src\bit\windows\x64\windows_asm_x64.asm">
-      <Filter>Source Files</Filter>
-    </NASM>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bit\src\bit\murmur_hash.cpp">
@@ -80,6 +96,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bit\src\bit\memory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\windows\windows_atomics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\windows\windows_critical_section.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\windows\windows_thread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\windows\windows_entry_point.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\scope_timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,35 +1,59 @@
 #pragma once
 
 #include <bit/types.h>
-
-struct _BitMemNewDummy_ {};
-inline void* operator new(size_t, _BitMemNewDummy_, void* Ptr) { return Ptr; }
-inline void operator delete(void*, _BitMemNewDummy_, void*) {}
-#define BitPlacementNew(Ptr) new(_BitMemNewDummy_(), Ptr)
+#include <bit/allocator.h>
 
 namespace bit
 {
-	struct IAllocator;
+	BITLIB_API IAllocator& GetDefaultAllocator();
+	BITLIB_API void* Memcpy(void* Dst, const void* Src, size_t Num);
+	BITLIB_API void* Memset(void* Ptr, int32_t Value, size_t Num);
+	BITLIB_API int Memcmp(const void* A, const void* B, size_t Num);
+	BITLIB_API size_t Fmt(char* Buffer, size_t BufferSize, const char* Fmt, ...);
+	BITLIB_API const char* TempFmtString(const char* Fmt, ...);
+	BITLIB_API size_t ToKiB(size_t Bytes);
+	BITLIB_API size_t ToMiB(size_t Bytes);
+	BITLIB_API size_t ToGiB(size_t Bytes);
+	BITLIB_API size_t ToTiB(size_t Bytes);
 
-	BIT_API IAllocator& GetDefaultAllocator();
-	BIT_API void* Memcpy(void* Dst, const void* Src, size_t Num);
-	BIT_API void* Memset(void* Ptr, int32_t Value, size_t Num);
-	BIT_API int Memcmp(const void* A, const void* B, size_t Num);
-	BIT_API size_t Fmt(char* Buffer, size_t BufferSize, const char* Fmt, ...);
-	BIT_API const char* TempFmtString(const char* Fmt, ...);
-	BIT_API size_t ToKiB(size_t Bytes);
-	BIT_API size_t ToMiB(size_t Bytes);
-	BIT_API size_t ToGiB(size_t Bytes);
-	BIT_API size_t ToTiB(size_t Bytes);
+	BIT_FORCEINLINE void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
+	{
+		return GetDefaultAllocator().Alloc(Size, Alignment);
+	}
+	BIT_FORCEINLINE void* Realloc(void* Pointer, size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
+	{
+		return GetDefaultAllocator().Realloc(Pointer, Size, Alignment);
+	}
+	BIT_FORCEINLINE void Free(void* Pointer)
+	{
+		return GetDefaultAllocator().Free(Pointer);
+	}
+	template<typename T>
+	T* TMalloc(size_t Count = 1)
+	{
+		return (T*)GetDefaultAllocator().Alloc(Count * sizeof(T), bit::DEFAULT_ALIGNMENT);
+	}
 
 	template<class T>
-	void DefaultConstruct(T* Elements, size_t Count)
+	T* DefaultConstruct(T* Elements, size_t Count)
 	{
 		for (size_t Index = 0; Index < Count; ++Index)
 		{
 			T* Elem = &Elements[Index];
 			BitPlacementNew(Elem) T();
 		}
+		return Elements;
+	}
+
+	template<typename T, typename... TArgs>
+	T* Construct(T* Elements, size_t Count, TArgs&& ... ConstructorArgs)
+	{
+		for (size_t Index = 0; Index < Count; ++Index)
+		{
+			T* Ptr = &Elements[Index];
+			BitPlacementNew(Ptr) T(ConstructorArgs...);
+		}
+		return Elements;
 	}
 
 	template<class T>
@@ -41,5 +65,23 @@ namespace bit
 		}
 	}
 
+	template<typename T, typename... TArgs>
+	T* New(TArgs&& ... ConstructorArgs)
+	{
+		return BitPlacementNew((T*)bit::Malloc(sizeof(T), 4)) T(ConstructorArgs...);
+	}
 
+	template<typename T>
+	void Delete(T* Ptr)
+	{
+		Ptr->~T();
+		bit::Free(Ptr);
+	}
+}
+
+template<typename T>
+bool operator==(const T& LHS, const T& RHS)
+{
+	BIT_IF_CONSTEXPR(sizeof(T) <= 8) return LHS == RHS;
+	else return bit::Memcmp(&LHS, &RHS, sizeof(T));
 }

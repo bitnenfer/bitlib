@@ -4,6 +4,13 @@
 #include <stdarg.h>
 #include "windows_common.h"
 
+int64_t GTimerFrequency = 0;
+
+void BitOSInit()
+{
+	QueryPerformanceFrequency((LARGE_INTEGER*)&GTimerFrequency);
+}
+
 void bit::OutputLog(const char* Fmt, ...)
 {
 	static char Buffer[4096 * 3] = {};
@@ -36,4 +43,11 @@ void bit::Alert(const char* Fmt, ...)
 void bit::ExitProgram(int32_t ExitCode)
 {
 	ExitProcess(ExitCode);
+}
+
+double bit::GetSeconds()
+{
+	int64_t Time;
+	QueryPerformanceCounter((LARGE_INTEGER*)&Time);
+	return (double)(Time * 1000 / GTimerFrequency) / 1000.0;
 }

@@ -3,6 +3,6 @@
 echo Building Debug...
 
 set Configuration=Debug
-set CompilerFlags=/Od /Ob0 /D "_DEBUG" /MDd /ZI
-set LinkerFlags=/DEBUG 
+set CompilerFlags=/Od /D "_DEBUG" /MDd
+set LinkerFlags=/DEBUG:FULL /PDB:gen/bin/%Arch%/Debug/bit.pdb
 

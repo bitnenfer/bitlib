@@ -23,6 +23,10 @@ typedef unsigned __int64 size_t;
 typedef __int64          ptrdiff_t;
 typedef __int64          intptr_t;
 #endif
-
 #endif
+
+namespace bit
+{
+	typedef void* Handle_t;
+}
 

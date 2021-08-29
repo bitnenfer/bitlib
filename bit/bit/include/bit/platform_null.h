@@ -6,9 +6,14 @@
 #define BIT_DEBUG_BREAK()
 #define BIT_BUILD_DEBUG 0
 #define BIT_BUILD_RELEASE 0
-#define BIT_API
+#define BITLIB_API
 #define BIT_FORCEINLINE
 #define BIT_FORCENOINLINE
+#define BIT_CPP_VER 0
+#define BIT_CPP17 0
+#define BIT_CPP14 0
+#define BIT_CPP11 0
+#define BIT_CONSTEXPR
 
 #error Invalid Platform
 

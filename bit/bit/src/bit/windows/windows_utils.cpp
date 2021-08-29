@@ -1,5 +1,6 @@
 #include <bit/utils.h>
 #include <intrin.h>
+#include "windows_common.h"
 
 size_t bit::Log2(size_t Value)
 {

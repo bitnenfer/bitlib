@@ -5,7 +5,7 @@
 namespace bit
 {
 	template<typename T, size_t Capacity>
-	struct FixedAllocator : public IAllocator
+	struct TFixedAllocator : public IAllocator
 	{
 		virtual void* Alloc(size_t Size, size_t Alignment) override
 		{

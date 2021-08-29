@@ -36,7 +36,7 @@ namespace bit
 		#endif
 	}
 
-	size_t BIT_API Log2(size_t Value);
+	BITLIB_API size_t Log2(size_t Value);
 
 	BIT_FORCEINLINE size_t NextPow2(size_t Size)
 	{

@@ -5,3 +5,13 @@
 #else
 #include <bit/platform_null.h>
 #endif
+
+struct _BitMemNewDummy_ {};
+inline void* operator new(size_t, _BitMemNewDummy_, void* Ptr) { return Ptr; }
+inline void operator delete(void*, _BitMemNewDummy_, void*) {}
+#define BitPlacementNew(Ptr) new(_BitMemNewDummy_(), Ptr)
+
+namespace bit
+{
+	static BIT_CONSTEXPR size_t DEFAULT_ALIGNMENT = 4;
+};

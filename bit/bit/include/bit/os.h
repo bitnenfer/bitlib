@@ -4,9 +4,10 @@
 
 namespace bit
 {
-	void OutputLog(const char* Fmt, ...);
-	void Alert(const char* Fmt, ...);
-	void ExitProgram(int32_t ExitCode);
+	BITLIB_API void OutputLog(const char* Fmt, ...);
+	BITLIB_API void Alert(const char* Fmt, ...);
+	BITLIB_API void ExitProgram(int32_t ExitCode);
+	BITLIB_API double GetSeconds();
 }
 
 #if BIT_BUILD_DEBUG
