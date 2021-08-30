@@ -8,6 +8,7 @@ namespace bit
 	BITLIB_API void Alert(const char* Fmt, ...);
 	BITLIB_API void ExitProgram(int32_t ExitCode);
 	BITLIB_API double GetSeconds();
+	BITLIB_API int32_t GetOSErrorCode();
 }
 
 #if BIT_BUILD_DEBUG

@@ -51,3 +51,8 @@ double bit::GetSeconds()
 	QueryPerformanceCounter((LARGE_INTEGER*)&Time);
 	return (double)(Time * 1000 / GTimerFrequency) / 1000.0;
 }
+
+int32_t bit::GetOSErrorCode()
+{
+	return (int32_t)GetLastError();
+}
