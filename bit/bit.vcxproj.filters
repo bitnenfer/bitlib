@@ -113,5 +113,8 @@
     <ClCompile Include="bit\src\bit\scope_timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bit\src\bit\allocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

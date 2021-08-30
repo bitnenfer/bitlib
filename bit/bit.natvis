@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="bit::IAllocator">
-    <DisplayString>{{ IAllocator }}</DisplayString>
+    <DisplayString>{{ {Name} }}</DisplayString>
   </Type>
   <Type Name="bit::TArray&lt;*&gt;">
     <DisplayString>{{ Count={Count}, Capacity={Capacity} }}</DisplayString>
     <Expand>
-      <Item Name="[Allocator]">Allocator</Item>
+      <Item Name="[Allocator]">Allocator->Name,s</Item>
       <Item Name="[Count]">Count</Item>
       <Item Name="[Capacity]">Capacity</Item>
       <ArrayItems>
@@ -32,7 +32,7 @@
   <Type Name="bit::TLinkedList&lt;*&gt;">
     <DisplayString>{{ Count={Count} }}</DisplayString>
     <Expand>
-      <Item Name="[Allocator]">Allocator</Item>
+      <Item Name="[Allocator]">Allocator->Name,s</Item>
       <Item Name="[Count]">Count</Item>
       <LinkedListItems>
         <Size>Count</Size>
@@ -48,7 +48,7 @@
   <Type Name="bit::CCommandArgs">
     <DisplayString>{{ Count={Entries.Count} }}</DisplayString>
     <Expand>
-      <Item Name="[Allocator]">Entries.Allocator</Item>
+      <Item Name="[Allocator]">Entries.Allocator->Name,s</Item>
       <Item Name="[Count]">Entries.Count</Item>
       <ArrayItems>
         <Size>Entries.Count</Size>
@@ -62,7 +62,7 @@
   <Type Name="bit::THashTable&lt;*&gt;">
     <DisplayString>{{ Count={ElementCount}, Capacity={BucketCount} }}</DisplayString>
     <Expand>
-      <Item Name="[Allocator]">Allocator</Item>
+      <Item Name="[Allocator]">Allocator->Name,s</Item>
       <Item Name="[Count]">ElementCount</Item>
       <Item Name="[Capacity]">BucketCount</Item>
       <Item Name="[Hash]">Hasher</Item>

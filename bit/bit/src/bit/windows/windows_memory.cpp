@@ -24,9 +24,10 @@ extern "C" size_t strlen(const char* Str);
 extern "C" const char* strstr(const char* A, const char* B);
 extern "C" int strcmp(const char* A, const char* B);
 
-struct WindowsHeapAllocator : public bit::IAllocator
+struct CWindowsHeapAllocator : public bit::IAllocator
 {
-	WindowsHeapAllocator() :
+	CWindowsHeapAllocator() :
+		IAllocator::IAllocator("CWindowsHeapAllocator"),
 		Heap(nullptr)
 	{
 		Heap = GetProcessHeap();
@@ -55,22 +56,18 @@ struct WindowsHeapAllocator : public bit::IAllocator
 	{
 		return 0;
 	}
-	const char* GetName() override 
-	{
-		return "WindowsHeapAllocator";
-	}
 
 	HANDLE Heap;
 };
 
-static uint8_t HeapInitialBuffer[sizeof(WindowsHeapAllocator)];
-static WindowsHeapAllocator* DefaultAllocator = nullptr;
+static uint8_t HeapInitialBuffer[sizeof(CWindowsHeapAllocator)];
+static CWindowsHeapAllocator* DefaultAllocator = nullptr;
 
 bit::IAllocator& bit::GetDefaultAllocator()
 {
 	if (DefaultAllocator == nullptr)
 	{
-		DefaultAllocator = BitPlacementNew(HeapInitialBuffer) WindowsHeapAllocator();
+		DefaultAllocator = BitPlacementNew(HeapInitialBuffer) CWindowsHeapAllocator();
 	}
 	return *DefaultAllocator;
 }

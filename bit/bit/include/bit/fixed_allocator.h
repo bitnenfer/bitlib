@@ -7,6 +7,10 @@ namespace bit
 	template<typename T, size_t Capacity>
 	struct TFixedAllocator : public IAllocator
 	{
+		TFixedAllocator(const char* Name = "TFixedAllocator") :
+			IAllocator::IAllocator(Name)
+		{}
+
 		virtual void* Alloc(size_t Size, size_t Alignment) override
 		{
 			return Data;
@@ -25,10 +29,6 @@ namespace bit
 		virtual size_t GetTotalUsedMemory() override
 		{
 			return Capacity * sizeof(T);
-		}
-		virtual const char* GetName() override
-		{
-			return "FixedAllocator";
 		}
 
 		T Data[Capacity];
