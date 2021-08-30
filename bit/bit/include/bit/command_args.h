@@ -19,7 +19,7 @@ namespace bit
 		CCommandArgs(const char* Args[], uint32_t ArgCount, IAllocator& Allocator = bit::GetDefaultAllocator());
 		bool Contains(const char* Arg);
 		const char* GetValue(const char* Arg);
-		int32_t GetArgCount();
+		int64_t GetArgCount();
 
 	private:
 		TArray<CCommandArgEntry> Entries;

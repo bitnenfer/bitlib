@@ -18,13 +18,13 @@ namespace bit
 	template<
 		typename TKey, 
 		typename TValue, 
+		typename TSizeType = int64_t,
 		typename THash = TMurmurHash<TKey>
 	>
 	struct THashTable
 	{
-		typedef int32_t SizeType_t;
 		typedef size_t HashType_t;
-		typedef THashTable<TKey, TValue, THash> SelfType_t;
+		typedef THashTable<TKey, TValue, TSizeType, THash> SelfType_t;
 
 	private:
 		struct CBucketEntry
@@ -91,13 +91,13 @@ namespace bit
 				return nullptr;
 			}
 
-			TLinkedList<CBucketEntry> List;
+			TLinkedList<CBucketEntry, TSizeType> List;
 		};
 
 		struct CTableKey
 		{
 			HashType_t Hash;
-			SizeType_t BucketIndex;
+			TSizeType BucketIndex;
 		};
 
 	public:
@@ -110,7 +110,7 @@ namespace bit
 			ClosestBucket(0)
 		{}
 
-		THashTable(SizeType_t InitialCapacity, bit::IAllocator& Allocator = bit::GetDefaultAllocator()) :
+		THashTable(TSizeType InitialCapacity, bit::IAllocator& Allocator = bit::GetDefaultAllocator()) :
 			Allocator(&Allocator),
 			Buckets(nullptr),
 			BucketCount(0),
@@ -130,19 +130,19 @@ namespace bit
 			ElementCount = 0;
 		}
 
-		void ReHash(SizeType_t NewSize)
+		void ReHash(TSizeType NewSize)
 		{
 			if (Buckets != nullptr)
 			{
 				FurthestBucket = 0;
 				ClosestBucket = NewSize;
 				CBucket* NewBuckets = bit::Construct<CBucket>(Allocator->Alloc<CBucket>(NewSize), NewSize, Allocator);
-				for (SizeType_t Index = 0; Index < BucketCount; ++Index)
+				for (TSizeType Index = 0; Index < BucketCount; ++Index)
 				{
 					CBucket& Bucket = Buckets[Index];
 					for (CBucketEntry& Entry : Bucket.List)
 					{
-						SizeType_t Index = Entry.Hash % NewSize;
+						TSizeType Index = Entry.Hash % NewSize;
 						NewBuckets[Index].List.Insert(Entry);
 						FurthestBucket = bit::Max(FurthestBucket, Index);
 						ClosestBucket = bit::Min(ClosestBucket, Index);
@@ -191,7 +191,7 @@ namespace bit
 				{
 					FurthestBucket = 0;
 					ClosestBucket = BucketCount;
-					for (SizeType_t Index = 0; Index < TableKey.BucketIndex; ++Index)
+					for (TSizeType Index = 0; Index < TableKey.BucketIndex; ++Index)
 					{
 						if (!Buckets[Index].IsEmpty())
 						{
@@ -224,7 +224,7 @@ namespace bit
 			return Insert(Key, Default);
 		}
 
-		void CheckGrow(SizeType_t AddCount = 1)
+		void CheckGrow(TSizeType AddCount = 1)
 		{
 			if ((double)ElementCount + AddCount >= (double)BucketCount * 0.8)
 			{
@@ -233,14 +233,14 @@ namespace bit
 		}
 
 		HashType_t GetHash(const TKey& Key) const { return Hasher(Key); }
-		SizeType_t GetCount() const { return ElementCount; }
-		SizeType_t GetCapacity() const { return BucketCount; }
+		TSizeType GetCount() const { return ElementCount; }
+		TSizeType GetCapacity() const { return BucketCount; }
 		bool IsEmpty() const { return ElementCount == 0; }
 
 		/* Begin range for loop implementation */
 		struct CIterator
 		{
-			CIterator(CBucket* Buckets, typename TLinkedList<CBucketEntry>::CIterator Iter, SizeType_t BucketIndex, SizeType_t BucketCount) :
+			CIterator(CBucket* Buckets, typename TLinkedList<CBucketEntry>::CIterator Iter, TSizeType BucketIndex, TSizeType BucketCount) :
 				Buckets(Buckets),
 				Iter(Iter),
 				BucketIndex(BucketIndex),
@@ -267,7 +267,7 @@ namespace bit
 			{
 				if (++Iter == Buckets[BucketIndex].List.end())
 				{
-					for (SizeType_t Index = BucketIndex + 1; Index < BucketCount; ++Index)
+					for (TSizeType Index = BucketIndex + 1; Index < BucketCount; ++Index)
 					{
 						if (!Buckets[Index].List.IsEmpty())
 						{
@@ -296,8 +296,8 @@ namespace bit
 		private:
 			CBucket* Buckets;
 			typename TLinkedList<CBucketEntry>::CIterator Iter;
-			SizeType_t BucketIndex;
-			SizeType_t BucketCount;
+			TSizeType BucketIndex;
+			TSizeType BucketCount;
 		};
 
 		CIterator begin() 
@@ -315,16 +315,16 @@ namespace bit
 		CTableKey GetTableKey(const TKey& Key) const 
 		{
 			HashType_t Hash = GetHash(Key);
-			SizeType_t Index = Hash % BucketCount;
+			TSizeType Index = Hash % BucketCount;
 			return { Hash, Index }; 
 		}
 		
 		IAllocator* Allocator;
 		CBucket* Buckets;
-		SizeType_t BucketCount;
-		SizeType_t ElementCount;
-		SizeType_t FurthestBucket;
-		SizeType_t ClosestBucket;
+		TSizeType BucketCount;
+		TSizeType ElementCount;
+		TSizeType FurthestBucket;
+		TSizeType ClosestBucket;
 		THash Hasher;
 	};
 }

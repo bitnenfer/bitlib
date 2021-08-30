@@ -5,11 +5,10 @@
 
 namespace bit
 {
-	template<typename T>
+	template<typename T, typename TSizeType = int64_t>
 	struct TIntrusiveLinkedList
 	{
-		typedef TIntrusiveLinkedList SelfType_t;
-		typedef int32_t SizeType_t;
+		typedef TIntrusiveLinkedList<T, TSizeType> SelfType_t;
 
 		TIntrusiveLinkedList(T& Owner) :
 			Prev(this),
@@ -97,9 +96,9 @@ namespace bit
 		bool IsEmpty() { return GetCount() == 0; }
 
 		T& GetOwner() const { return Owner; }
-		SizeType_t GetCount()
+		TSizeType GetCount()
 		{
-			SizeType_t Count = 0;
+			TSizeType Count = 0;
 			for (SelfType_t* Link = Head->Next; Link != Head; Link = Link->Next)
 			{
 				Count += 1;
@@ -111,10 +110,10 @@ namespace bit
 			return Count;
 		}
 
-		T& operator[](SizeType_t Index)
+		T& operator[](TSizeType Index)
 		{
 			BIT_ASSERT_MSG(Index < Head->Count, "Linked list index out of bounds");
-			SizeType_t ElemIndex = 0;
+			TSizeType ElemIndex = 0;
 			for (T& Element : *this)
 			{
 				if (ElemIndex++ == Index)
@@ -213,6 +212,6 @@ namespace bit
 		SelfType_t* Next;
 		SelfType_t* Head;
 		T& Owner;
-		SizeType_t Count;
+		TSizeType Count;
 	};
 }

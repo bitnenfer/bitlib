@@ -75,7 +75,7 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(ProjectDir)\gen\bin\$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)\gen\int\$(PlatformTarget)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\bit\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)\bit\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <NMakeBuildCommandLine>$(ProjectDir)build\build_windows_x86_debug.bat</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine>$(ProjectDir)build\build_windows_x86_debug.bat</NMakeReBuildCommandLine>
     <NMakeIncludeSearchPath>$(ProjectDir)\bit\include\;$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
@@ -84,7 +84,7 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(ProjectDir)\gen\bin\$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)\gen\int\$(PlatformTarget)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\bit\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)\bit\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <NMakeBuildCommandLine>$(ProjectDir)build\build_windows_x86_release.bat</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine>$(ProjectDir)build\build_windows_x86_release.bat</NMakeReBuildCommandLine>
     <NMakeIncludeSearchPath>$(ProjectDir)\bit\include\;$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
@@ -93,7 +93,7 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(ProjectDir)\gen\bin\$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)\gen\int\$(PlatformTarget)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\bit\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)\bit\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <NMakeBuildCommandLine>$(ProjectDir)build\build_windows_x64_debug.bat</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine>$(ProjectDir)build\build_windows_x64_debug.bat</NMakeReBuildCommandLine>
     <NMakeIncludeSearchPath>$(ProjectDir)\bit\include\;$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
@@ -102,7 +102,7 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(ProjectDir)\gen\bin\$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)\gen\int\$(PlatformTarget)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\bit\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)\bit\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <NMakeBuildCommandLine>$(ProjectDir)build\build_windows_x64_release.bat</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine>$(ProjectDir)build\build_windows_x64_release.bat</NMakeReBuildCommandLine>
     <NMakeIncludeSearchPath>$(ProjectDir)\bit\include\;$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>

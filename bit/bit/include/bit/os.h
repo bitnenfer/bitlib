@@ -12,7 +12,7 @@ namespace bit
 
 #if BIT_BUILD_DEBUG
 #define BIT_ALERT(Fmt, ...) bit::Alert(Fmt, ##__VA_ARGS__); BIT_DEBUG_BREAK();
-#define BIT_ASSERT_MSG(Condition, Fmt, ...) if (!(Condition)) { BIT_ALERT(Fmt, ##__VA_ARGS__); bit::ExitProgram(-1); }
+#define BIT_ASSERT_MSG(Condition, Fmt, ...) if (!(Condition)) { BIT_ALERT(Fmt, ##__VA_ARGS__); BIT_DEBUG_BREAK(); }
 #define BIT_LOG(Fmt, ...) bit::OutputLog(Fmt, ##__VA_ARGS__)
 #define BIT_PANIC_MSG(Fmt, ...) { BIT_ALERT(Fmt, ##__VA_ARGS__);  bit::ExitProgram(-1); }
 #define BIT_PANIC(Fmt) { BIT_DEBUG_BREAK();  bit::ExitProgram(-1); }
@@ -29,3 +29,4 @@ namespace bit
 #define BIT_ALWAYS_LOG(Fmt, ...) bit::OutputLog(Fmt, ##__VA_ARGS__)
 #define BIT_ALWAYS_PANIC(Fmt)  { BIT_DEBUG_BREAK();  bit::ExitProgram(-1); }
 #define BIT_ALWAYS_ASSERT(Condition) if (!(Condition)) { BIT_DEBUG_BREAK(); }
+#define BIT_ALWAYS_ASSERT_MSG(Condition, Fmt, ...) if (!(Condition)) { BIT_ALERT(Fmt, ##__VA_ARGS__); BIT_DEBUG_BREAK(); }

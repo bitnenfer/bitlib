@@ -20,6 +20,9 @@ void* BitMemset(void* Ptr, int32_t Value, size_t Num)
 }
 
 extern "C" int memcmp(const void* A, const void* B, size_t Num);
+extern "C" size_t strlen(const char* Str);
+extern "C" const char* strstr(const char* A, const char* B);
+extern "C" int strcmp(const char* A, const char* B);
 
 struct WindowsHeapAllocator : public bit::IAllocator
 {
@@ -85,6 +88,30 @@ void* bit::Memset(void* Ptr, int32_t Value, size_t Num)
 int bit::Memcmp(const void* A, const void* B, size_t Num)
 {
 	return memcmp(A, B, Num);
+}
+
+size_t bit::Strlen(const char* Str)
+{
+	return strlen(Str);
+}
+
+bool bit::StrContains(const char* A, const char* B, size_t* Offset)
+{
+	const char* Result = strstr(A, B);
+	if (Result != nullptr)
+	{
+		if (Offset != nullptr)
+		{
+			*Offset = (size_t)((uintptr_t)Result - (uintptr_t)A);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool bit::Strcmp(const char* A, const char* B)
+{
+	return strcmp(A, B) == 0;
 }
 
 size_t bit::Fmt(char* Buffer, size_t BufferSize, const char* Fmt, ...)

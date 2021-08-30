@@ -69,7 +69,7 @@ const char* bit::CCommandArgs::GetValue(const char* Arg)
 	return Output.Value;
 }
 
-int32_t bit::CCommandArgs::GetArgCount()
+int64_t bit::CCommandArgs::GetArgCount()
 {
 	return Entries.GetCount();
 }

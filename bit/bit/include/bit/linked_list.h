@@ -7,11 +7,10 @@
 
 namespace bit
 {
-	template<typename T>
+	template<typename T, typename TSizeType = int64_t>
 	struct TLinkedList
 	{
-		typedef int32_t SizeType_t;
-		typedef TLinkedList<T> SelfType_t;
+		typedef TLinkedList<T, TSizeType> SelfType_t;
 
 	private:
 		struct CLink
@@ -102,7 +101,7 @@ namespace bit
 			return FindLink(Element) != nullptr;
 		}
 
-		SizeType_t GetCount() const { return Count; }
+		TSizeType GetCount() const { return Count; }
 		bool IsEmpty() const { return Count == 0; }
 
 		/* Begin range for loop implementation */
@@ -191,10 +190,10 @@ namespace bit
 		CConstIterator cend() { return CConstIterator(nullptr); }
 		/* End range for loop implementation */
 
-		T& operator[](SizeType_t Index)
+		T& operator[](TSizeType Index)
 		{
 			BIT_ASSERT_MSG(Index < Count, "Linked list index out of bounds");
-			SizeType_t ElemIndex = 0;
+			TSizeType ElemIndex = 0;
 			for (T& Element : *this)
 			{
 				if (ElemIndex++ == Index)
@@ -299,6 +298,6 @@ namespace bit
 		bit::IAllocator* Allocator;
 		CLink* Head;
 		CLink* Tail;
-		SizeType_t Count;
+		TSizeType Count;
 	};
 }

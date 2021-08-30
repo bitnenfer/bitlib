@@ -7,11 +7,10 @@
 
 namespace bit
 {
-	template<typename T>
+	template<typename T, typename TSizeType = int64_t>
 	struct TArray
 	{
-		typedef int32_t SizeType_t;
-		typedef TArray<T> SelfType_t;
+		typedef TArray<T, TSizeType> SelfType_t;
 
 		TArray(bit::IAllocator& Allocator = bit::GetDefaultAllocator()) :
 			Allocator(&Allocator),
@@ -19,7 +18,7 @@ namespace bit
 			Count(0),
 			Capacity(0)
 		{}
-		TArray(SizeType_t InitialCapacity, bit::IAllocator& Allocator = bit::GetDefaultAllocator()) :
+		TArray(TSizeType InitialCapacity, bit::IAllocator& Allocator = bit::GetDefaultAllocator()) :
 			Allocator(&Allocator),
 			Data(nullptr),
 			Count(0),
@@ -65,7 +64,7 @@ namespace bit
 			Data = nullptr;
 		}
 
-		void Reserve(SizeType_t NewSize)
+		void Reserve(TSizeType NewSize)
 		{
 			Data = static_cast<T*>(Allocator->Realloc(Data, NewSize * sizeof(T), bit::DEFAULT_ALIGNMENT));
 			Capacity = NewSize;
@@ -92,7 +91,7 @@ namespace bit
 			CheckGrow();
 			Data[Count++] = bit::Move(Element);
 		}
-		void Add(const T* Buffer, SizeType_t BufferCount)
+		void Add(const T* Buffer, TSizeType BufferCount)
 		{
 			CheckGrow(BufferCount);
 			bit::Memcpy(&Data[Count], Buffer, sizeof(T) * BufferCount);
@@ -102,7 +101,7 @@ namespace bit
 		{
 			Add(Other.GetData(), Other.GetCount());
 		}
-		T& At(SizeType_t Index)
+		T& At(TSizeType Index)
 		{
 			BIT_ASSERT_MSG(Index < Count, "Array index out of bounds");
 			return Data[Index];
@@ -112,7 +111,7 @@ namespace bit
 			BIT_ASSERT_MSG(Count > 1, "Array access out of bounds");
 			return Data[Count - 1];
 		}
-		T& operator[](SizeType_t Index)
+		T& operator[](TSizeType Index)
 		{
 			BIT_ASSERT_MSG(Index < Count, "Array index out of bounds");
 			return Data[Index];
@@ -191,7 +190,7 @@ namespace bit
 			return Ptr;
 		}
 
-		void CheckGrow(SizeType_t AddCount = 1)
+		void CheckGrow(TSizeType AddCount = 1)
 		{
 			if (!CanAdd(AddCount))
 			{
@@ -202,20 +201,20 @@ namespace bit
 			#endif
 			}
 		}
-		bool CanAdd(SizeType_t AddCount) { return Count + AddCount <= Capacity; }
+		bool CanAdd(TSizeType AddCount) { return Count + AddCount <= Capacity; }
 		bool IsEmpty() const { return Count == 0; }
 		void Reset() { Count = 0; }
 		T* GetData() const { return Data; }
-		SizeType_t GetCount() const { return Count; }
-		SizeType_t GetCapacity() const { return Capacity; }
-		SizeType_t GetCountInBytes() const { return Count * sizeof(T); }
-		SizeType_t GetCapacityInBytes() const { return Capacity * sizeof(T); }
+		TSizeType GetCount() const { return Count; }
+		TSizeType GetCapacity() const { return Capacity; }
+		TSizeType GetCountInBytes() const { return Count * sizeof(T); }
+		TSizeType GetCapacityInBytes() const { return Capacity * sizeof(T); }
 		bit::IAllocator& GetAllocator() { return *Allocator; }
 
 		/* Begin range for loop implementation */
 		struct CIterator
 		{
-			CIterator(T* Ptr, SizeType_t Offset) : Ptr(Ptr + Offset) {}
+			CIterator(T* Ptr, TSizeType Offset) : Ptr(Ptr + Offset) {}
 			T& operator*() const { return *Ptr; }
 			T* operator->() { return Ptr; }
 			CIterator& operator++() { Ptr++; return *this; }
@@ -227,7 +226,7 @@ namespace bit
 		};
 		struct CConstIterator
 		{
-			CConstIterator(const T* Ptr, SizeType_t Offset) : Ptr(Ptr + Offset) {}
+			CConstIterator(const T* Ptr, TSizeType Offset) : Ptr(Ptr + Offset) {}
 			const T& operator*() const { return *Ptr; }
 			const T* operator->() const { return Ptr; }
 			CConstIterator& operator++() { Ptr++; return *this; }
@@ -247,7 +246,7 @@ namespace bit
 	private:
 		bit::IAllocator* Allocator;
 		T* Data;
-		SizeType_t Count;
-		SizeType_t Capacity;
+		TSizeType Count;
+		TSizeType Capacity;
 	};
 }
