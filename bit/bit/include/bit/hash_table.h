@@ -187,13 +187,13 @@ namespace bit
 			CBucket& Bucket = Buckets[TableKey.BucketIndex];
 			if (Bucket.Erase(TableKey.Hash, Key))
 			{
-				if (Bucket.IsEmpty())
+				if (Bucket.List.IsEmpty())
 				{
 					FurthestBucket = 0;
 					ClosestBucket = BucketCount;
 					for (TSizeType Index = 0; Index < TableKey.BucketIndex; ++Index)
 					{
-						if (!Buckets[Index].IsEmpty())
+						if (!Buckets[Index].List.IsEmpty())
 						{
 							FurthestBucket = bit::Max(FurthestBucket, Index);
 							ClosestBucket = bit::Min(ClosestBucket, Index);

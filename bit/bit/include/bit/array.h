@@ -68,6 +68,7 @@ namespace bit
 		{
 			Data = static_cast<T*>(Allocator->Realloc(Data, NewSize * sizeof(T), bit::DEFAULT_ALIGNMENT));
 			Capacity = NewSize;
+			BIT_ASSERT(Data != nullptr);
 		}
 
 		bool Contains(const T& Element)

@@ -10,6 +10,7 @@
 #include <bit/hash_table.h>
 #include <bit/linked_list.h>
 #include <bit/intrusive_linked_list.h>
+#include <bit/linear_allocator.h>
 
 struct MyValue
 {
@@ -25,9 +26,11 @@ struct MyValue
 int main(int32_t Argc, const char* Argv[])
 {
 	bit::CScopeTimer Timer("Sample");
-	bit::TFixedAllocator<int32_t, 1000> Allocator;
+	bit::CLinearAllocator LinearAllocator("TestLinearAllocator");
+	LinearAllocator.Initialize(bit::Malloc(bit::ToMiB(100), bit::CLinearAllocator::GetRequiredAlignment()), bit::ToMiB(100));
+
 	bit::TArray<int32_t> MyArray;
-	bit::TArray<int32_t> CopyArray(Allocator);
+	bit::TArray<int32_t> CopyArray;
 	bit::THashTable<int32_t, int32_t> Table;
 	bit::TLinkedList<int32_t> List;
 	MyValue MyRoot(0);
@@ -36,7 +39,7 @@ int main(int32_t Argc, const char* Argv[])
 	Table.Insert(169, 1);
 	Table.Insert(269, 2);
 
-	//Table.Erase(69);
+	Table.Erase(69);
 
 	int32_t X = Table[69];
 	int32_t Y = Table[169];
@@ -54,7 +57,7 @@ int main(int32_t Argc, const char* Argv[])
 		MyValue* NewNode = bit::New<MyValue>(Index);
 		NewNode->Link.InsertAtTail(MyRoot.Link);
 	}
-	int32_t Count = MyRoot.Link.GetCount();
+	int64_t Count = MyRoot.Link.GetCount();
 
 	for (MyValue& Value : MyRoot.Link)
 	{
@@ -132,6 +135,9 @@ int main(int32_t Argc, const char* Argv[])
 		LastValue = Elem.Value;
 		idx++;
 	}
+
+	bit::Free(LinearAllocator.GetBuffer(nullptr));
+	bit::CMemoryInfo MemInfo = bit::GetDefaultAllocator().GetMemoryInfo();
 
 	return 0;
 }

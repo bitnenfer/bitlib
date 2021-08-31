@@ -79,6 +79,11 @@ namespace bit
 			if (Link != nullptr)
 			{
 				Unlink(Link);
+				if (Link == Head)
+				{
+					Head = nullptr;
+					Tail = nullptr;
+				}
 				Allocator->Delete(Link);
 				Count -= 1;
 				return true;
@@ -254,6 +259,7 @@ namespace bit
 				{
 					return Link;
 				}
+				Link = Link->Next;
 			}
 			return nullptr;
 		}

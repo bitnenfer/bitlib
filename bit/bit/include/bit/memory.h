@@ -14,10 +14,10 @@ namespace bit
 	BITLIB_API bool Strcmp(const char* A, const char* B);
 	BITLIB_API size_t Fmt(char* Buffer, size_t BufferSize, const char* Fmt, ...);
 	BITLIB_API const char* TempFmtString(const char* Fmt, ...);
-	BITLIB_API size_t ToKiB(size_t Bytes);
-	BITLIB_API size_t ToMiB(size_t Bytes);
-	BITLIB_API size_t ToGiB(size_t Bytes);
-	BITLIB_API size_t ToTiB(size_t Bytes);
+	BITLIB_API size_t ToKiB(size_t Value);
+	BITLIB_API size_t ToMiB(size_t Value);
+	BITLIB_API size_t ToGiB(size_t Value);
+	BITLIB_API size_t ToTiB(size_t Value);
 
 	BIT_FORCEINLINE void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
 	{
@@ -86,5 +86,6 @@ template<typename T>
 bool operator==(const T& LHS, const T& RHS)
 {
 	BIT_IF_CONSTEXPR(sizeof(T) <= 8) return LHS == RHS;
+	else if (&RHS == &LHS) return true;
 	else return bit::Memcmp(&LHS, &RHS, sizeof(T));
 }

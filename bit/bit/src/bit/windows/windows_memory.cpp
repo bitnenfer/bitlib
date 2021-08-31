@@ -24,44 +24,56 @@ extern "C" size_t strlen(const char* Str);
 extern "C" const char* strstr(const char* A, const char* B);
 extern "C" int strcmp(const char* A, const char* B);
 
-struct CWindowsHeapAllocator : public bit::IAllocator
+namespace bit
 {
-	CWindowsHeapAllocator() :
-		IAllocator::IAllocator("CWindowsHeapAllocator"),
-		Heap(nullptr)
+	struct CWindowsHeapAllocator : public bit::IAllocator
 	{
-		Heap = GetProcessHeap();
-	}
+		CWindowsHeapAllocator() :
+			IAllocator::IAllocator("CWindowsHeapAllocator"),
+			Heap(nullptr)
+		{
+			Heap = GetProcessHeap();
+		}
 
-	void* Alloc(size_t Size, size_t Alignment) override
-	{
-		return HeapAlloc(Heap, 0, Size);
-	}
-	void* Realloc(void* Pointer, size_t Size, size_t Alignment) override
-	{
-		if (Pointer != nullptr)
-			return HeapReAlloc(Heap, 0, Pointer, Size);
-		else
+		void* Alloc(size_t Size, size_t Alignment) override
+		{
 			return HeapAlloc(Heap, 0, Size);
-	}
-	void Free(void* Pointer) override
-	{
-		HeapFree(Heap, 0, Pointer);
-	}
-	size_t GetSize(void* Pointer) override
-	{
-		return HeapSize(Heap, 0, Pointer);
-	}
-	size_t GetTotalUsedMemory() override
-	{
-		return 0;
-	}
+		}
+		void* Realloc(void* Pointer, size_t Size, size_t Alignment) override
+		{
+			if (Pointer != nullptr)
+				return HeapReAlloc(Heap, 0, Pointer, Size);
+			else
+				return HeapAlloc(Heap, 0, Size);
+		}
+		void Free(void* Pointer) override
+		{
+			HeapFree(Heap, 0, Pointer);
+		}
+		size_t GetSize(void* Pointer) override
+		{
+			return HeapSize(Heap, 0, Pointer);
+		}
 
-	HANDLE Heap;
-};
-
-static uint8_t HeapInitialBuffer[sizeof(CWindowsHeapAllocator)];
-static CWindowsHeapAllocator* DefaultAllocator = nullptr;
+		CMemoryInfo GetMemoryInfo() override
+		{
+			HEAP_SUMMARY Summary = {};
+			CMemoryInfo Info = {};
+			Summary.cb = sizeof(HEAP_SUMMARY);
+			if (HeapSummary(Heap, 0, &Summary))
+			{
+				Info.AllocatedBytes = Summary.cbAllocated;
+				Info.CommittedBytes = Summary.cbCommitted;
+				Info.ReservedBytes = Summary.cbReserved;
+			}
+			return Info;
+		}
+		
+		HANDLE Heap;
+	};
+	static uint8_t HeapInitialBuffer[sizeof(CWindowsHeapAllocator)];
+	static CWindowsHeapAllocator* DefaultAllocator = nullptr;
+}
 
 bit::IAllocator& bit::GetDefaultAllocator()
 {

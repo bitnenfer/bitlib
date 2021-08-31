@@ -2,6 +2,8 @@
 
 #include <bit/types.h>
 
+#include <intrin.h>
+
 namespace bit
 {
 	template<class T> struct RemoveRef { typedef T Type; };
@@ -9,22 +11,57 @@ namespace bit
 	template<class T> struct RemoveRef<T&&> { typedef T Type; };
 
 	template <class T>
-	typename RemoveRef<T>::Type&& Move(T&& Arg) noexcept
+	BIT_FORCEINLINE typename RemoveRef<T>::Type&& Move(T&& Arg) noexcept
 	{
 		return static_cast<typename RemoveRef<T>::Type&&>(Arg);
 	}
 
 	template<class T>
-	T Max(T A, T B)
+	BIT_FORCEINLINE T Max(T A, T B)
 	{
 		if (A > B) return A;
 		return B;
 	}
 	template<class T>
-	T Min(T A, T B)
+	BIT_FORCEINLINE T Min(T A, T B)
 	{
 		if (A < B) return A;
 		return B;
+	}
+
+	template<typename TLHS, typename TRHS>
+	BIT_FORCEINLINE TLHS BitCast(TRHS Value) 
+	{ 
+		return *(TLHS*)& Value; 
+	}
+
+	template<typename T>
+	T Abs(T Value);
+
+	template<typename T = int32_t>
+	BIT_FORCEINLINE int32_t Abs(int32_t Value) 
+	{ 
+		return Value < 0 ? ~Value + 1 : Value; 
+	}
+
+	template<typename T = int64_t>
+	BIT_FORCEINLINE int64_t Abs(int64_t Value) 
+	{ 
+		return Value < 0 ? ~Value + 1 : Value; 
+	}
+
+	template<typename T = float>
+	BIT_FORCEINLINE float Abs(float Value)
+	{
+		uint32_t Bits = *((uint32_t*)& Value) & 0x7FFFFFFF; // Just clear the sign bit
+		return *((float*)& Bits);
+	}
+
+	template<typename T = double>
+	BIT_FORCEINLINE double Abs(double Value)
+	{
+		uint64_t Bits = *((uint64_t*)& Value) & 0x7FFFFFFFFFFFFFFFLL; // Just clear the sign bit
+		return *((double*)& Bits);
 	}
 
 	BIT_FORCEINLINE size_t AlignUint(size_t Value, size_t Alignment)
@@ -36,6 +73,30 @@ namespace bit
 		#endif
 	}
 
+	BIT_FORCEINLINE void* AlignPtr(void* Ptr, size_t Alignment)
+	{
+#if BIT_PLATFORM_X64
+		return (void*)(((uintptr_t)(Ptr)+((uintptr_t)(Alignment)-1LL)) & ~((uintptr_t)(Alignment)-1LL));
+#elif BIT_PLAFORM_X86
+		return (void*)(((uintptr_t)(Ptr)+((uintptr_t)(Alignment)-1)) & ~((uintptr_t)(Alignment)-1));
+#endif
+	}
+
+	BIT_FORCEINLINE void* ForwardPtr(void* Ptr, size_t Offset)
+	{
+		return (void*)((uintptr_t)Ptr + (uintptr_t)Offset);
+	}
+
+	BIT_FORCEINLINE void* BackwardPtr(void* Ptr, size_t Offset)
+	{
+		return (void*)((uintptr_t)Ptr - (uintptr_t)Offset);
+	}
+
+	BIT_FORCEINLINE intptr_t PtrDiff(const void* A, const void* B)
+	{
+		return bit::Abs((intptr_t)A - (intptr_t)B);
+	}
+
 	BITLIB_API size_t Log2(size_t Value);
 
 	BIT_FORCEINLINE size_t NextPow2(size_t Size)
@@ -44,7 +105,8 @@ namespace bit
 		return 1LL << (BitIndex + 1);
 	}
 
-	template<typename T> bool IsPow2(T Value)
+	template<typename T> 
+	BIT_FORCEINLINE bool IsPow2(T Value)
 	{
 		// Value		= 0b001000
 		// Value - 1	= 0b000111
