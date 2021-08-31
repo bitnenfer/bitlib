@@ -31,7 +31,7 @@ int main(int32_t Argc, const char* Argv[])
 
 	bit::TArray<int32_t> MyArray;
 	bit::TArray<int32_t> CopyArray;
-	bit::THashTable<int32_t, int32_t> Table;
+	bit::THashTable<int32_t, int32_t> Table(LinearAllocator);
 	bit::TLinkedList<int32_t> List;
 	MyValue MyRoot(0);
 

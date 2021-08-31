@@ -58,11 +58,17 @@ void* bit::CLinearAllocator::GetBuffer(size_t* OutSize)
 	return Buffer;
 }
 
+size_t bit::CLinearAllocator::CalcSize(size_t Size)
+{
+	return Size + sizeof(CLinearAllocatorHeader);
+}
+
 void* bit::CLinearAllocator::Alloc(size_t Size, size_t Alignment)
 {
-	if ((size_t)bit::PtrDiff(Buffer, Buffer + BufferOffset + Size) < BufferSize)
+	size_t AllocSize = CalcSize(Size);
+	if ((size_t)bit::PtrDiff(Buffer, Buffer + AllocSize) < BufferSize)
 	{
-		void* NonAligned = bit::ForwardPtr(Buffer, BufferOffset + sizeof(CLinearAllocatorHeader));
+		void* NonAligned = bit::ForwardPtr(Buffer, AllocSize);
 		void* Aligned = bit::AlignPtr(NonAligned, Alignment);
 		CLinearAllocatorHeader::GetHeader(Aligned)->BlockSize = Size;
 		BufferOffset += bit::PtrDiff(Buffer, Aligned);

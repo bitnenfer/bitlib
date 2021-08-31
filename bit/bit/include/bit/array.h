@@ -8,6 +8,24 @@
 namespace bit
 {
 	template<typename T, typename TSizeType = int64_t>
+	struct TArrayImpl
+	{
+		typedef TArrayImpl<T, TSizeType> SelfType_t;
+
+		TArrayImpl(T* Begin, T* End) :
+			Begin(Begin), End(End)
+		{}
+
+		T* GetData() const { return Begin; }
+		TSizeType GetCount() const { return bit::PtrDiff((void*)Begin, (void*)End); }
+		TSizeType GetCountInBytes() const { return GetCount() * sizeof(T); }
+
+	private:
+		T* Begin;
+		T* End;
+	};
+
+	template<typename T, typename TSizeType = int64_t>
 	struct TArray
 	{
 		typedef TArray<T, TSizeType> SelfType_t;

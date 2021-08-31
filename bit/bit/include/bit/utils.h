@@ -92,9 +92,9 @@ namespace bit
 		return (void*)((uintptr_t)Ptr - (uintptr_t)Offset);
 	}
 
-	BIT_FORCEINLINE intptr_t PtrDiff(const void* A, const void* B)
+	BIT_FORCEINLINE size_t PtrDiff(const void* A, const void* B)
 	{
-		return bit::Abs((intptr_t)A - (intptr_t)B);
+		return (size_t)bit::Abs((intptr_t)A - (intptr_t)B);
 	}
 
 	BITLIB_API size_t Log2(size_t Value);
