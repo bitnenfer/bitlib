@@ -7,22 +7,100 @@
 
 namespace bit
 {
-	template<typename T, typename TSizeType = int64_t>
-	struct TArrayImpl
+	template<typename T, typename TSizeType>
+	struct TArrayBase
 	{
-		typedef TArrayImpl<T, TSizeType> SelfType_t;
+		static_assert(bit::TIsSigned<TSizeType>::bValue, "Size type must be signed");
+		typedef TArrayBase<T, TSizeType> SelfType_t;
 
-		TArrayImpl(T* Begin, T* End) :
-			Begin(Begin), End(End)
+		/* Begin range for loop implementation */
+		struct CIterator
+		{
+			CIterator(T* Ptr) : Ptr(Ptr) {}
+			T& operator*() const { return *Ptr; }
+			T* operator->() { return Ptr; }
+			CIterator& operator++() { Ptr++; return *this; }
+			CIterator operator++(int32_t) { CIterator Self = *this; ++(*this); return Self; }
+			friend bool operator==(const CIterator& A, const CIterator& B) { return A.Ptr == B.Ptr; }
+			friend bool operator!=(const CIterator& A, const CIterator& B) { return A.Ptr != B.Ptr; }
+		private:
+			T* Ptr;
+		};
+		struct CConstIterator
+		{
+			CConstIterator(const T* Ptr) : Ptr(Ptr) {}
+			const T& operator*() const { return *Ptr; }
+			const T* operator->() const { return Ptr; }
+			CConstIterator& operator++() { Ptr++; return *this; }
+			CConstIterator operator++(int32_t) { CConstIterator Self = *this; ++(*this); return Self; }
+			friend bool operator==(const CConstIterator& A, const CConstIterator& B) { return A.Ptr == B.Ptr; }
+			friend bool operator!=(const CConstIterator& A, const CConstIterator& B) { return A.Ptr != B.Ptr; }
+		private:
+			const T* Ptr;
+		};
+
+		CIterator begin() { return CIterator(Data); }
+		CIterator end() { return CIterator(Data + Count); }
+		CConstIterator cbegin() const { return CConstIterator(Data); }
+		CConstIterator cend() const { return CConstIterator(Data + Count); }
+		/* End range for loop implementation */
+
+		TArrayBase(T* Data, TSizeType Capacity) :
+			Data(Data),
+			Capacity(Capacity),
+			Count(0)
 		{}
 
-		T* GetData() const { return Begin; }
-		TSizeType GetCount() const { return bit::PtrDiff((void*)Begin, (void*)End); }
-		TSizeType GetCountInBytes() const { return GetCount() * sizeof(T); }
+		BIT_FORCEINLINE T& At(TSizeType Index)
+		{
+			BIT_ASSERT_MSG(Count > 0 && Index < Count, "Index out of bounds. Index = %d. Count = %d\n", Index, Count);
+			return Data[Index];
+		}
 
-	private:
-		T* Begin;
-		T* End;
+		T& GetLast() { return At(Count - 1); }
+		T& GetFirst() { return At(0); }
+		T& operator[](TSizeType Index) { return At(Index); }
+		T* GetData() const { return Data; }
+		TSizeType GetCount() const { return Count; }
+		TSizeType GetCountInBytes() const { return Count * sizeof(T); }
+		TSizeType GetCapacity() const { return Capacity; }
+		TSizeType GetCapacityInBytes() const { return Capacity * sizeof(T); }
+
+		void AddImpl(const T& Element)
+		{
+			Data[Count++] = Element;
+		}
+		void AddImpl(T&& Element)
+		{
+			Data[Count++] = bit::Move(Element);
+		}
+		void AddImpl(const T* Buffer, TSizeType BufferCount)
+		{
+			bit::Memcpy(&Data[Count], Buffer, sizeof(T) * BufferCount);
+			Count += BufferCount;
+		}
+		void AddImpl(const SelfType_t& Other)
+		{
+			AddImpl(Other.GetData(), Other.GetCount());
+		}
+		T& AddEmptyImpl()
+		{
+			T DefaultElement;
+			Add(DefaultElement);
+			return GetLast();
+		}
+		template<typename... TArgs>
+		T& AllocImpl(TArgs&& ... ConstructorArgs)
+		{
+			T* Ptr = &Data[Count++];
+			bit::Construct(Ptr, 1, ConstructorArgs...);
+			return Ptr;
+		}
+
+	protected:
+		T* Data;
+		TSizeType Capacity;
+		TSizeType Count;
 	};
 
 	template<typename T, typename TSizeType = int64_t>

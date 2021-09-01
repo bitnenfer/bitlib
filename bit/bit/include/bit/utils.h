@@ -114,5 +114,10 @@ namespace bit
 		return (((Value) & ((Value)-1)) == 0);
 	}
 
-	
+	template<typename T> struct TIsSigned { static BIT_CONSTEXPR bool bValue = false; };
+	template<> struct TIsSigned<int8_t> { static BIT_CONSTEXPR bool bValue = true; };
+	template<> struct TIsSigned<int16_t> { static BIT_CONSTEXPR bool bValue = true; };
+	template<> struct TIsSigned<int32_t> { static BIT_CONSTEXPR bool bValue = true; };
+	template<> struct TIsSigned<int64_t> { static BIT_CONSTEXPR bool bValue = true; };
+
 }
