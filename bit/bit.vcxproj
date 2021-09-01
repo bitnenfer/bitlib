@@ -183,6 +183,7 @@
     <ClInclude Include="bit\include\bit\array.h" />
     <ClInclude Include="bit\include\bit\atomics.h" />
     <ClInclude Include="bit\include\bit\command_args.h" />
+    <ClInclude Include="bit\include\bit\container_allocator.h" />
     <ClInclude Include="bit\include\bit\critical_section.h" />
     <ClInclude Include="bit\include\bit\fixed_allocator.h" />
     <ClInclude Include="bit\include\bit\hash_table.h" />

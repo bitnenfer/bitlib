@@ -21,11 +21,11 @@ namespace bit
 
 	BIT_FORCEINLINE void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
 	{
-		return GetDefaultAllocator().Alloc(Size, Alignment);
+		return GetDefaultAllocator().Allocate(Size, Alignment);
 	}
 	BIT_FORCEINLINE void* Realloc(void* Pointer, size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
 	{
-		return GetDefaultAllocator().Realloc(Pointer, Size, Alignment);
+		return GetDefaultAllocator().Reallocate(Pointer, Size, Alignment);
 	}
 	BIT_FORCEINLINE void Free(void* Pointer)
 	{
@@ -34,7 +34,7 @@ namespace bit
 	template<typename T>
 	T* TMalloc(size_t Count = 1)
 	{
-		return (T*)GetDefaultAllocator().Alloc(Count * sizeof(T), bit::DEFAULT_ALIGNMENT);
+		return (T*)GetDefaultAllocator().Allocate(Count * sizeof(T), bit::DEFAULT_ALIGNMENT);
 	}
 
 	template<class T>

@@ -35,11 +35,11 @@ namespace bit
 			Heap = GetProcessHeap();
 		}
 
-		void* Alloc(size_t Size, size_t Alignment) override
+		void* Allocate(size_t Size, size_t Alignment) override
 		{
 			return HeapAlloc(Heap, 0, Size);
 		}
-		void* Realloc(void* Pointer, size_t Size, size_t Alignment) override
+		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override
 		{
 			if (Pointer != nullptr)
 				return HeapReAlloc(Heap, 0, Pointer, Size);

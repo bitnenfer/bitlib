@@ -17,8 +17,8 @@ namespace bit
 		void* GetBuffer(size_t* OutSize);
 		size_t CalcSize(size_t Size);
 
-		void* Alloc(size_t Size, size_t Alignment) override;
-		void* Realloc(void* Pointer, size_t Size, size_t Alignment) override;
+		void* Allocate(size_t Size, size_t Alignment) override;
+		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
 		CMemoryInfo GetMemoryInfo() override;

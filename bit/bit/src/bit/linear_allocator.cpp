@@ -63,7 +63,7 @@ size_t bit::CLinearAllocator::CalcSize(size_t Size)
 	return Size + sizeof(CLinearAllocatorHeader);
 }
 
-void* bit::CLinearAllocator::Alloc(size_t Size, size_t Alignment)
+void* bit::CLinearAllocator::Allocate(size_t Size, size_t Alignment)
 {
 	size_t AllocSize = CalcSize(Size);
 	if ((size_t)bit::PtrDiff(Buffer, Buffer + AllocSize) < BufferSize)
@@ -77,18 +77,18 @@ void* bit::CLinearAllocator::Alloc(size_t Size, size_t Alignment)
 	return nullptr;
 }
 
-void* bit::CLinearAllocator::Realloc(void* Pointer, size_t Size, size_t Alignment)
+void* bit::CLinearAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
 {
 	if (Pointer == nullptr)
 	{
-		return Alloc(Size, Alignment);
+		return Allocate(Size, Alignment);
 	}
 	else if (Size == 0)
 	{
 		Free(Pointer);
 		return nullptr;
 	}
-	void* NewPtr = Alloc(Size, Alignment);
+	void* NewPtr = Allocate(Size, Alignment);
 	bit::Memcpy(NewPtr, Pointer, bit::CLinearAllocatorHeader::GetHeader(Pointer)->BlockSize);
 	Free(Pointer);
 	return NewPtr;

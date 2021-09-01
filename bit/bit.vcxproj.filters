@@ -78,6 +78,9 @@
     <ClInclude Include="bit\include\bit\linear_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bit\include\bit\container_allocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bit.natvis" />

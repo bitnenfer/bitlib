@@ -13,11 +13,11 @@ namespace bit
 			bit::Memset(Data, 0, sizeof(Data));
 		}
 
-		void* Alloc(size_t Size, size_t Alignment) override
+		void* Allocate(size_t Size, size_t Alignment) override
 		{
 			return (void*)Data;
 		}
-		void* Realloc(void* Pointer, size_t Size, size_t Alignment) override
+		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override
 		{
 			return (void*)Data;
 		}

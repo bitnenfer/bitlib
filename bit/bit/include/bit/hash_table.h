@@ -136,7 +136,7 @@ namespace bit
 			{
 				FurthestBucket = 0;
 				ClosestBucket = NewSize;
-				CBucket* NewBuckets = bit::Construct<CBucket>(Allocator->Alloc<CBucket>(NewSize), NewSize, Allocator);
+				CBucket* NewBuckets = bit::Construct<CBucket>(Allocator->Allocate<CBucket>(NewSize), NewSize, Allocator);
 				for (TSizeType Index = 0; Index < BucketCount; ++Index)
 				{
 					CBucket& Bucket = Buckets[Index];
@@ -155,7 +155,7 @@ namespace bit
 			}
 			else
 			{
-				Buckets = bit::Construct<CBucket>(Allocator->Alloc<CBucket>(NewSize), NewSize, Allocator);
+				Buckets = bit::Construct<CBucket>(Allocator->Allocate<CBucket>(NewSize), NewSize, Allocator);
 				if (Buckets != nullptr) BucketCount = NewSize;
 				ClosestBucket = BucketCount;
 			}

@@ -3,7 +3,7 @@
 #define BIT_STRLEN(Str, Len) while (Str[Len++] != 0); Len--;
 
 bit::CCommandArgs::CCommandArgs(const char* Args[], uint32_t ArgCount, IAllocator& InAllocator) :
-	Entries(InAllocator)
+	Entries(ArgCount)
 {
 	for (uint32_t Index = 1; Index < ArgCount; ++Index)
 	{

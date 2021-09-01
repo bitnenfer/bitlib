@@ -29,9 +29,9 @@ int main(int32_t Argc, const char* Argv[])
 	bit::CLinearAllocator LinearAllocator("TestLinearAllocator");
 	LinearAllocator.Initialize(bit::Malloc(bit::ToMiB(100), bit::CLinearAllocator::GetRequiredAlignment()), bit::ToMiB(100));
 
-	bit::TArray<int32_t> MyArray;
-	bit::TArray<int32_t> CopyArray;
-	bit::THashTable<int32_t, int32_t> Table(LinearAllocator);
+	bit::pmr::TArray<int32_t> MyArray(LinearAllocator);
+	bit::pmr::TArray<int32_t> CopyArray(LinearAllocator);
+	bit::THashTable<int32_t, int32_t> Table;
 	bit::TLinkedList<int32_t> List;
 	MyValue MyRoot(0);
 
