@@ -2,6 +2,10 @@
 
 #include <bit/types.h>
 #include <bit/memory.h>
+#include <bit/allocator.h>
+
+#define BIT_USE_INLINE_DATA 1
+#define BIT_INLINE_DATA_COUNT 32
 
 namespace bit
 {

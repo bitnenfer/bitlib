@@ -1,8 +1,7 @@
 #pragma once
 
-#include <bit/allocator.h>
-#include <bit/utils.h>
 #include <bit/os.h>
+#include <bit/utils.h>
 #include <bit/container_allocator.h>
 
 namespace bit
@@ -181,26 +180,55 @@ namespace bit
 		typedef TArrayBase<T, TSizeType> BaseType_t;
 		typedef T ElementType_t;
 
+#if BIT_USE_INLINE_DATA
+		BIT_FORCEINLINE bool UsesInlineData() const { return this->Data == &InlineData[0]; }
+#endif
+
 		TArray() :
+#if BIT_USE_INLINE_DATA
+			BaseType_t(InlineData, BIT_INLINE_DATA_COUNT)
+#else
 			BaseType_t(nullptr, 0)
+#endif
 		{}
 		TArray(TSizeType InitialCapacity) :
+#if BIT_USE_INLINE_DATA
+			BaseType_t(InlineData, BIT_INLINE_DATA_COUNT)
+#else
 			BaseType_t(nullptr, 0)
+#endif
 		{
 			Reserve(InitialCapacity);
 		}
 		TArray(const SelfType_t& Copy) :
+#if BIT_USE_INLINE_DATA
+			BaseType_t(InlineData, BIT_INLINE_DATA_COUNT)
+#else
 			BaseType_t(nullptr, 0)
+#endif
 		{
 			Reserve(Copy.GetCount());
 			bit::Memcpy(this->Data, Copy.GetData(), Copy.GetCount());
 			this->Count = Copy.Count;
 		}
 		TArray(SelfType_t&& Move) :
+#if BIT_USE_INLINE_DATA
+			BaseType_t(InlineData, BIT_INLINE_DATA_COUNT)
+#else
 			BaseType_t(nullptr, 0)
+#endif
 		{
 			Allocator = Move.Allocator;
-			this->Data = Move.Data;
+#if BIT_USE_INLINE_DATA
+			if (Move.UsesInlineData())
+			{
+				bit::Memcpy(InlineData, Move.InlineData, BIT_INLINE_DATA_COUNT * sizeof(T));
+			}
+			else
+#endif
+			{
+				this->Data = Move.GetData();
+			}
 			this->Count = Move.Count;
 			this->Capacity = Move.Capacity;
 			Move.Invalidate();
@@ -220,14 +248,32 @@ namespace bit
 			if (this->IsValid())
 			{
 				bit::DestroyArray(this->Data, this->Count);
-				Allocator.Free(this->Data);
+#if BIT_USE_INLINE_DATA
+				if (!UsesInlineData())
+#endif
+				{
+					Allocator.Free(this->Data);
+				}
 				Invalidate();
 			}
 		}
 
 		void Reserve(TSizeType NewSize)
 		{
-			this->Data = Allocator.Allocate<T>(this->Data, NewSize * sizeof(T));
+#if BIT_USE_INLINE_DATA
+			bool bUsesInline = UsesInlineData();
+			if (!bUsesInline)
+#endif
+			{
+				this->Data = Allocator.Allocate<T>(this->Data, NewSize * sizeof(T));
+			}
+#if BIT_USE_INLINE_DATA
+			else if (bUsesInline && NewSize > BIT_INLINE_DATA_COUNT)
+			{
+				this->Data = Allocator.Allocate<T>(nullptr, NewSize * sizeof(T));
+				bit::Memcpy(this->Data, InlineData, this->Count * sizeof(T));
+			}
+#endif
 			this->Capacity = NewSize;
 			BIT_ASSERT(this->Data != nullptr);
 		}
@@ -264,7 +310,19 @@ namespace bit
 		{
 			Destroy();
 			Allocator = Move.Allocator;
-			this->Data = Move.Data;
+#if BIT_USE_INLINE_DATA
+			if (!UsesInlineData())
+#endif
+			{
+				this->Data = Move.Data;
+			}
+#if BIT_USE_INLINE_DATA
+			else
+			{
+				bit::Memcpy(InlineData, Move.InlineData, BIT_INLINE_DATA_COUNT * sizeof(T));
+				bit::Memcpy(this->Data, InlineData, this->Count);
+			}
+#endif
 			this->Count = Move.Count;
 			this->Capacity = Move.Capacity;
 			Move.Invalidate();
@@ -293,6 +351,9 @@ namespace bit
 		TAllocator& GetAllocator() { return Allocator; }
 
 	protected:
+#if BIT_USE_INLINE_DATA
+		T InlineData[BIT_INLINE_DATA_COUNT];
+#endif
 		TAllocator Allocator;
 	};
 
@@ -308,18 +369,34 @@ namespace bit
 			typedef TArrayBase<T, TSizeType> BaseType_t;
 			typedef T ElementType_t;
 
+#if BIT_USE_INLINE_DATA
+			BIT_FORCEINLINE bool UsesInlineData() const { return this->Data == &InlineData[0]; }
+#endif
+
 			TArray(IAllocator& Allocator) :
+#if BIT_USE_INLINE_DATA
+				BaseType_t(InlineData, BIT_INLINE_DATA_COUNT),
+#else
 				BaseType_t(nullptr, 0),
+#endif
 				Allocator(&Allocator)
 			{}
 			TArray(TSizeType InitialCapacity, IAllocator& Allocator) :
+#if BIT_USE_INLINE_DATA
+				BaseType_t(InlineData, BIT_INLINE_DATA_COUNT),
+#else
 				BaseType_t(nullptr, 0),
+#endif
 				Allocator(&Allocator)
 			{
 				Reserve(InitialCapacity);
 			}
 			TArray(const SelfType_t& Copy) :
+#if BIT_USE_INLINE_DATA
+				BaseType_t(InlineData, BIT_INLINE_DATA_COUNT),
+#else
 				BaseType_t(nullptr, 0),
+#endif
 				Allocator(Copy.Allocator)
 			{
 				Reserve(Copy.GetCount());
@@ -327,10 +404,23 @@ namespace bit
 				this->Count = Copy.Count;
 			}
 			TArray(SelfType_t&& Move) :
+#if BIT_USE_INLINE_DATA
+				BaseType_t(InlineData, BIT_INLINE_DATA_COUNT)
+#else
 				BaseType_t(nullptr, 0)
+#endif
 			{
 				Allocator = Move.Allocator;
-				this->Data = Move.Data;
+#if BIT_USE_INLINE_DATA
+				if (Move.UsesInlineData())
+				{
+					bit::Memcpy(InlineData, Move.InlineData, BIT_INLINE_DATA_COUNT * sizeof(T));
+				}
+				else
+#endif
+				{
+					this->Data = Move.GetData();
+				}
 				this->Count = Move.Count;
 				this->Capacity = Move.Capacity;
 				Move.InvalidateImpl();
@@ -353,7 +443,12 @@ namespace bit
 					bit::DestroyArray(this->Data, this->Count);
 					if (Allocator != nullptr)
 					{
-						Allocator->Free(this->Data);
+#if BIT_USE_INLINE_DATA
+						if (!UsesInlineData())
+#endif
+						{
+							Allocator->Free(this->Data);
+						}
 					}
 					this->InvalidateImpl();
 				}
@@ -361,7 +456,20 @@ namespace bit
 
 			void Reserve(TSizeType NewSize)
 			{
-				this->Data = (T*)Allocator->Reallocate(this->Data, NewSize * sizeof(T), sizeof(T));
+#if BIT_USE_INLINE_DATA
+				bool bUsesInline = UsesInlineData();
+				if (!bUsesInline)
+#endif
+				{
+					this->Data = (T*)Allocator->Reallocate(this->Data, NewSize * sizeof(T), sizeof(T));
+				}
+#if BIT_USE_INLINE_DATA
+				else if (bUsesInline && NewSize > BIT_INLINE_DATA_COUNT)
+				{
+					this->Data = (T*)Allocator->Reallocate(nullptr, NewSize * sizeof(T), sizeof(T));
+					bit::Memcpy(this->Data, InlineData, this->Count * sizeof(T));
+				}
+#endif
 				this->Capacity = NewSize;
 				BIT_ASSERT(this->Data != nullptr);
 			}
@@ -398,7 +506,19 @@ namespace bit
 			{
 				Destroy();
 				Allocator = Move.Allocator;
-				this->Data = Move.Data;
+#if BIT_USE_INLINE_DATA
+				if (!UsesInlineData())
+#endif
+				{
+					this->Data = Move.Data;
+				}
+#if BIT_USE_INLINE_DATA
+				else
+				{
+					bit::Memcpy(InlineData, Move.InlineData, BIT_INLINE_DATA_COUNT * sizeof(T));
+					bit::Memcpy(this->Data, InlineData, this->Count);
+				}
+#endif
 				this->Count = Move.Count;
 				this->Capacity = Move.Capacity;
 				Move.Invalidate();
@@ -427,6 +547,9 @@ namespace bit
 			IAllocator& GetAllocator() { return *Allocator; }
 
 		protected:
+#if BIT_USE_INLINE_DATA
+			T InlineData[BIT_INLINE_DATA_COUNT];
+#endif
 			bit::IAllocator* Allocator;
 		};
 	}
