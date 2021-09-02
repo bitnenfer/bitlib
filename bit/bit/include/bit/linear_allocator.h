@@ -15,7 +15,6 @@ namespace bit
 		void Terminate();
 		void Reset();
 		void* GetBuffer(size_t* OutSize);
-		size_t CalcSize(size_t Size);
 
 		void* Allocate(size_t Size, size_t Alignment) override;
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;

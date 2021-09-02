@@ -49,7 +49,7 @@ namespace bit
 	}
 
 	template<typename T, typename... TArgs>
-	T* Construct(T* Elements, size_t Count, TArgs&& ... ConstructorArgs)
+	T* ConstructArray(T* Elements, size_t Count, TArgs&& ... ConstructorArgs)
 	{
 		for (size_t Index = 0; Index < Count; ++Index)
 		{
@@ -60,12 +60,24 @@ namespace bit
 	}
 
 	template<class T>
-	void Destroy(T* Elements, size_t Count)
+	void DestroyArray(T* Elements, size_t Count)
 	{
 		for (size_t Index = 0; Index < Count; ++Index)
 		{
 			Elements[Index].~T();
 		}
+	}
+
+	template<typename T, typename... TArgs>
+	T* Construct(T* Element, TArgs&& ... ConstructorArgs)
+	{
+		return BitPlacementNew(Element) T(ConstructorArgs...);
+	}
+
+	template<class T>
+	void Destroy(T* Element)
+	{
+		Element->~T();
 	}
 
 	template<typename T, typename... TArgs>

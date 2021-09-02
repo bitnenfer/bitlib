@@ -12,6 +12,7 @@ namespace bit
 	{
 		static_assert(bit::TIsSigned<TSizeType>::bValue, "Size type must be signed");
 		typedef TArrayBase<T, TSizeType> SelfType_t;
+		typedef T ElementType_t;
 
 		/* Begin range for loop implementation */
 		struct CIterator
@@ -70,7 +71,7 @@ namespace bit
 		void Reset() { Count = 0; }
 		bool IsValid() { return Data != nullptr && Capacity != 0;  }
 
-		void Invalidate()
+		void InvalidateImpl()
 		{
 			Data = nullptr;
 			Capacity = 0;
@@ -104,7 +105,7 @@ namespace bit
 		T& AllocateImpl(TArgs&& ... ConstructorArgs)
 		{
 			T* Ptr = &Data[Count++];
-			bit::Construct(Ptr, 1, ConstructorArgs...);
+			bit::Construct(Ptr, ConstructorArgs...);
 			return Ptr;
 		}
 
@@ -172,12 +173,13 @@ namespace bit
 	template<
 		typename T, 
 		typename TSizeType = int32_t,
-		typename TAllocator = TDefaultAllocator<T>
+		typename TAllocator = CDefaultAllocator
 	>
 	struct TArray : public TArrayBase<T, TSizeType>
 	{
 		typedef TArray<T, TSizeType, TAllocator> SelfType_t;
 		typedef TArrayBase<T, TSizeType> BaseType_t;
+		typedef T ElementType_t;
 
 		TArray() :
 			BaseType_t(nullptr, 0)
@@ -208,19 +210,24 @@ namespace bit
 			Destroy();
 		}
 
+		void Invalidate()
+		{
+			this->InvalidateImpl();
+		}
+
 		void Destroy()
 		{
 			if (this->IsValid())
 			{
-				bit::Destroy(this->Data, this->Count);
+				bit::DestroyArray(this->Data, this->Count);
 				Allocator.Free(this->Data);
-				this->Invalidate();
+				Invalidate();
 			}
 		}
 
 		void Reserve(TSizeType NewSize)
 		{
-			this->Data = Allocator.Allocate(this->Data, NewSize * sizeof(T));
+			this->Data = Allocator.Allocate<T>(this->Data, NewSize * sizeof(T));
 			this->Capacity = NewSize;
 			BIT_ASSERT(this->Data != nullptr);
 		}
@@ -247,7 +254,7 @@ namespace bit
 		}
 		SelfType_t& operator=(const SelfType_t& Copy)
 		{
-			bit::Destroy(this->Data, this->Count);
+			bit::DestroyArray(this->Data, this->Count);
 			CheckGrow(Copy.GetCount());
 			bit::Memcpy(this->Data, Copy.GetData(), Copy.GetCount());
 			this->Count = Copy.Count;
@@ -299,6 +306,7 @@ namespace bit
 		{
 			typedef TArray<T, TSizeType> SelfType_t;
 			typedef TArrayBase<T, TSizeType> BaseType_t;
+			typedef T ElementType_t;
 
 			TArray(IAllocator& Allocator) :
 				BaseType_t(nullptr, 0),
@@ -325,20 +333,29 @@ namespace bit
 				this->Data = Move.Data;
 				this->Count = Move.Count;
 				this->Capacity = Move.Capacity;
-				Move.Invalidate();
+				Move.InvalidateImpl();
 			}
 			~TArray()
 			{
 				Destroy();
 			}
 
+			void Invalidate()
+			{
+				this->InvalidateImpl();
+				Allocator = nullptr;
+			}
+
 			void Destroy()
 			{
 				if (this->IsValid())
 				{
-					bit::Destroy(this->Data, this->Count);
-					Allocator->Free(this->Data);
-					this->Invalidate();
+					bit::DestroyArray(this->Data, this->Count);
+					if (Allocator != nullptr)
+					{
+						Allocator->Free(this->Data);
+					}
+					this->InvalidateImpl();
 				}
 			}
 

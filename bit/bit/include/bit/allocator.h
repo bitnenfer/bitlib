@@ -26,13 +26,13 @@ namespace bit
 		template<typename T>
 		T* Allocate(size_t Count = 1)
 		{
-			return (T*)Allocate(sizeof(T) * Count, 4);
+			return (T*)Allocate(sizeof(T) * Count, alignof(T));
 		}
 
 		template<typename T, typename... TArgs>
 		T* New(TArgs&& ... ConstructorArgs)
 		{
-			return BitPlacementNew((T*)Allocate(sizeof(T), 4)) T(ConstructorArgs...);
+			return BitPlacementNew((T*)Allocate(sizeof(T), alignof(T))) T(ConstructorArgs...);
 		}
 
 		template<typename T>

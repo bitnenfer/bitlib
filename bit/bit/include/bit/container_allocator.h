@@ -5,18 +5,19 @@
 
 namespace bit
 {
-	template<typename T, size_t TAlignment = sizeof(T)>
-	struct TDefaultAllocator
+	struct CDefaultAllocator
 	{
+		template<typename T>
 		T* Allocate(T* Original, size_t Count)
 		{
 			if (Original != nullptr)
 			{
-				return (T*)bit::Realloc(Original, Count * sizeof(T), TAlignment);
+				return (T*)bit::Realloc(Original, Count * sizeof(T), alignof(T));
 			}
-			return (T*)bit::Malloc(Count * sizeof(T), TAlignment);
+			return (T*)bit::Malloc(Count * sizeof(T), alignof(T));
 		}
 
+		template<typename T>
 		void Free(T* Ptr)
 		{
 			bit::Free(Ptr);

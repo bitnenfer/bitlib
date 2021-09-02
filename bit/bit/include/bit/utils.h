@@ -114,6 +114,11 @@ namespace bit
 		return (((Value) & ((Value)-1)) == 0);
 	}
 
+	BIT_FORCEINLINE bool PtrInRange(const void* Ptr, const void* Start, const void* End)
+	{
+		return Ptr >= Start && Ptr <= End;
+	}
+
 	template<typename T> struct TIsSigned { static BIT_CONSTEXPR bool bValue = false; };
 	template<> struct TIsSigned<int8_t> { static BIT_CONSTEXPR bool bValue = true; };
 	template<> struct TIsSigned<int16_t> { static BIT_CONSTEXPR bool bValue = true; };

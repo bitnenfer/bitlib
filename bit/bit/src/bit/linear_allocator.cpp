@@ -17,7 +17,7 @@ namespace bit
 
 /*static*/ size_t bit::CLinearAllocator::GetRequiredAlignment()
 {
-	return sizeof(CLinearAllocatorHeader);
+	return alignof(CLinearAllocatorHeader);
 }
 
 bit::CLinearAllocator::CLinearAllocator(const char* Name) :
@@ -58,20 +58,16 @@ void* bit::CLinearAllocator::GetBuffer(size_t* OutSize)
 	return Buffer;
 }
 
-size_t bit::CLinearAllocator::CalcSize(size_t Size)
-{
-	return Size + sizeof(CLinearAllocatorHeader);
-}
-
 void* bit::CLinearAllocator::Allocate(size_t Size, size_t Alignment)
 {
-	size_t AllocSize = CalcSize(Size);
-	if ((size_t)bit::PtrDiff(Buffer, Buffer + AllocSize) < BufferSize)
+	uint8_t* BufferCurr = Buffer + BufferOffset;
+	if ((size_t)bit::PtrDiff(BufferCurr, BufferCurr + Size + sizeof(CLinearAllocatorHeader)) < BufferSize)
 	{
-		void* NonAligned = bit::ForwardPtr(Buffer, AllocSize);
+		void* NonAligned = BufferCurr + sizeof(CLinearAllocatorHeader);
 		void* Aligned = bit::AlignPtr(NonAligned, Alignment);
 		CLinearAllocatorHeader::GetHeader(Aligned)->BlockSize = Size;
-		BufferOffset += bit::PtrDiff(Buffer, Aligned);
+		BufferOffset += bit::PtrDiff(BufferCurr, bit::ForwardPtr(Aligned, Size));
+		bit::Memset(Aligned, 0xAA, Size);
 		return Aligned;
 	}
 	return nullptr;
