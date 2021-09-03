@@ -2,7 +2,7 @@
 
 #include <bit/types.h>
 
-#include <intrin.h>
+#define BIT_UNUSED_VAR(n) ((void)&(n))
 
 namespace bit
 {
