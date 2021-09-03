@@ -2,15 +2,102 @@
 
 #include <bit/types.h>
 #include <bit/allocator.h>
-#include <bit/container_allocator.h>
+#include <bit/container_allocators.h>
 #include <bit/os.h>
 
 namespace bit
 {
+	template<typename TLinkType>
+	struct TLinkIterator
+	{
+		TLinkIterator(TLinkType* Link) :
+			Link(Link)
+		{}
+
+		void Invalidate()
+		{
+			Link = nullptr;
+		}
+
+		typename TLinkType::ElementType_t& operator*()
+		{
+			return Link->Element;
+		}
+		typename  TLinkType::ElementType_t* operator->()
+		{
+			if (Link != nullptr)
+				return &Link->Element;
+			return nullptr;
+		}
+		TLinkIterator<TLinkType>& operator++()
+		{
+			if (Link != nullptr)
+				Link = Link->Next;
+			return *this;
+		}
+		TLinkIterator<TLinkType> operator++(int32_t) { TLinkIterator<TLinkType> Self = *this; ++(*this); return Self; }
+
+		friend bool operator==(const TLinkIterator<TLinkType>& A, const TLinkIterator<TLinkType>& B)
+		{
+			return A.Link == B.Link;
+		}
+
+		friend bool operator!=(const TLinkIterator<TLinkType>& A, const TLinkIterator<TLinkType>& B)
+		{
+			return A.Link != B.Link;
+		}
+
+		TLinkType* Link;
+	};
+
+	template<typename TLinkType>
+	struct TConstLinkIterator
+	{
+		TConstLinkIterator(const TLinkType* Link) :
+			Link(Link)
+		{}
+
+		void Invalidate()
+		{
+			Link = nullptr;
+		}
+
+		const typename TLinkType::ElementType_t& operator*()
+		{
+			return Link->Element;
+		}
+		const typename TLinkType::ElementType_t* operator->()
+		{
+			if (Link != nullptr)
+				return &Link->Element;
+			return nullptr;
+		}
+		TConstLinkIterator<TLinkType>& operator++()
+		{
+			if (Link != nullptr)
+				Link = Link->Next;
+			return *this;
+		}
+		TConstLinkIterator<TLinkType> operator++(int32_t) { TConstLinkIterator<TLinkType> Self = *this; ++(*this); return Self; }
+
+		friend bool operator==(const TConstLinkIterator<TLinkType>& A, const TConstLinkIterator<TLinkType>& B)
+		{
+			return A.Link == B.Link;
+		}
+
+		friend bool operator!=(const TConstLinkIterator<TLinkType>& A, const TConstLinkIterator<TLinkType>& B)
+		{
+			return A.Link != B.Link;
+		}
+
+		const TLinkType* Link;
+	};
+
 	template<typename T>
 	struct TLink
 	{
-		T Element;
+		typedef T ElementType_t;
+		ElementType_t Element;
 		TLink* Prev;
 		TLink* Next;
 	};
@@ -18,99 +105,24 @@ namespace bit
 	template<
 		typename T, 
 		typename TSizeType = int64_t,
-		typename TAllocator = CDefaultAllocator
+		typename TAllocator = TDefaultLinkedListAllocator<TSizeType>
 	>
 	struct TLinkedList
 	{
 		typedef TLinkedList<T, TSizeType, TAllocator> SelfType_t;
 		typedef TLink<T> LinkType_t;
+		typedef typename TAllocator::template TLinkAllocator<LinkType_t> AllocatorType_t;
 		typedef T ElementType_t;
+		typedef TLinkIterator<LinkType_t> IteratorType_t;
+		typedef TConstLinkIterator<LinkType_t> ConstIteratorType_t;
+		typedef TSizeType SizeType_t;
 
 	public:
 		/* Begin range for loop implementation */
-		struct CIterator
-		{
-			CIterator(LinkType_t* Link) :
-				Link(Link)
-			{}
-
-			void Invalidate()
-			{
-				Link = nullptr;
-			}
-
-			T& operator*()
-			{
-				return Link->Element;
-			}
-			T* operator->()
-			{
-				if (Link != nullptr)
-					return &Link->Element;
-				return nullptr;
-			}
-			CIterator& operator++()
-			{
-				if (Link != nullptr)
-					Link = Link->Next;
-				return *this;
-			}
-			CIterator operator++(int32_t) { CIterator Self = *this; ++(*this); return Self; }
-
-			friend bool operator==(const CIterator& A, const CIterator& B)
-			{
-				return A.Link == B.Link;
-			}
-
-			friend bool operator!=(const CIterator& A, const CIterator& B)
-			{
-				return A.Link != B.Link;
-			}
-
-			LinkType_t* Link;
-		};
-
-		struct CConstIterator
-		{
-			CConstIterator(const LinkType_t* Link) :
-				Link(Link)
-			{}
-
-			const T& operator*()
-			{
-				return Link->Element;
-			}
-			const T* operator->()
-			{
-				if (Link != nullptr)
-					return &Link->Element;
-				return nullptr;
-			}
-			CConstIterator& operator++()
-			{
-				if (Link != nullptr)
-					Link = Link->Next;
-				return *this;
-			}
-			CConstIterator operator++(int32_t) { CConstIterator Self = *this; ++(*this); return Self; }
-
-			friend bool operator==(const CConstIterator& A, const CConstIterator& B)
-			{
-				return A.Link == B.Link;
-			}
-
-			friend bool operator!=(const CConstIterator& A, const CConstIterator& B)
-			{
-				return A.Link != B.Link;
-			}
-
-			const LinkType_t* Link;
-		};
-
-		CIterator begin() { return CIterator(Head); }
-		CIterator end() { return CIterator(nullptr); }
-		CConstIterator cbegin() { return CConstIterator(Head); }
-		CConstIterator cend() { return CConstIterator(nullptr); }
+		IteratorType_t begin() { return IteratorType_t(Head); }
+		IteratorType_t end() { return IteratorType_t(nullptr); }
+		ConstIteratorType_t cbegin() const { return ConstIteratorType_t(Head); }
+		ConstIteratorType_t cend() const { return ConstIteratorType_t(nullptr); }
 		/* End range for loop implementation */
 
 		TLinkedList() :
@@ -147,7 +159,7 @@ namespace bit
 			{
 				LinkType_t* Next = Link->Next;
 				bit::Destroy(Link);
-				Allocator.Free(Link);
+				Allocator.FreeLink(Link);
 				Link = Next;
 			}
 		}
@@ -174,7 +186,7 @@ namespace bit
 					Tail = nullptr;
 				}
 				bit::Destroy(Link);
-				Allocator.Free(Link);
+				Allocator.FreeLink(Link);
 				Count -= 1;
 				return true;
 			}
@@ -184,7 +196,7 @@ namespace bit
 		template<typename... TArgs>
 		T* Alloc(TArgs&& ... ConstructorArgs)
 		{
-			LinkType_t* Link = bit::Construct(Allocator.Allocate<LinkType_t>(nullptr, 1));
+			LinkType_t* Link = bit::Construct(Allocator.AllocateLink(1));
 			Link->Prev = nullptr;
 			Link->Next = nullptr;
 			bit::Construct(&Link->Element, ConstructorArgs...);
@@ -270,7 +282,7 @@ namespace bit
 
 		LinkType_t* CreateLink(const T& Element)
 		{
-			LinkType_t* Link = bit::Construct(Allocator.Allocate<LinkType_t>(nullptr, 1));
+			LinkType_t* Link = bit::Construct(Allocator.AllocateLink(1));
 			Link->Prev = nullptr;
 			Link->Next = nullptr;
 			Link->Element = Element;
@@ -279,7 +291,7 @@ namespace bit
 
 		LinkType_t* CreateLink(T&& Element)
 		{
-			LinkType_t* Link = bit::Construct(Allocator.Allocate<LinkType_t>(nullptr, 1));
+			LinkType_t* Link = bit::Construct(Allocator.AllocateLink(1));
 			Link->Prev = nullptr;
 			Link->Next = nullptr;
 			Link->Element = Element;
@@ -305,7 +317,7 @@ namespace bit
 			Link->Next = nullptr;
 		}
 
-		TAllocator Allocator;
+		AllocatorType_t Allocator;
 		LinkType_t* Head;
 		LinkType_t* Tail;
 		TSizeType Count;
@@ -319,92 +331,16 @@ namespace bit
 			typedef TLinkedList<T, TSizeType> SelfType_t;
 			typedef TLink<T> LinkType_t;
 			typedef T ElementType_t;
+			typedef TSizeType SizeType_t;
+			typedef TLinkIterator<LinkType_t> IteratorType_t;
+			typedef TConstLinkIterator<LinkType_t> ConstIteratorType_t;
 
 		public:
-			/* Begin range for loop implementation */
-			struct CIterator
-			{
-				CIterator(LinkType_t* Link) :
-					Link(Link)
-				{}
-
-				void Invalidate()
-				{
-					Link = nullptr;
-				}
-
-				T& operator*()
-				{
-					return Link->Element;
-				}
-				T* operator->()
-				{
-					if (Link != nullptr)
-						return &Link->Element;
-					return nullptr;
-				}
-				CIterator& operator++()
-				{
-					if (Link != nullptr)
-						Link = Link->Next;
-					return *this;
-				}
-				CIterator operator++(int32_t) { CIterator Self = *this; ++(*this); return Self; }
-
-				friend bool operator==(const CIterator& A, const CIterator& B)
-				{
-					return A.Link == B.Link;
-				}
-
-				friend bool operator!=(const CIterator& A, const CIterator& B)
-				{
-					return A.Link != B.Link;
-				}
-
-				LinkType_t* Link;
-			};
-
-			struct CConstIterator
-			{
-				CConstIterator(const LinkType_t* Link) :
-					Link(Link)
-				{}
-
-				const T& operator*()
-				{
-					return Link->Element;
-				}
-				const T* operator->()
-				{
-					if (Link != nullptr)
-						return &Link->Element;
-					return nullptr;
-				}
-				CConstIterator& operator++()
-				{
-					if (Link != nullptr)
-						Link = Link->Next;
-					return *this;
-				}
-				CConstIterator operator++(int32_t) { CConstIterator Self = *this; ++(*this); return Self; }
-
-				friend bool operator==(const CConstIterator& A, const CConstIterator& B)
-				{
-					return A.Link == B.Link;
-				}
-
-				friend bool operator!=(const CConstIterator& A, const CConstIterator& B)
-				{
-					return A.Link != B.Link;
-				}
-
-				const LinkType_t* Link;
-			};
-
-			CIterator begin() { return CIterator(Head); }
-			CIterator end() { return CIterator(nullptr); }
-			CConstIterator cbegin() { return CConstIterator(Head); }
-			CConstIterator cend() { return CConstIterator(nullptr); }
+			/* Begin range for loop implementation */			
+			IteratorType_t begin() { return IteratorType_t(Head); }
+			IteratorType_t end() { return IteratorType_t(nullptr); }
+			ConstIteratorType_t cbegin() const { return ConstIteratorType_t(Head); }
+			ConstIteratorType_t cend() const { return ConstIteratorType_t(nullptr); }
 			/* End range for loop implementation */
 
 			TLinkedList(bit::IAllocator& Allocator) :

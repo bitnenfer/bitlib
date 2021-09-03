@@ -73,7 +73,7 @@
   <Type Name="bit::CCommandArgs">
     <DisplayString>{{ Count={Entries.Count} }}</DisplayString>
     <Expand>
-      <Item Name="[Allocator]">Entries.Allocator->Name,s</Item>
+      <Item Name="[Allocator]">Entries.Allocator</Item>
       <Item Name="[Count]">Entries.Count</Item>
       <ArrayItems>
         <Size>Entries.Count</Size>
@@ -87,21 +87,21 @@
   <Type Name="bit::THashTable&lt;*&gt;">
     <DisplayString>{{ Count={ElementCount}, Capacity={BucketCount} }}</DisplayString>
     <Expand>
-      <Item Name="[Allocator]">Allocator</Item>
+      <Item Name="[Bucket Allocator]">BucketAllocator</Item>
       <Item Name="[Count]">ElementCount</Item>
       <Item Name="[Capacity]">BucketCount</Item>
       <Item Name="[Hash]">Hasher</Item>
       <CustomListItems>
-        <Variable Name="BucketElem" InitialValue="Buckets != nullptr ? Buckets[0].List.Head : nullptr"/>
+        <Variable Name="BucketElem" InitialValue="Buckets != nullptr ? Buckets[0].Container.Head : nullptr"/>
         <Variable Name="BucketIndex" InitialValue="0"/>
         <Size>ElementCount</Size>
         <Loop>
           <Break Condition="BucketIndex &gt;= BucketCount"/>
-          <If Condition="Buckets[BucketIndex].List.Count != 0">
-            <Exec>BucketElem = Buckets[BucketIndex].List.Head</Exec>
+          <If Condition="Buckets[BucketIndex].Container.Count != 0">
+            <Exec>BucketElem = Buckets[BucketIndex].Container.Head</Exec>
             <Loop>
               <Break Condition="BucketElem==nullptr"/>
-              <Item Name="[{BucketElem->Element.Pair.Key}]">BucketElem->Element.Pair</Item>
+              <Item Name="[{BucketElem->Element.Data.Key}]">BucketElem->Element.Data</Item>
               <Exec>BucketElem=BucketElem->Next</Exec>
             </Loop>
           </If>
@@ -118,16 +118,16 @@
       <Item Name="[Capacity]">BucketCount</Item>
       <Item Name="[Hash]">Hasher</Item>
       <CustomListItems>
-        <Variable Name="BucketElem" InitialValue="Buckets != nullptr ? Buckets[0].List.Head : nullptr"/>
+        <Variable Name="BucketElem" InitialValue="Buckets != nullptr ? Buckets[0].Container.Head : nullptr"/>
         <Variable Name="BucketIndex" InitialValue="0"/>
         <Size>ElementCount</Size>
         <Loop>
           <Break Condition="BucketIndex &gt;= BucketCount"/>
-          <If Condition="Buckets[BucketIndex].List.Count != 0">
-            <Exec>BucketElem = Buckets[BucketIndex].List.Head</Exec>
+          <If Condition="Buckets[BucketIndex].Container.Count != 0">
+            <Exec>BucketElem = Buckets[BucketIndex].Container.Head</Exec>
             <Loop>
               <Break Condition="BucketElem==nullptr"/>
-              <Item Name="[{BucketElem->Element.Pair.Key}]">BucketElem->Element.Pair</Item>
+              <Item Name="[{BucketElem->Element.Data.Key}]">BucketElem->Element.Data</Item>
               <Exec>BucketElem=BucketElem->Next</Exec>
             </Loop>
           </If>

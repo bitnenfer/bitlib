@@ -4,6 +4,7 @@
 
 namespace bit
 {
+	static BIT_CONSTEXPR size_t ALLOCATOR_MAX_NAME_LEN = 128;
 	struct BITLIB_API CMemoryInfo
 	{
 		size_t AllocatedBytes;
@@ -11,7 +12,7 @@ namespace bit
 		size_t ReservedBytes;
 	};
 
-	static BIT_CONSTEXPR size_t ALLOCATOR_MAX_NAME_LEN = 128;
+	/* Polymorphic Allocator. Useful for custom types of allocations and Polymorphic containers. */
 	struct BITLIB_API IAllocator
 	{
 		IAllocator(const char* Name);

@@ -12,14 +12,12 @@
 #include <bit/intrusive_linked_list.h>
 #include <bit/linear_allocator.h>
 
-struct MyValue
+struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 {
 	MyValue(int32_t Value) :
-		Link(*this),
+		bit::TIntrusiveLinkedList<MyValue>(*this),
 		Value(Value)
 	{}
-
-	bit::TIntrusiveLinkedList<MyValue> Link;
 	int32_t Value;
 };
 
@@ -29,9 +27,9 @@ int main(int32_t Argc, const char* Argv[])
 	bit::CLinearAllocator LinearAllocator("TestLinearAllocator");
 	LinearAllocator.Initialize(bit::Malloc(bit::ToMiB(100), bit::CLinearAllocator::GetRequiredAlignment()), bit::ToMiB(100));
 	{
-		bit::pmr::TArray<int32_t> MyArray(LinearAllocator);
+		bit::TArray<int32_t> MyArray;
 		bit::TArray<int32_t> CopyArray;
-		bit::THashTable<int32_t, int32_t> Table;
+		bit::pmr::THashTable<int32_t, int32_t> Table(LinearAllocator);
 		bit::TLinkedList<int32_t> List;
 		MyValue MyRoot(0);
 
@@ -55,16 +53,16 @@ int main(int32_t Argc, const char* Argv[])
 		{
 			MyArray.Add(Index);
 			MyValue* NewNode = bit::New<MyValue>(Index);
-			NewNode->Link.InsertAtTail(MyRoot.Link);
+			NewNode->InsertAtTail(MyRoot);
 		}
-		int64_t Count = MyRoot.Link.GetCount();
+		int64_t Count = MyRoot.GetCount();
 
-		for (MyValue& Value : MyRoot.Link)
+		for (MyValue& Value : MyRoot)
 		{
 			BIT_LOG("IntrusiveLinkedList = %u\n", Value.Value);
 		}
 
-		MyValue& Value1002 = MyRoot.Link[100];
+		MyValue& Value1002 = MyRoot[100];
 
 		MyArray.FindAll([](int32_t& Value)
 		{
@@ -92,7 +90,7 @@ int main(int32_t Argc, const char* Argv[])
 
 		struct Payload
 		{
-			bit::THashTable<int32_t, int32_t>* HashTable;
+			bit::pmr::THashTable<int32_t, int32_t>* HashTable;
 			bit::CCriticalSection* CS;
 			int32_t Value;
 		};
@@ -128,11 +126,11 @@ int main(int32_t Argc, const char* Argv[])
 		int32_t idx = 0;
 		int32_t LastKey = 0;
 		int32_t LastValue = 0;
-		for (auto& Elem : Table)
+		for (auto Iter = Table.cbegin(); Iter != Table.cend(); ++Iter)
 		{
-			BIT_LOG("%d = %d\n", Elem.Key, Elem.Value);
-			LastKey = Elem.Key;
-			LastValue = Elem.Value;
+			BIT_LOG("%d = %d\n", Iter->Key, Iter->Value);
+			LastKey = Iter->Key;
+			LastValue = Iter->Value;
 			idx++;
 		}
 	}
