@@ -279,7 +279,7 @@ namespace bit
 		~THashTable()
 		{
 			bit::DestroyArray(Buckets, BucketCount);
-			BucketAllocator.Free(Buckets);
+			Allocator.Free(Buckets);
 			Buckets = nullptr;
 			BucketCount = 0;
 			ElementCount = 0;
@@ -291,7 +291,7 @@ namespace bit
 			{
 				FurthestBucket = 0;
 				ClosestBucket = NewSize;
-				BucketType_t* NewBuckets = (BucketType_t*)BucketAllocator.Allocate(nullptr, sizeof(BucketType_t), NewSize);
+				BucketType_t* NewBuckets = (BucketType_t*)Allocator.Allocate(nullptr, sizeof(BucketType_t), NewSize);
 				bit::ConstructArray<BucketType_t>(NewBuckets, NewSize);
 				for (TSizeType Index = 0; Index < BucketCount; ++Index)
 				{
@@ -305,13 +305,13 @@ namespace bit
 					}
 				}
 				bit::DestroyArray(Buckets, BucketCount);
-				BucketAllocator.Free(Buckets);
+				Allocator.Free(Buckets);
 				Buckets = NewBuckets;
 				BucketCount = NewSize;
 			}
 			else
 			{
-				BucketType_t* NewBuckets = (BucketType_t*)BucketAllocator.Allocate(nullptr, sizeof(BucketType_t), NewSize);
+				BucketType_t* NewBuckets = (BucketType_t*)Allocator.Allocate(nullptr, sizeof(BucketType_t), NewSize);
 				Buckets = bit::ConstructArray<BucketType_t>(NewBuckets, NewSize);
 				if (Buckets != nullptr) BucketCount = NewSize;
 				ClosestBucket = BucketCount;
@@ -404,7 +404,7 @@ namespace bit
 			return { Hash, Index };
 		}
 
-		BucketAllocatorType_t BucketAllocator;
+		BucketAllocatorType_t Allocator;
 		BucketType_t* Buckets;
 		TSizeType BucketCount;
 		TSizeType ElementCount;

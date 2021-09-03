@@ -12,7 +12,7 @@ namespace bit
 	{
 		void* Allocate(void* Original, TSizeType Size, TSizeType Count)
 		{
-			return bit::Realloc(Original, Size * Count, DEFAULT_ALIGNMENT);
+			return bit::Realloc(Original, (size_t)(Size * Count), DEFAULT_ALIGNMENT);
 		}
 
 		void Free(void* Ptr)

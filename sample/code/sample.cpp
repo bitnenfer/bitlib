@@ -27,11 +27,11 @@ int main(int32_t Argc, const char* Argv[])
 	bit::CLinearAllocator LinearAllocator("TestLinearAllocator");
 	LinearAllocator.Initialize(bit::Malloc(bit::ToMiB(100), bit::CLinearAllocator::GetRequiredAlignment()), bit::ToMiB(100));
 	{
-		bit::TArray<int32_t> MyArray;
-		bit::TArray<int32_t, int32_t, bit::TDefaultInlineBlockAllocator<int32_t, 5>> CopyArray;
-		bit::pmr::THashTable<int32_t, int32_t> Table(LinearAllocator);
-		bit::TLinkedList<int32_t> List;
-		MyValue MyRoot(0);
+		bit::TArray<int32_t> MyArray{};
+		bit::TArray<int32_t, int32_t, bit::TDefaultInlineBlockAllocator<int32_t, 5>> CopyArray{};
+		bit::THashTable<int32_t, int32_t> Table{};
+		bit::TLinkedList<int32_t> List{};
+		MyValue MyRoot{ 0 };
 
 		Table.Insert(69, 0);
 		Table.Insert(169, 1);
@@ -90,7 +90,7 @@ int main(int32_t Argc, const char* Argv[])
 
 		struct Payload
 		{
-			bit::pmr::THashTable<int32_t, int32_t>* HashTable;
+			bit::THashTable<int32_t, int32_t>* HashTable;
 			bit::CCriticalSection* CS;
 			int32_t Value;
 		};
