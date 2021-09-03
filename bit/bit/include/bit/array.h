@@ -37,7 +37,7 @@ namespace bit
 
 	template<
 		typename T, 
-		typename TSizeType = int32_t,
+		typename TSizeType = DefaultContainerSizeType_t,
 		typename TAllocator = TDefaultBlockAllocator<TSizeType>
 	>
 	struct TArray
@@ -55,15 +55,24 @@ namespace bit
 		TConstPtrFwdIterator<T> cend() const { return TConstPtrFwdIterator<T>(GetData(Count)); }
 		/* End range for loop implementation */
 
-		TArray() : Count(0), Capacity(0) {}
+		TArray() : 
+			Count(0), 
+			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
+			Data((T*)Allocator.GetAllocation())
+		{}
 
 		TArray(TSizeType InitialCapacity) : 
-			Count(0)
+			Count(0),
+			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
+			Data((T*)Allocator.GetAllocation())
 		{
 			Reserve(InitialCapacity);
 		}
 
-		TArray(const SelfType_t& Copy)
+		TArray(const SelfType_t& Copy) :
+			Count(0),
+			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
+			Data((T*)Allocator.GetAllocation())
 		{
 			Reserve(Copy.GetCount());
 			bit::Memcpy(GetData(), Copy.GetData(), Copy.GetCount());
@@ -71,7 +80,10 @@ namespace bit
 			Capacity = Copy.Capacity;
 		}
 
-		TArray(SelfType_t&& Move)
+		TArray(SelfType_t&& Move) :
+			Count(0),
+			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
+			Data((T*)Allocator.GetAllocation())
 		{
 			Allocator = bit::Move(Move.Allocator);
 			Data = Move.Data;
@@ -279,7 +291,7 @@ namespace bit
 	{
 		template<
 			typename T,
-			typename TSizeType = int32_t
+			typename TSizeType = DefaultContainerSizeType_t
 		>
 		struct TArray
 		{

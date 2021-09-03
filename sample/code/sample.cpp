@@ -28,7 +28,7 @@ int main(int32_t Argc, const char* Argv[])
 	LinearAllocator.Initialize(bit::Malloc(bit::ToMiB(100), bit::CLinearAllocator::GetRequiredAlignment()), bit::ToMiB(100));
 	{
 		bit::TArray<int32_t> MyArray;
-		bit::TArray<int32_t> CopyArray;
+		bit::TArray<int32_t, int32_t, bit::TDefaultInlineBlockAllocator<int32_t, 5>> CopyArray;
 		bit::pmr::THashTable<int32_t, int32_t> Table(LinearAllocator);
 		bit::TLinkedList<int32_t> List;
 		MyValue MyRoot(0);

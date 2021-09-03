@@ -226,7 +226,7 @@ namespace bit
 	template<
 		typename TKey,
 		typename TValue,
-		typename TSizeType = int64_t,
+		typename TSizeType = DefaultContainerSizeType_t,
 		typename THashType = size_t,
 		typename THash = TMurmurHash<TKey>,
 		typename TAllocator = TDefaultHashTableAllocator<TSizeType>
@@ -488,7 +488,7 @@ namespace bit
 		template<
 			typename TKey,
 			typename TValue,
-			typename TSizeType = int64_t,
+			typename TSizeType = DefaultContainerSizeType_t,
 			typename THashType = size_t,
 			typename THash = TMurmurHash<TKey>
 		>

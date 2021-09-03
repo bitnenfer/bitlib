@@ -104,7 +104,7 @@ namespace bit
 
 	template<
 		typename T, 
-		typename TSizeType = int64_t,
+		typename TSizeType = DefaultContainerSizeType_t,
 		typename TAllocator = TDefaultLinkedListAllocator<TSizeType>
 	>
 	struct TLinkedList
@@ -325,7 +325,7 @@ namespace bit
 
 	namespace pmr
 	{
-		template<typename T, typename TSizeType = int64_t>
+		template<typename T, typename TSizeType = DefaultContainerSizeType_t>
 		struct TLinkedList
 		{
 			typedef TLinkedList<T, TSizeType> SelfType_t;
