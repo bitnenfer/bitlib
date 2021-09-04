@@ -6,10 +6,73 @@
 
 int64_t GTimerFrequency = 0;
 
+static SYSTEM_INFO BitGetSystemInfo()
+{
+	static SYSTEM_INFO SystemInfo = {};
+	static bool bComplete = false;
+	if (!bComplete)
+	{
+		GetSystemInfo(&SystemInfo);
+	}
+	return SystemInfo;
+}
+
+static bit::EProcessorArch BitGetProcArch()
+{
+	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
+	switch (SystemInfo.wProcessorArchitecture)
+	{
+	case PROCESSOR_ARCHITECTURE_AMD64: return bit::EProcessorArch::PROC_ARCH_X64;
+	case PROCESSOR_ARCHITECTURE_ARM: return bit::EProcessorArch::PROC_ARCH_ARM;
+	case PROCESSOR_ARCHITECTURE_ARM64: return bit::EProcessorArch::PROC_ARCH_ARM64;
+	case PROCESSOR_ARCHITECTURE_IA64: return bit::EProcessorArch::PROC_ARCH_IA64;
+	case PROCESSOR_ARCHITECTURE_INTEL: return bit::EProcessorArch::PROC_ARCH_X86;
+	}
+	return bit::EProcessorArch::PROC_ARCH_UNKNOWN;
+}
+
 void BitOSInit()
 {
 	QueryPerformanceFrequency((LARGE_INTEGER*)&GTimerFrequency);
 }
+
+size_t bit::GetOSPageSize()
+{
+	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
+	return SystemInfo.dwPageSize;
+}
+
+size_t bit::GetOSAllocationGranularity()
+{
+	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
+	return SystemInfo.dwAllocationGranularity;
+}
+
+void* bit::GetOSMinAddress()
+{
+	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
+	return SystemInfo.lpMinimumApplicationAddress;
+}
+
+void* bit::GetOSMaxAddress()
+{
+	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
+	return SystemInfo.lpMaximumApplicationAddress;
+}
+
+int32_t bit::GetOSProcessorCount()
+{
+	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
+	return SystemInfo.dwNumberOfProcessors;
+}
+
+bit::EProcessorArch bit::GetOSProcessorArch()
+{
+	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
+	static bit::EProcessorArch ProcArch = BitGetProcArch();
+	return ProcArch;
+}
+
 
 void bit::OutputLog(const char* Fmt, ...)
 {

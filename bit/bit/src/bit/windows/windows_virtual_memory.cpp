@@ -3,17 +3,6 @@
 #include <bit/os.h>
 #include "windows_common.h"
 
-static SYSTEM_INFO BitGetSystemInfo()
-{
-	static SYSTEM_INFO SystemInfo = {};
-	static bool bComplete = false;
-	if (!bComplete)
-	{
-		GetSystemInfo(&SystemInfo);
-	}
-	return SystemInfo;
-}
-
 static DWORD BitGetProtection(bit::EPageProtectionType ProtectionType)
 {
 	switch (ProtectionType)
@@ -29,7 +18,7 @@ void* bit::CVirtualMemory::CMemoryRegion::CommitPagesByAddress(void* Address, si
 	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= RegionSize)
 	{
 		void* Pages = VirtualAlloc(Address, Size, MEM_COMMIT, PAGE_READWRITE);
-		if (Pages != nullptr) CommitedSize += Size;
+		if (Pages != nullptr) CommittedSize += Size;
 		return Pages;
 	}
 	return nullptr;
@@ -41,7 +30,7 @@ bool bit::CVirtualMemory::CMemoryRegion::DecommitPagesByAddress(void* Address, s
 	{
 		if (VirtualFree(Address, Size, MEM_DECOMMIT))
 		{
-			CommitedSize -= Size;
+			CommittedSize -= Size;
 			return true;
 		}
 		return false;
@@ -65,7 +54,7 @@ void* bit::CVirtualMemory::CMemoryRegion::CommitPagesByOffset(size_t Offset, siz
 	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= RegionSize)
 	{
 		void* Pages = VirtualAlloc(Address, Size, MEM_COMMIT, PAGE_READWRITE);
-		if (Pages != nullptr) CommitedSize += Size;
+		if (Pages != nullptr) CommittedSize += Size;
 		return Pages;
 	}
 	return nullptr;
@@ -78,7 +67,7 @@ bool bit::CVirtualMemory::CMemoryRegion::DecommitPagesByOffset(size_t Offset, si
 	{
 		if (VirtualFree(Address, Size, MEM_DECOMMIT))
 		{
-			CommitedSize -= Size;
+			CommittedSize -= Size;
 			return true;
 		}
 		return false;
@@ -119,30 +108,17 @@ size_t bit::CVirtualMemory::CMemoryRegion::GetRegionSize() const
 
 size_t bit::CVirtualMemory::CMemoryRegion::GetCommitedSize() const
 {
-	return CommitedSize;
+	return CommittedSize;
 }
 
 size_t bit::CVirtualMemory::CMemoryRegion::GetPageCount() const
 {
-	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
-	return RegionSize / SystemInfo.dwPageSize;
+	return RegionSize / bit::GetOSPageSize();
 }
 
 bool bit::CVirtualMemory::CMemoryRegion::IsValid() const
 { 
 	return BaseAddress != nullptr; 
-}
-
-size_t bit::CVirtualMemory::GetPageSize()
-{
-	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
-	return SystemInfo.dwPageSize;
-}
-
-size_t bit::CVirtualMemory::GetAllocationGranularity()
-{
-	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
-	return SystemInfo.dwAllocationGranularity;
 }
 
 bit::CVirtualMemory::CMemoryRegion bit::CVirtualMemory::AllocateRegion(void* Address, size_t Size)

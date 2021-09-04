@@ -20,6 +20,36 @@ namespace bit
 	BITLIB_API size_t ToMiB(size_t Value);
 	BITLIB_API size_t ToGiB(size_t Value);
 	BITLIB_API size_t ToTiB(size_t Value);
+	BITLIB_API double FromKiB(size_t Value);
+	BITLIB_API double FromMiB(size_t Value);
+	BITLIB_API double FromGiB(size_t Value);
+	BITLIB_API double FromTiB(size_t Value);
+	BITLIB_API void* AllocateFromOS(size_t Size);
+	BITLIB_API bool FreeFromOS(void* Ptr);
+
+	template<size_t Size>
+	struct TToKib { static BIT_CONSTEXPR size_t Value = Size * 1024; };
+
+	template<size_t Size>
+	struct TToMiB { static BIT_CONSTEXPR size_t Value = TToKib<Size>::Value * 1024; };
+
+	template<size_t Size>
+	struct TToGiB { static BIT_CONSTEXPR size_t Value = TToMiB<Size>::Value * 1024; };
+
+	template<size_t Size>
+	struct TToTiB { static BIT_CONSTEXPR size_t Value = TToGiB<Size>::Value * 1024; };
+
+	template<size_t Size>
+	struct TFromKiB { static BIT_CONSTEXPR double Value = (double)Size / 1024.0; };
+
+	template<size_t Size>
+	struct TFromMiB { static BIT_CONSTEXPR double Value = TFromKiB<Size>::Value / 1024.0; };
+
+	template<size_t Size>
+	struct TFromGiB { static BIT_CONSTEXPR double Value = TFromMiB<Size>::Value / 1024.0; };
+
+	template<size_t Size>
+	struct TFromTiB { static BIT_CONSTEXPR double Value = TFromTiB<Size>::Value / 1024.0; };
 
 	BIT_FORCEINLINE void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
 	{

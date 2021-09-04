@@ -33,11 +33,9 @@ namespace bit
 		private:
 			void* BaseAddress = nullptr;
 			size_t RegionSize = 0;
-			size_t CommitedSize = 0;
+			size_t CommittedSize = 0;
 		};
 
-		static size_t GetPageSize();
-		static size_t GetAllocationGranularity();
 		static CMemoryRegion AllocateRegion(void* Address, size_t Size);
 		static void ReleaseRegion(CMemoryRegion& VirtualMemoryRegion);
 	};

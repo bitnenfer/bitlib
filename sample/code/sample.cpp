@@ -23,12 +23,7 @@ struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 	int32_t Value;
 };
 
-template<typename T>
-void* operator new(size_t Size, T* Ptr)
-{
-	BIT_DEBUG_BREAK();
-	return BitPlacementNew(Ptr) T;
-}
+
 
 int main(int32_t Argc, const char* Argv[])
 {
@@ -42,9 +37,11 @@ int main(int32_t Argc, const char* Argv[])
 
 	bit::CLinearAllocator LinearAllocator("TestLinearAllocator");
 	LinearAllocator.Initialize({ PageAllocator.Allocate(bit::ToMiB(100)), bit::ToMiB(100) });
+	bit::TFixedAllocator<bit::TToKib<1>::Value> FixedAllocator;
+
 	{
 		bit::pmr::TArray<int32_t> MyArray{ LinearAllocator };
-		bit::TArray<int32_t, int32_t, bit::TDefaultInlineBlockAllocator<int32_t, 5>> CopyArray{};
+		bit::pmr::TArray<int32_t> CopyArray{ FixedAllocator };
 		bit::THashTable<int32_t, int32_t> Table{};
 		bit::TLinkedList<int32_t> List{};
 		MyValue MyRoot{ 0 };

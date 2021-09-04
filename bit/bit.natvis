@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="bit::IAllocator">
-    <DisplayString>{{ {Name} }}</DisplayString>
+    <DisplayString>{{ Name={Name,s} }}</DisplayString>
   </Type>
   <Type Name="bit::TArray&lt;*&gt;">
     <DisplayString>{{ Count={Count}, Capacity={Capacity} }}</DisplayString>
@@ -134,6 +134,40 @@
           <Exec>BucketIndex++</Exec>
         </Loop>
       </CustomListItems>
+    </Expand>
+  </Type>
+  <Type Name="bit::CScopeTimer">
+    <DisplayString>{{ Name={TimerName,s}, Start={StartTime} }}</DisplayString>
+  </Type>
+  <Type Name="bit::CMemoryArena">
+    <DisplayString>{{ BaseAddress={BaseAddress,X}, Capacity ={SizeInBytes} }}</DisplayString>
+  </Type>
+  <Type Name="bit::CLinearAllocator">
+    <DisplayString>{{ Name={Name,s}, UsedInBytes={BufferOffset}, CapacityInBytes={Arena.SizeInBytes}, UsagePct={(float)BufferOffset / (float)Arena.SizeInBytes, g}% }}</DisplayString>
+    <Expand>
+      <Item Name="Arena">Arena</Item>
+      <Item Name="Used">BufferOffset</Item>
+    </Expand>
+  </Type>
+  <Type Name="bit::CVirtualMemory::CMemoryRegion">
+    <DisplayString>{{ BaseAddress={BaseAddress,X}, Committed={CommittedSize}, Reserved={RegionSize} }}</DisplayString>
+  </Type>
+  <Type Name="bit::CPageAllocator">
+    <DisplayString>{{ Name={Name,s}, CommittedPages={VirtualMemoryRegion.CommittedSize / PageGranularity}, TotalPages={PageCount}, UsagePct={(float)VirtualMemoryRegion.CommittedSize/(float)VirtualMemoryRegion.RegionSize*100.0,g}% } }}</DisplayString>
+    <Expand>
+      <Item Name="[Name]">Name,s</Item>
+      <Item Name="[BaseAddress]">VirtualMemoryRegion.BaseAddress,X</Item>
+      <Item Name="[PageGranularity]">PageGranularity</Item>
+      <Item Name="[CommittedPages]">VirtualMemoryRegion.CommittedSize / PageGranularity</Item>
+      <Item Name="[TotalPages]">PageCount</Item>
+      <Item Name="[MemoryRegion]">VirtualMemoryRegion</Item>
+    </Expand>
+  </Type>
+  <Type Name="bit::TFixedAllocator&lt;*&gt;">
+    <DisplayString>{{ Name={Name,s}, CapacityInBytes={sizeof(Data)} }}</DisplayString>
+    <Expand>
+      <Item Name="CapacityInBytes">sizeof(Data)</Item>
+      <Item Name="Data">Data</Item>
     </Expand>
   </Type>
 </AutoVisualizer>

@@ -84,6 +84,16 @@ bit::IAllocator& bit::GetDefaultAllocator()
 	return *DefaultAllocator;
 }
 
+void* bit::AllocateFromOS(size_t Size)
+{
+	return VirtualAlloc(nullptr, Size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+}
+
+bool bit::FreeFromOS(void* Ptr)
+{
+	return VirtualFree(Ptr, 0, MEM_RELEASE) == TRUE;
+}
+
 void* bit::Memcpy(void* Dst, const void* Src, size_t Num)
 {
 	return BitMemcpy(Dst, Src, Num);

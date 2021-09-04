@@ -19,7 +19,6 @@ namespace bit
 		CThread& operator=(CThread&& MoveRef);
 
 		static int32_t GetCurrentThreadId();
-		static uint64_t GetLogicalProcessorCount();
 		static void YieldThread();
 		static void SleepThread(uint32_t Milliseconds);
 

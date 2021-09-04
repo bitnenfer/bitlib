@@ -90,13 +90,6 @@ bit::CThread& bit::CThread::operator=(CThread&& MoveRef)
 	return ::GetCurrentThreadId();
 }
 
-/*static*/ uint64_t bit::CThread::GetLogicalProcessorCount()
-{
-	SYSTEM_INFO Info = {};
-	GetSystemInfo(&Info);
-	return Info.dwNumberOfProcessors;
-}
-
 /*static*/ void bit::CThread::YieldThread()
 {
 	_mm_pause();
