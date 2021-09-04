@@ -11,6 +11,8 @@
 #include <bit/linked_list.h>
 #include <bit/intrusive_linked_list.h>
 #include <bit/linear_allocator.h>
+#include <bit/virtual_memory.h>
+#include <bit/page_allocator.h>
 
 struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 {
@@ -21,13 +23,27 @@ struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 	int32_t Value;
 };
 
+template<typename T>
+void* operator new(size_t Size, T* Ptr)
+{
+	BIT_DEBUG_BREAK();
+	return BitPlacementNew(Ptr) T;
+}
+
 int main(int32_t Argc, const char* Argv[])
 {
 	bit::CScopeTimer Timer("Sample");
+	bit::CPageAllocator PageAllocator("PageAllocator", bit::CVirtualMemory::AllocateRegion(nullptr, bit::ToGiB(16)));
+
+	MyValue* NM = PageAllocator.New<MyValue>(99);
+	size_t NMSize = PageAllocator.GetSize(NM);
+	size_t Wastage = NMSize - sizeof(MyValue);
+	PageAllocator.Delete(NM);
+
 	bit::CLinearAllocator LinearAllocator("TestLinearAllocator");
-	LinearAllocator.Initialize(bit::Malloc(bit::ToMiB(100), bit::CLinearAllocator::GetRequiredAlignment()), bit::ToMiB(100));
+	LinearAllocator.Initialize({ PageAllocator.Allocate(bit::ToMiB(100)), bit::ToMiB(100) });
 	{
-		bit::TArray<int32_t> MyArray{};
+		bit::pmr::TArray<int32_t> MyArray{ LinearAllocator };
 		bit::TArray<int32_t, int32_t, bit::TDefaultInlineBlockAllocator<int32_t, 5>> CopyArray{};
 		bit::THashTable<int32_t, int32_t> Table{};
 		bit::TLinkedList<int32_t> List{};
@@ -77,7 +93,7 @@ int main(int32_t Argc, const char* Argv[])
 
 		size_t Value = bit::Log2(0x1234);
 
-		bit::AtomicExchange64((int64_t*)&Value, 0xFFFF);
+		bit::AtomicExchange((int64_t*)&Value, 0xFFFF);
 
 		bit::CCommandArgs Cmds(Argv, Argc);
 		bool bFoo = Cmds.Contains("foo");
@@ -134,8 +150,8 @@ int main(int32_t Argc, const char* Argv[])
 			idx++;
 		}
 	}
-	bit::Free(LinearAllocator.GetBuffer(nullptr));
+	PageAllocator.Free(LinearAllocator.GetBuffer(nullptr));
+	LinearAllocator.Terminate();
 	bit::CMemoryInfo MemInfo = bit::GetDefaultAllocator().GetMemoryInfo();
-
 	return 0;
 }

@@ -11,7 +11,7 @@ namespace bit
 		CLinearAllocator(const char* Name = "CLinearAllocator");
 		~CLinearAllocator();
 
-		void Initialize(void* Buffer, size_t BufferSize);
+		void Initialize(CMemoryArena Arena);
 		void Terminate();
 		void Reset();
 		void* GetBuffer(size_t* OutSize);
@@ -23,8 +23,7 @@ namespace bit
 		CMemoryInfo GetMemoryInfo() override;
 
 	private:
-		uint8_t* Buffer;
+		CMemoryArena Arena;
 		size_t BufferOffset;
-		size_t BufferSize;
 	};
 }

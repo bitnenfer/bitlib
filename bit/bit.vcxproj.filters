@@ -81,7 +81,10 @@
     <ClInclude Include="bit\include\bit\container_allocators.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\virtual_memory_allocator.h">
+    <ClInclude Include="bit\include\bit\virtual_memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\page_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -126,6 +129,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bit\src\bit\linear_allocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\windows\windows_virtual_memory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\page_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -22,9 +22,8 @@ namespace bit
 
 bit::CLinearAllocator::CLinearAllocator(const char* Name) :
 	IAllocator::IAllocator(Name),
-	Buffer(nullptr),
-	BufferOffset(0),
-	BufferSize(0)
+	Arena({nullptr, 0}),
+	BufferOffset(0)
 {
 }
 
@@ -33,18 +32,17 @@ bit::CLinearAllocator::~CLinearAllocator()
 	Terminate();
 }
 
-void bit::CLinearAllocator::Initialize(void* InBuffer, size_t InBufferSize)
+void bit::CLinearAllocator::Initialize(bit::CMemoryArena InArena)
 {
 	Terminate();
-	Buffer = (uint8_t*)InBuffer;
-	BufferSize = InBufferSize;
+	Arena = InArena;
 }
 
 void bit::CLinearAllocator::Terminate()
 {
-	Buffer = nullptr;
+	Arena.BaseAddress = nullptr;
+	Arena.SizeInBytes = 0;
 	BufferOffset = 0;
-	BufferSize = 0;
 }
 
 void bit::CLinearAllocator::Reset()
@@ -54,14 +52,14 @@ void bit::CLinearAllocator::Reset()
 
 void* bit::CLinearAllocator::GetBuffer(size_t* OutSize)
 {
-	if (OutSize != nullptr) *OutSize = BufferSize;
-	return Buffer;
+	if (OutSize != nullptr) *OutSize = Arena.SizeInBytes;
+	return Arena.BaseAddress;
 }
 
 void* bit::CLinearAllocator::Allocate(size_t Size, size_t Alignment)
 {
-	uint8_t* BufferCurr = Buffer + BufferOffset;
-	if ((size_t)bit::PtrDiff(BufferCurr, BufferCurr + Size + sizeof(CLinearAllocatorHeader)) < BufferSize)
+	uint8_t* BufferCurr = (uint8_t*)bit::ForwardPtr(Arena.BaseAddress, BufferOffset);
+	if ((size_t)bit::PtrDiff(BufferCurr, BufferCurr + Size + sizeof(CLinearAllocatorHeader)) < Arena.SizeInBytes)
 	{
 		void* NonAligned = BufferCurr + sizeof(CLinearAllocatorHeader);
 		void* Aligned = bit::AlignPtr(NonAligned, Alignment);
@@ -100,8 +98,8 @@ size_t bit::CLinearAllocator::GetSize(void* Pointer)
 bit::CMemoryInfo bit::CLinearAllocator::GetMemoryInfo()
 {
 	CMemoryInfo Info = {};
-	Info.AllocatedBytes = (size_t)bit::PtrDiff(bit::ForwardPtr(Buffer, BufferOffset), Buffer);
-	Info.CommittedBytes = BufferSize;
-	Info.ReservedBytes = BufferSize;
+	Info.AllocatedBytes = (size_t)bit::PtrDiff(bit::ForwardPtr(Arena.BaseAddress, BufferOffset), Arena.BaseAddress);
+	Info.CommittedBytes = Arena.SizeInBytes;
+	Info.ReservedBytes = Arena.SizeInBytes;
 	return Info;
 }

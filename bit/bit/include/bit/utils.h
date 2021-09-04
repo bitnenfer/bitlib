@@ -29,6 +29,12 @@ namespace bit
 		return B;
 	}
 
+	template<typename T> 
+	BIT_FORCEINLINE T Clamp(T Value, T MinValue, T MaxValue) 
+	{ 
+		return (Value >= MaxValue) ? MaxValue : ((Value <= MinValue) ? MinValue : Value); 
+	}
+
 	template<typename TLHS, typename TRHS>
 	BIT_FORCEINLINE TLHS BitCast(TRHS Value) 
 	{ 
@@ -112,6 +118,15 @@ namespace bit
 		// Value - 1	= 0b000111
 		// Doing a bitwise AND should result in 0
 		return (((Value) & ((Value)-1)) == 0);
+	}
+
+	BIT_FORCEINLINE size_t Pow2(size_t Exp)
+	{
+	#if BIT_PLATFORM_X64
+		return 1LL << Exp;
+	#elif BIT_PLATFORM_X86
+		return 1 << Exp;
+	#endif
 	}
 
 	BIT_FORCEINLINE bool PtrInRange(const void* Ptr, const void* Start, const void* End)

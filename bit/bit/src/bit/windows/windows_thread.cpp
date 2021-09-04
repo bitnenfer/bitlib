@@ -49,7 +49,7 @@ bit::CThread::~CThread()
 
 void bit::CThread::Start(ThreadFunc_t Func, size_t StackSize, void* UserData)
 {
-	CThreadPayload* Payload = bit::TMalloc<CThreadPayload>();
+	CThreadPayload* Payload = bit::Malloc<CThreadPayload>();
 	Payload->Func = Func;
 	Payload->UserData = UserData;
 	UserPayload = Payload;

@@ -12,6 +12,12 @@ namespace bit
 		size_t ReservedBytes;
 	};
 
+	struct BITLIB_API  CMemoryArena
+	{
+		void* BaseAddress;
+		size_t SizeInBytes;
+	};
+
 	/* Polymorphic Allocator. Useful for custom types of allocations and Polymorphic containers. */
 	struct BITLIB_API IAllocator
 	{
@@ -25,7 +31,13 @@ namespace bit
 		const char* GetName() const { return Name; }
 
 		template<typename T>
-		T* Allocate(size_t Count = 1)
+		T* Allocate()
+		{
+			return (T*)Allocate(sizeof(T), alignof(T));
+		}
+
+		template<typename T>
+		T* AllocateArray(size_t Count)
 		{
 			return (T*)Allocate(sizeof(T) * Count, alignof(T));
 		}
@@ -33,7 +45,7 @@ namespace bit
 		template<typename T, typename... TArgs>
 		T* New(TArgs&& ... ConstructorArgs)
 		{
-			return BitPlacementNew((T*)Allocate(sizeof(T), alignof(T))) T(ConstructorArgs...);
+			return BitPlacementNew(Allocate<T>()) T(ConstructorArgs...);
 		}
 
 		template<typename T>
@@ -46,4 +58,26 @@ namespace bit
 	private:
 		char Name[bit::ALLOCATOR_MAX_NAME_LEN];
 	};
+}
+
+/* I recommend just using allocator's New, Delete, NewArray and DeleteArray instead */
+
+BIT_FORCEINLINE void* operator new(size_t Size, bit::IAllocator& Allocator)
+{
+	return Allocator.Allocate(Size, 0);
+}
+
+BIT_FORCEINLINE void operator delete(void* Ptr, bit::IAllocator& Allocator)
+{
+	Allocator.Free(Ptr);
+}
+
+BIT_FORCEINLINE void* operator new[](size_t Size, bit::IAllocator& Allocator)
+{
+	return Allocator.Allocate(Size, 0);
+}
+
+BIT_FORCEINLINE void operator delete[](void* Ptr, size_t Size, bit::IAllocator& Allocator)
+{
+	Allocator.Free(Ptr);
 }

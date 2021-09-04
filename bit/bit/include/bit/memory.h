@@ -5,6 +5,8 @@
 
 namespace bit
 {
+	struct IAllocator;
+
 	BITLIB_API IAllocator& GetDefaultAllocator();
 	BITLIB_API void* Memcpy(void* Dst, const void* Src, size_t Num);
 	BITLIB_API void* Memset(void* Ptr, int32_t Value, size_t Num);
@@ -32,9 +34,9 @@ namespace bit
 		return GetDefaultAllocator().Free(Pointer);
 	}
 	template<typename T>
-	T* TMalloc(size_t Count = 1)
+	T* Malloc(size_t Count = 1)
 	{
-		return (T*)GetDefaultAllocator().Allocate(Count * sizeof(T), bit::DEFAULT_ALIGNMENT);
+		return (T*)GetDefaultAllocator().Allocate(Count * sizeof(T), alignof(T));
 	}
 
 	template<class T>
@@ -83,7 +85,7 @@ namespace bit
 	template<typename T, typename... TArgs>
 	T* New(TArgs&& ... ConstructorArgs)
 	{
-		return BitPlacementNew((T*)bit::Malloc(sizeof(T), 4)) T(ConstructorArgs...);
+		return BitPlacementNew((T*)bit::Malloc(sizeof(T), alignof(T))) T(ConstructorArgs...);
 	}
 
 	template<typename T>
