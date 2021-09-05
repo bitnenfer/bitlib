@@ -197,7 +197,7 @@ namespace bit
 
 		EntryType_t* CreateAndInsert(HashType_t Hash, const KeyType_t& Key, const ValueType_t& Value)
 		{
-			return Set(Container.Alloc(), Hash, Key, Value);
+			return Set(Container.New(), Hash, Key, Value);
 		}
 
 		EntryType_t* Set(EntryType_t* Entry, HashType_t Hash, const KeyType_t& Key, const ValueType_t& Value)

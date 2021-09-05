@@ -15,14 +15,14 @@ namespace bit
 		static BIT_CONSTEXPR size_t INVALID_PAGE = 0xFFFFFFFF;
 		static BIT_CONSTEXPR size_t DEFAULT_PAGE_ALIGNMENT = 0; // We don't use alignment here. By default it'll be aligned to page size.
 
-		CPageAllocator(const char* Name, CVirtualMemory::CMemoryRegion VirtualMemoryRegion, size_t AllocationGranularity = DEFAULT_PAGE_GRANULARITY);
+		CPageAllocator(const char* Name, void* StartAddress, size_t RegionSize, size_t AllocationGranularity = DEFAULT_PAGE_GRANULARITY);
 		~CPageAllocator();
 
 		void* Allocate(size_t Size, size_t Alignment = DEFAULT_PAGE_ALIGNMENT) override;
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment = DEFAULT_PAGE_ALIGNMENT) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
-		CMemoryInfo GetMemoryInfo() override;
+		CMemoryUsageInfo GetMemoryUsageInfo() override;
 
 	protected:
 		void DebugPrintState(size_t PageIndex = 0, size_t Depth = 0);
@@ -77,7 +77,7 @@ namespace bit
 		size_t RoundToPageGranularity(size_t Size);
 
 	private:
-		CVirtualMemory::CMemoryRegion VirtualMemoryRegion;
+		CVirtualAddressSpace VirtualAddressSpace;
 		uint8_t* BitArray;
 		size_t PageGranularity;
 		size_t PageCount;

@@ -103,7 +103,7 @@ namespace bit
 	template<typename T, typename... TArgs>
 	T* Construct(T* Element, TArgs&& ... ConstructorArgs)
 	{
-		return BitPlacementNew(Element) T(ConstructorArgs...);
+		return BitPlacementNew(Element) T(bit::Forward<TArgs>(ConstructorArgs)...);
 	}
 
 	template<class T>
@@ -115,7 +115,7 @@ namespace bit
 	template<typename T, typename... TArgs>
 	T* New(TArgs&& ... ConstructorArgs)
 	{
-		return BitPlacementNew((T*)bit::Malloc(sizeof(T), alignof(T))) T(ConstructorArgs...);
+		return BitPlacementNew((T*)bit::Malloc(sizeof(T), alignof(T))) T(bit::Forward<TArgs>(ConstructorArgs)...);
 	}
 
 	template<typename T>

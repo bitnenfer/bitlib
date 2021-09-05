@@ -6,15 +6,39 @@
 
 namespace bit
 {
-	template<class T> struct RemoveRef { typedef T Type; };
-	template<class T> struct RemoveRef<T&> { typedef T Type; };
-	template<class T> struct RemoveRef<T&&> { typedef T Type; };
+	template<typename T, T TValue> struct TConstValue { static BIT_CONSTEXPR T Value = TValue; };
 
-	template <class T>
-	BIT_FORCEINLINE typename RemoveRef<T>::Type&& Move(T&& Arg) noexcept
+	template<typename T> struct TIsSigned : public TConstValue<bool, false> {};
+	template<> struct TIsSigned<int8_t> : public TConstValue<bool, true> {};
+	template<> struct TIsSigned<int16_t> : public TConstValue<bool, true> {};
+	template<> struct TIsSigned<int32_t> : public TConstValue<bool, true> {};
+	template<> struct TIsSigned<int64_t> : public TConstValue<bool, true> {};
+
+	template<typename T> struct RemoveRef { typedef T Type; };
+	template<typename T> struct RemoveRef<T&> { typedef T Type; };
+	template<typename T> struct RemoveRef<T&&> { typedef T Type; };
+
+	template<typename T> struct TIsLValueRef : public TConstValue<bool, false> {};
+	template<typename T> struct TIsLValueRef<T&> : public TConstValue<bool, true> {};
+
+	template <typename T>
+	typename RemoveRef<T>::Type&& Move(T&& Arg) noexcept
 	{
 		return static_cast<typename RemoveRef<T>::Type&&>(Arg);
 	}
+	
+	template<typename T>
+	T&& Forward(typename bit::RemoveRef<T>::Type& Arg) noexcept
+	{
+		return static_cast<T&&>(Arg);
+	}
+
+	template<typename T>
+	T&& Forward(typename bit::RemoveRef<T>::Type&& Arg) noexcept
+	{
+		return static_cast<T&&>(Arg);
+	}
+
 
 	template<class T>
 	BIT_FORCEINLINE T Max(T A, T B)
@@ -105,6 +129,15 @@ namespace bit
 
 	BITLIB_API size_t Log2(size_t Value);
 
+	// This function counts the number of bits before a set bit is found
+	// and assumes the alignment based on that. It might not be the selected alignment
+	// at allocation time, but it'll always be greater or equal.
+	BITLIB_API size_t GetAddressAlignment(const void* Address);
+	BIT_FORCEINLINE bool IsAddressAligned(const void* Address, size_t Alignment)
+	{
+		return (Alignment > 1) ? ((uintptr_t)Address % Alignment) == 0 : true;
+	}
+
 	BIT_FORCEINLINE size_t NextPow2(size_t Size)
 	{
 		uint64_t BitIndex = Log2(Size - 1);
@@ -133,11 +166,5 @@ namespace bit
 	{
 		return Ptr >= Start && Ptr <= End;
 	}
-
-	template<typename T> struct TIsSigned { static BIT_CONSTEXPR bool bValue = false; };
-	template<> struct TIsSigned<int8_t> { static BIT_CONSTEXPR bool bValue = true; };
-	template<> struct TIsSigned<int16_t> { static BIT_CONSTEXPR bool bValue = true; };
-	template<> struct TIsSigned<int32_t> { static BIT_CONSTEXPR bool bValue = true; };
-	template<> struct TIsSigned<int64_t> { static BIT_CONSTEXPR bool bValue = true; };
 
 }

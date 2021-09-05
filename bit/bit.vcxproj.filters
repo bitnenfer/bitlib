@@ -87,6 +87,15 @@
     <ClInclude Include="bit\include\bit\page_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bit\include\bit\heap_allocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\pointers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\reference_counter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bit.natvis" />
@@ -135,6 +144,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bit\src\bit\page_allocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\heap_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

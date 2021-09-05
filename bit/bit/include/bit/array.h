@@ -42,7 +42,7 @@ namespace bit
 	>
 	struct TArray
 	{
-		static_assert(bit::TIsSigned<TSizeType>::bValue, "Size type must be signed");
+		static_assert(bit::TIsSigned<TSizeType>::Value, "Size type must be signed");
 
 		typedef TArray<T, TSizeType, TAllocator> SelfType_t;
 		typedef T ElementType_t;
@@ -183,7 +183,7 @@ namespace bit
 		{
 			CheckGrow();
 			T* Ptr = &GetData()[Count++];
-			bit::Construct(Ptr, ConstructorArgs...);
+			bit::Construct(Ptr, bit::Forward<TArgs>(ConstructorArgs)...);
 			return Ptr;
 		}
 
@@ -439,11 +439,11 @@ namespace bit
 			}
 
 			template<typename... TArgs>
-			T& Allocate(TArgs&& ... ConstructorArgs)
+			T& New(TArgs&& ... ConstructorArgs)
 			{
 				CheckGrow();
 				T* Ptr = &GetData()[Count++];
-				bit::Construct(Ptr, ConstructorArgs...);
+				bit::Construct(Ptr, bit::Forward<TArgs>(ConstructorArgs)...);
 				return Ptr;
 			}
 

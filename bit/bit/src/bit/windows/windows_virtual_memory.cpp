@@ -13,9 +13,39 @@ static DWORD BitGetProtection(bit::EPageProtectionType ProtectionType)
 	return PAGE_READONLY;
 }
 
-void* bit::CVirtualMemory::CMemoryRegion::CommitPagesByAddress(void* Address, size_t Size)
+bit::CVirtualAddressSpace::CVirtualAddressSpace() :
+	BaseAddress(nullptr),
+	ReservedSize(0),
+	CommittedSize(0)
 {
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= RegionSize)
+}
+
+bit::CVirtualAddressSpace::CVirtualAddressSpace(void* BaseAddress, size_t ReservedSize) :
+	BaseAddress(BaseAddress),
+	ReservedSize(ReservedSize),
+	CommittedSize(0)
+{}
+
+bit::CVirtualAddressSpace::CVirtualAddressSpace(CVirtualAddressSpace&& Move)
+{
+	BaseAddress = Move.BaseAddress;
+	ReservedSize = Move.ReservedSize;
+	CommittedSize = Move.CommittedSize;
+	bit::Memset(&Move, 0, sizeof(CVirtualAddressSpace));
+}
+
+bit::CVirtualAddressSpace& bit::CVirtualAddressSpace::operator=(CVirtualAddressSpace&& Move)
+{
+	BaseAddress = Move.BaseAddress;
+	ReservedSize = Move.ReservedSize;
+	CommittedSize = Move.CommittedSize;
+	bit::Memset(&Move, 0, sizeof(CVirtualAddressSpace));
+	return *this;
+}
+
+void* bit::CVirtualAddressSpace::CommitPagesByAddress(void* Address, size_t Size)
+{
+	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
 	{
 		void* Pages = VirtualAlloc(Address, Size, MEM_COMMIT, PAGE_READWRITE);
 		if (Pages != nullptr) CommittedSize += Size;
@@ -24,9 +54,9 @@ void* bit::CVirtualMemory::CMemoryRegion::CommitPagesByAddress(void* Address, si
 	return nullptr;
 }
 
-bool bit::CVirtualMemory::CMemoryRegion::DecommitPagesByAddress(void* Address, size_t Size)
+bool bit::CVirtualAddressSpace::DecommitPagesByAddress(void* Address, size_t Size)
 {
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= RegionSize)
+	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
 	{
 		if (VirtualFree(Address, Size, MEM_DECOMMIT))
 		{
@@ -38,9 +68,9 @@ bool bit::CVirtualMemory::CMemoryRegion::DecommitPagesByAddress(void* Address, s
 	return false;
 }
 
-bool bit::CVirtualMemory::CMemoryRegion::ProtectPagesByAddress(void* Address, size_t Size, EPageProtectionType Protection)
+bool bit::CVirtualAddressSpace::ProtectPagesByAddress(void* Address, size_t Size, EPageProtectionType Protection)
 {
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= RegionSize)
+	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
 	{
 		DWORD OldProtection = 0;
 		return VirtualProtect(Address, Size, BitGetProtection(Protection), &OldProtection) == TRUE;
@@ -48,10 +78,10 @@ bool bit::CVirtualMemory::CMemoryRegion::ProtectPagesByAddress(void* Address, si
 	return false;
 }
 
-void* bit::CVirtualMemory::CMemoryRegion::CommitPagesByOffset(size_t Offset, size_t Size)
+void* bit::CVirtualAddressSpace::CommitPagesByOffset(size_t Offset, size_t Size)
 {
 	void* Address = GetAddress(Offset);
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= RegionSize)
+	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
 	{
 		void* Pages = VirtualAlloc(Address, Size, MEM_COMMIT, PAGE_READWRITE);
 		if (Pages != nullptr) CommittedSize += Size;
@@ -60,10 +90,10 @@ void* bit::CVirtualMemory::CMemoryRegion::CommitPagesByOffset(size_t Offset, siz
 	return nullptr;
 }
 
-bool bit::CVirtualMemory::CMemoryRegion::DecommitPagesByOffset(size_t Offset, size_t Size)
+bool bit::CVirtualAddressSpace::DecommitPagesByOffset(size_t Offset, size_t Size)
 {
 	void* Address = GetAddress(Offset);
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= RegionSize)
+	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
 	{
 		if (VirtualFree(Address, Size, MEM_DECOMMIT))
 		{
@@ -75,10 +105,10 @@ bool bit::CVirtualMemory::CMemoryRegion::DecommitPagesByOffset(size_t Offset, si
 	return false;
 }
 
-bool bit::CVirtualMemory::CMemoryRegion::ProtectPagesByOffset(size_t Offset, size_t Size, EPageProtectionType Protection)
+bool bit::CVirtualAddressSpace::ProtectPagesByOffset(size_t Offset, size_t Size, EPageProtectionType Protection)
 {
 	void* Address = GetAddress(Offset);
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= RegionSize)
+	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
 	{
 		DWORD OldProtection = 0;
 		return VirtualProtect(Address, Size, BitGetProtection(Protection), &OldProtection) == TRUE;
@@ -86,60 +116,61 @@ bool bit::CVirtualMemory::CMemoryRegion::ProtectPagesByOffset(size_t Offset, siz
 	return false;
 }
 
-void* bit::CVirtualMemory::CMemoryRegion::GetBaseAddress() const
+void* bit::CVirtualAddressSpace::GetBaseAddress() const
 {
 	return BaseAddress;
 }
 
-void* bit::CVirtualMemory::CMemoryRegion::GetAddress(size_t Offset) const
+void* bit::CVirtualAddressSpace::GetAddress(size_t Offset) const
 {
 	return bit::ForwardPtr(BaseAddress, Offset);
 }
 
-void* bit::CVirtualMemory::CMemoryRegion::GetEndAddress() const
+void* bit::CVirtualAddressSpace::GetEndAddress() const
 {
-	return bit::ForwardPtr(BaseAddress, RegionSize);
+	return bit::ForwardPtr(BaseAddress, ReservedSize);
 }
 
-size_t bit::CVirtualMemory::CMemoryRegion::GetRegionSize() const
+size_t bit::CVirtualAddressSpace::GetRegionSize() const
 {
-	return RegionSize;
+	return ReservedSize;
 }
 
-size_t bit::CVirtualMemory::CMemoryRegion::GetCommitedSize() const
+size_t bit::CVirtualAddressSpace::GetCommittedSize() const
 {
 	return CommittedSize;
 }
 
-size_t bit::CVirtualMemory::CMemoryRegion::GetPageCount() const
+size_t bit::CVirtualAddressSpace::GetPageCount() const
 {
-	return RegionSize / bit::GetOSPageSize();
+	return ReservedSize / bit::GetOSPageSize();
 }
 
-bool bit::CVirtualMemory::CMemoryRegion::IsValid() const
+bool bit::CVirtualAddressSpace::IsValid() const
 { 
 	return BaseAddress != nullptr; 
 }
 
-bit::CVirtualMemory::CMemoryRegion bit::CVirtualMemory::AllocateRegion(void* Address, size_t Size)
+bool bit::VirtualReserveSpace(void* Address, size_t Size, CVirtualAddressSpace& OutVirtualMemorySpace)
 {
-	bit::CVirtualMemory::CMemoryRegion VirtualMemoryRegion;
-	bit::Memset(&VirtualMemoryRegion, 0, sizeof(bit::CVirtualMemory::CMemoryRegion));
 	void* Ptr = VirtualAlloc(Address, Size, MEM_RESERVE, PAGE_READWRITE);
-
+	if (Ptr == nullptr) return false;
 	MEMORY_BASIC_INFORMATION MemInfo = {};
 	VirtualQuery(Ptr, &MemInfo, sizeof(MEMORY_BASIC_INFORMATION));
-
-	VirtualMemoryRegion.BaseAddress = Ptr;
-	VirtualMemoryRegion.RegionSize = MemInfo.RegionSize;
-	return VirtualMemoryRegion;
+	BitPlacementNew(&OutVirtualMemorySpace) CVirtualAddressSpace(Ptr, MemInfo.RegionSize);
+	return true;
 }
 
-void bit::CVirtualMemory::ReleaseRegion(bit::CVirtualMemory::CMemoryRegion& VirtualMemoryRegion)
+void bit::VirtualReleaseSpace(bit::CVirtualAddressSpace& VirtualMemoryRegion)
 {
 	if (VirtualMemoryRegion.IsValid())
 	{
 		VirtualFree(VirtualMemoryRegion.GetBaseAddress(), VirtualMemoryRegion.GetRegionSize(), MEM_RELEASE);
-		bit::Memset(&VirtualMemoryRegion, 0, sizeof(bit::CVirtualMemory::CMemoryRegion));
+		bit::Memset(&VirtualMemoryRegion, 0, sizeof(bit::CVirtualAddressSpace));
 	}
+}
+
+void* bit::VirtualDefaultAddress()
+{
+	return nullptr;
 }

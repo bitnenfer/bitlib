@@ -187,6 +187,7 @@
     <ClInclude Include="bit\include\bit\critical_section.h" />
     <ClInclude Include="bit\include\bit\fixed_allocator.h" />
     <ClInclude Include="bit\include\bit\hash_table.h" />
+    <ClInclude Include="bit\include\bit\heap_allocator.h" />
     <ClInclude Include="bit\include\bit\intrusive_linked_list.h" />
     <ClInclude Include="bit\include\bit\linear_allocator.h" />
     <ClInclude Include="bit\include\bit\linked_list.h" />
@@ -197,6 +198,8 @@
     <ClInclude Include="bit\include\bit\platform.h" />
     <ClInclude Include="bit\include\bit\platform_null.h" />
     <ClInclude Include="bit\include\bit\platform_windows.h" />
+    <ClInclude Include="bit\include\bit\pointers.h" />
+    <ClInclude Include="bit\include\bit\reference_counter.h" />
     <ClInclude Include="bit\include\bit\scope_timer.h" />
     <ClInclude Include="bit\include\bit\thread.h" />
     <ClInclude Include="bit\include\bit\types.h" />
@@ -210,6 +213,7 @@
   <ItemGroup>
     <ClCompile Include="bit\src\bit\allocator.cpp" />
     <ClCompile Include="bit\src\bit\command_args.cpp" />
+    <ClCompile Include="bit\src\bit\heap_allocator.cpp" />
     <ClCompile Include="bit\src\bit\linear_allocator.cpp" />
     <ClCompile Include="bit\src\bit\memory.cpp" />
     <ClCompile Include="bit\src\bit\murmur_hash.cpp" />

@@ -13,6 +13,7 @@
 #include <bit/linear_allocator.h>
 #include <bit/virtual_memory.h>
 #include <bit/page_allocator.h>
+#include <bit/pointers.h>
 
 struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 {
@@ -23,21 +24,56 @@ struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 	int32_t Value;
 };
 
+struct MemoryBlock : public bit::TIntrusiveLinkedList<MemoryBlock>
+{
+	MemoryBlock() : bit::TIntrusiveLinkedList<MemoryBlock>(*this) {}
+	size_t Size;
+};
 
+struct TestData
+{
+	TestData(uint32_t Value) : Value(Value) {};
+	~TestData()
+	{
+		BIT_LOG("AAAA\n");
+	}
+	uint32_t Value;
+};
 
 int main(int32_t Argc, const char* Argv[])
 {
+
 	bit::CScopeTimer Timer("Sample");
-	bit::CPageAllocator PageAllocator("PageAllocator", bit::CVirtualMemory::AllocateRegion(nullptr, bit::ToGiB(16)));
+	bit::CPageAllocator PageAllocator("PageAllocator", bit::VirtualDefaultAddress(), bit::ToGiB(16));
 
 	MyValue* NM = PageAllocator.New<MyValue>(99);
+	size_t Alignment = bit::GetAddressAlignment(NM);
 	size_t NMSize = PageAllocator.GetSize(NM);
 	size_t Wastage = NMSize - sizeof(MyValue);
 	PageAllocator.Delete(NM);
 
-	bit::CLinearAllocator LinearAllocator("TestLinearAllocator");
-	LinearAllocator.Initialize({ PageAllocator.Allocate(bit::ToMiB(100)), bit::ToMiB(100) });
-	bit::TFixedAllocator<bit::TToKib<1>::Value> FixedAllocator;
+	auto MX = bit::Forward<size_t>(bit::Move(Alignment));
+
+	bit::CLinearAllocator LinearAllocator("TestLinearAllocator", PageAllocator.AllocateArena(bit::ToMiB(100)));
+	bit::TFixedMemoryArena<bit::TToKib<1>::Value> FixedMemoryArena;
+
+	bit::CLinearAllocator FixedAllocator("FixedLinearAllocator", FixedMemoryArena);
+
+	{
+		bit::TSharedPtr<TestData> SharedValue = bit::MakeShared<TestData>(10);
+		bit::pmr::TUniquePtr<MyValue> PassAround;
+		{
+			bit::pmr::TUniquePtr<MyValue> TEST = bit::pmr::MakeUnique<MyValue>(FixedAllocator, 69);
+			TEST.Get()->Value = 9999;
+			PassAround.Swap(TEST);
+		}
+
+		bit::TSharedPtr<TestData> Copy = SharedValue;
+
+		bit::TSharedPtr<MyValue> SharedTest;
+		SharedTest.Reset();
+	}
+
 
 	{
 		bit::pmr::TArray<int32_t> MyArray{ LinearAllocator };
@@ -147,8 +183,6 @@ int main(int32_t Argc, const char* Argv[])
 			idx++;
 		}
 	}
-	PageAllocator.Free(LinearAllocator.GetBuffer(nullptr));
-	LinearAllocator.Terminate();
-	bit::CMemoryInfo MemInfo = bit::GetDefaultAllocator().GetMemoryInfo();
+	bit::CMemoryUsageInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
 	return 0;
 }

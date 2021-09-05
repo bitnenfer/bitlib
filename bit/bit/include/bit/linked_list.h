@@ -194,12 +194,12 @@ namespace bit
 		}
 
 		template<typename... TArgs>
-		T* Alloc(TArgs&& ... ConstructorArgs)
+		T* New(TArgs&& ... ConstructorArgs)
 		{
 			LinkType_t* Link = bit::Construct(Allocator.AllocateLink(1));
 			Link->Prev = nullptr;
 			Link->Next = nullptr;
-			bit::Construct(&Link->Element, ConstructorArgs...);
+			bit::Construct(&Link->Element, bit::Forward<TArgs>(ConstructorArgs)...);
 			return &InsertLink(Link)->Element;
 		}
 
@@ -414,12 +414,12 @@ namespace bit
 			}
 
 			template<typename... TArgs>
-			T* Alloc(TArgs&& ... ConstructorArgs)
+			T* New(TArgs&& ... ConstructorArgs)
 			{
 				LinkType_t* Link = Allocator->New<LinkType_t>();
 				Link->Prev = nullptr;
 				Link->Next = nullptr;
-				bit::Construct(&Link->Element, ConstructorArgs...);
+				bit::Construct(&Link->Element, bit::Forward<TArgs>(ConstructorArgs)...);
 				return &InsertLink(Link)->Element;
 			}
 

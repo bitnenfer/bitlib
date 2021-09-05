@@ -139,28 +139,43 @@
   <Type Name="bit::CScopeTimer">
     <DisplayString>{{ Name={TimerName,s}, Start={StartTime} }}</DisplayString>
   </Type>
+  <Type Name="bit::TAtomicRefCounter&lt;*&gt;">
+    <DisplayString>{{ UseCount={Counter} }}</DisplayString>
+  </Type>
   <Type Name="bit::CMemoryArena">
-    <DisplayString>{{ BaseAddress={BaseAddress,X}, Capacity ={SizeInBytes} }}</DisplayString>
+    <DisplayString>{{ BaseAddress={BaseAddress,X}, Capacity={SizeInBytes} }}</DisplayString>
+    <Expand>
+      <Item Name="[Allocator]" Condition="Allocator != nullptr">*Allocator</Item>
+      <Item Name="[RefCounter]" Condition="RefCounter != nullptr">*RefCounter</Item>
+      <Item Name="[BaseAddress]">BaseAddress,X</Item>
+      <Item Name="[SizeInBytes]">SizeInBytes</Item>
+    </Expand>
   </Type>
   <Type Name="bit::CLinearAllocator">
-    <DisplayString>{{ Name={Name,s}, UsedInBytes={BufferOffset}, CapacityInBytes={Arena.SizeInBytes}, UsagePct={(float)BufferOffset / (float)Arena.SizeInBytes, g}% }}</DisplayString>
+    <DisplayString>{{ Name={Name,s}, UsagePct={(float)BufferOffset / (float)Arena.SizeInBytes, g}% }}</DisplayString>
     <Expand>
       <Item Name="Arena">Arena</Item>
       <Item Name="Used">BufferOffset</Item>
     </Expand>
   </Type>
-  <Type Name="bit::CVirtualMemory::CMemoryRegion">
-    <DisplayString>{{ BaseAddress={BaseAddress,X}, Committed={CommittedSize}, Reserved={RegionSize} }}</DisplayString>
+  <Type Name="bit::CVirtualAddressSpace">
+    <DisplayString>{{ Range=[{BaseAddress,X}, {(uintptr_t)BaseAddress+ReservedSize,X}], UsagePct={(float)CommittedSize/(float)ReservedSize*100.0,g}% } }}</DisplayString>
+    <Expand>
+      <Item Name="[Start]">BaseAddress,X</Item>
+      <Item Name="[End]">(uintptr_t)BaseAddress+ReservedSize,X</Item>
+      <Item Name="[CommittedBytes]">CommittedSize</Item>
+      <Item Name="[ReservedBytes]">ReservedSize</Item>
+    </Expand>
   </Type>
   <Type Name="bit::CPageAllocator">
-    <DisplayString>{{ Name={Name,s}, CommittedPages={VirtualMemoryRegion.CommittedSize / PageGranularity}, TotalPages={PageCount}, UsagePct={(float)VirtualMemoryRegion.CommittedSize/(float)VirtualMemoryRegion.RegionSize*100.0,g}% } }}</DisplayString>
+    <DisplayString>{{ Name={Name,s}, UsagePct={(float)VirtualAddressSpace.CommittedSize/(float)VirtualAddressSpace.ReservedSize*100.0,g}% } }}</DisplayString>
     <Expand>
       <Item Name="[Name]">Name,s</Item>
-      <Item Name="[BaseAddress]">VirtualMemoryRegion.BaseAddress,X</Item>
+      <Item Name="[BaseAddress]">VirtualAddressSpace.BaseAddress,X</Item>
       <Item Name="[PageGranularity]">PageGranularity</Item>
-      <Item Name="[CommittedPages]">VirtualMemoryRegion.CommittedSize / PageGranularity</Item>
+      <Item Name="[CommittedPages]">VirtualAddressSpace.CommittedSize / PageGranularity</Item>
       <Item Name="[TotalPages]">PageCount</Item>
-      <Item Name="[MemoryRegion]">VirtualMemoryRegion</Item>
+      <Item Name="[VirtualAddressSpace]">VirtualAddressSpace</Item>
     </Expand>
   </Type>
   <Type Name="bit::TFixedAllocator&lt;*&gt;">
@@ -168,6 +183,28 @@
     <Expand>
       <Item Name="CapacityInBytes">sizeof(Data)</Item>
       <Item Name="Data">Data</Item>
+    </Expand>
+  </Type>
+  <Type Name="bit::TBasePtr&lt;*&gt;">
+    <DisplayString>{{ Ptr={Info.Ptr} }</DisplayString>
+    <Expand>
+      <Item Name="[Type]">"$T1"</Item>
+      <Item Name="[Ptr]">Info.Ptr</Item>
+    </Expand>
+  </Type>
+  <Type Name="bit::TDeletablePtr&lt;*,*&gt;">
+    <DisplayString>{{ Ptr={Info.Ptr} }</DisplayString>
+    <Expand>
+      <Item Name="[Deleter]">Deleter</Item>
+      <Item Name="[Ptr]">Info.Ptr</Item>
+    </Expand>
+  </Type>
+  <Type Name="bit::TSharedPtr&lt;*,*&gt;">
+    <DisplayString>{{ RefCount={RefCounter?RefCounter->Counter:0}, Ptr={Info.Ptr} }</DisplayString>
+    <Expand>
+      <Item Name="[RefCount]">RefCounter?RefCounter->Counter:0</Item>
+      <Item Name="[Deleter]">Deleter</Item>
+      <Item Name="[Ptr]">Info.Ptr</Item>
     </Expand>
   </Type>
 </AutoVisualizer>

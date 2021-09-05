@@ -8,19 +8,15 @@ namespace bit
 	{
 		static size_t GetRequiredAlignment();
 
-		CLinearAllocator(const char* Name = "CLinearAllocator");
+		CLinearAllocator(const char* Name, const CMemoryArena& Arena);
 		~CLinearAllocator();
 
-		void Initialize(CMemoryArena Arena);
-		void Terminate();
 		void Reset();
-		void* GetBuffer(size_t* OutSize);
-
 		void* Allocate(size_t Size, size_t Alignment) override;
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
-		CMemoryInfo GetMemoryInfo() override;
+		CMemoryUsageInfo GetMemoryUsageInfo() override;
 
 	private:
 		CMemoryArena Arena;

@@ -8,3 +8,16 @@ bit::IAllocator::IAllocator(const char* InName)
 	bit::Memset(Name, 0, (ALLOCATOR_MAX_NAME_LEN));
 	bit::Memcpy(Name, InName, NameLen);
 }
+
+
+bit::CMemoryArena::~CMemoryArena()
+{
+	if (RefCounter != nullptr && RefCounter->Decrement())
+	{
+		if (Allocator != nullptr)
+		{
+			Allocator->Free(BaseAddress);
+			Allocator->Free(RefCounter);
+		}
+	}
+}

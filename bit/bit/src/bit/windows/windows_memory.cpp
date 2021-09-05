@@ -55,10 +55,10 @@ namespace bit
 			return HeapSize(Heap, 0, Pointer);
 		}
 
-		CMemoryInfo GetMemoryInfo() override
+		CMemoryUsageInfo GetMemoryUsageInfo() override
 		{
 			HEAP_SUMMARY Summary = {};
-			CMemoryInfo Info = {};
+			CMemoryUsageInfo Info = {};
 			Summary.cb = sizeof(HEAP_SUMMARY);
 			if (HeapSummary(Heap, 0, &Summary))
 			{
