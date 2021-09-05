@@ -185,7 +185,6 @@
     <ClInclude Include="bit\include\bit\command_args.h" />
     <ClInclude Include="bit\include\bit\container_allocators.h" />
     <ClInclude Include="bit\include\bit\critical_section.h" />
-    <ClInclude Include="bit\include\bit\fixed_allocator.h" />
     <ClInclude Include="bit\include\bit\hash_table.h" />
     <ClInclude Include="bit\include\bit\heap_allocator.h" />
     <ClInclude Include="bit\include\bit\intrusive_linked_list.h" />

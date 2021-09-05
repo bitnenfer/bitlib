@@ -1,6 +1,5 @@
 #include <bit/utils.h>
 #include <bit/array.h>
-#include <bit/fixed_allocator.h>
 #include <bit/command_args.h>
 #include <bit/atomics.h>
 #include <bit/critical_section.h>

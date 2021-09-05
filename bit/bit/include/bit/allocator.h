@@ -99,6 +99,16 @@ namespace bit
 		size_t SizeInBytes;
 	};
 
+	template<size_t CapacityInBytes>
+	struct TFixedMemoryArena : public CMemoryArena
+	{
+		TFixedMemoryArena() :
+			CMemoryArena(&Data[0], CapacityInBytes)
+		{}
+
+		uint8_t Data[CapacityInBytes];
+	};
+
 	/* Polymorphic Allocator. Useful for custom types of allocations and Polymorphic containers. */
 	struct BITLIB_API IAllocator
 	{
