@@ -141,7 +141,7 @@
     <DisplayString>{{ {TimerName,sb}, Start={StartTime} }}</DisplayString>
   </Type>
   <Type Name="bit::TAtomicRefCounter&lt;*&gt;">
-    <DisplayString>{{ UseCount={Counter} }}</DisplayString>
+    <DisplayString>{{ Ref Count={Counter} }}</DisplayString>
   </Type>
   <Type Name="bit::CMemoryArena">
     <DisplayString>{{ BaseAddress={BaseAddress,X}, Capacity={SizeInBytes} }}</DisplayString>
@@ -186,26 +186,30 @@
       <Item Name="Data">Data</Item>
     </Expand>
   </Type>
-  <Type Name="bit::TBasePtr&lt;*&gt;">
-    <DisplayString>{{ Ptr={Info.Ptr} }</DisplayString>
+  <Type Name="bit::TControlBlock&lt;*&gt;">
+    <DisplayString>{{ Strong={StrongRefCounter.Counter}, Weak={WeakRefCounter.Counter}, Ptr={Ptr}}</DisplayString>
+  </Type>
+  <Type Name="bit::TSharedPtr&lt;*&gt;">
+    <DisplayString Condition="ControlBlock!=nullptr">{{ Strong={ControlBlock->StrongRefCounter.Counter}, Weak={ControlBlock->WeakRefCounter.Counter}, Ptr={ControlBlock->Ptr}}</DisplayString>
+    <DisplayString>Empty</DisplayString>
     <Expand>
-      <Item Name="[Type]">"$T1"</Item>
-      <Item Name="[Ptr]">Info.Ptr</Item>
+      <Item Condition="ControlBlock!=nullptr" Name="[Strong]">ControlBlock->StrongRefCounter.Counter</Item>
+      <Item Condition="ControlBlock!=nullptr" Name="[Weak]">ControlBlock->WeakRefCounter.Counter</Item>
+      <Item Condition="ControlBlock!=nullptr" Name="[Ptr]">ControlBlock->Ptr</Item>
     </Expand>
   </Type>
-  <Type Name="bit::TDeletablePtr&lt;*,*&gt;">
-    <DisplayString>{{ Ptr={Info.Ptr} }</DisplayString>
-    <Expand>
-      <Item Name="[Deleter]">Deleter</Item>
-      <Item Name="[Ptr]">Info.Ptr</Item>
-    </Expand>
+  <Type Name="bit::TUniquePtr&lt;*&gt;">
+    <DisplayString Condition="Ptr != nullptr">{{ Ptr={Ptr} }}</DisplayString>
+    <DisplayString>Empty</DisplayString>
   </Type>
-  <Type Name="bit::TSharedPtr&lt;*,*&gt;">
-    <DisplayString>{{ RefCount={RefCounter?RefCounter->Counter:0}, Ptr={Info.Ptr} }</DisplayString>
+  <Type Name="bit::TWeakPtr&lt;*&gt;">
+    <DisplayString Condition="ControlBlock == nullptr">Empty</DisplayString>
+    <DisplayString Condition="ControlBlock != nullptr &amp;&amp; ControlBlock->StrongRefCounter.Counter &lt;= 0">{{ Expired, Weak={ControlBlock->WeakRefCounter.Counter} }}</DisplayString>
+    <DisplayString Condition="ControlBlock != nullptr">{{ Strong={ControlBlock->StrongRefCounter.Counter}, Weak={ControlBlock->WeakRefCounter.Counter}, Ptr={ControlBlock->Ptr}}</DisplayString>
     <Expand>
-      <Item Name="[RefCount]">RefCounter?RefCounter->Counter:0</Item>
-      <Item Name="[Deleter]">Deleter</Item>
-      <Item Name="[Ptr]">Info.Ptr</Item>
-    </Expand>
+      <Item Condition="ControlBlock != nullptr &amp;&amp; ControlBlock->StrongRefCounter.Counter &gt; 0" Name="[Strong]">ControlBlock->StrongRefCounter.Counter</Item>
+      <Item Condition="ControlBlock!=nullptr" Name="[Weak]">ControlBlock->WeakRefCounter.Counter</Item>
+      <Item Condition="ControlBlock != nullptr &amp;&amp; ControlBlock->StrongRefCounter.Counter &gt; 0" Name="[Ptr]">ControlBlock->Ptr</Item>
+    </Expand>  
   </Type>
 </AutoVisualizer>

@@ -34,13 +34,34 @@ struct TestData
 	TestData(uint32_t Value) : Value(Value) {};
 	~TestData()
 	{
-		BIT_LOG("AAAA\n");
+		BIT_LOG("Destroy TestData %u\n", Value);
 	}
 	uint32_t Value;
 };
 
+//#include <memory>
+//
+template<typename T>
+struct CustomDeleter
+{
+	void operator()(T* const Ptr)
+	{
+		bit::Delete(Ptr);
+		BIT_LOG("Custom deleter!!\n");
+	}
+};
+
 int main(int32_t Argc, const char* Argv[])
 {
+	//{
+	//	std::weak_ptr<TestData> MyWeakPtr;
+	//	{
+	//		std::shared_ptr<TestData> MyData = std::shared_ptr<TestData>(new TestData(100), CustomDeleter<TestData>());//std::make_shared<TestData>(100, CustomDeleter<TestData>());
+	//		MyWeakPtr = MyData;
+	//	}
+	//	std::shared_ptr<TestData> LockPtr = MyWeakPtr.lock();
+	//}
+
 
 	bit::CScopeTimer Timer("Sample");
 	bit::CPageAllocator PageAllocator("PageAllocator", bit::VirtualDefaultAddress(), bit::ToGiB(16));
@@ -58,22 +79,30 @@ int main(int32_t Argc, const char* Argv[])
 
 	bit::CLinearAllocator FixedAllocator("FixedLinearAllocator", FixedMemoryArena);
 
+	bit::TSharedPtr<TestData> Outside;
 	{
-		bit::TSharedPtr<TestData> SharedValue = bit::MakeShared<TestData>(10);
-		bit::pmr::TUniquePtr<MyValue> PassAround;
+		bit::TWeakPtr<TestData> Weak;
 		{
-			bit::pmr::TUniquePtr<MyValue> TEST = bit::pmr::MakeUnique<MyValue>(FixedAllocator, 69);
-			TEST.Get()->Value = 9999;
-			PassAround.Swap(TEST);
+			bit::TSharedPtr<TestData> SharedValue = bit::MakeSharedWithAllocator<TestData>(FixedAllocator, 100);
+			bit::TUniquePtr<TestData> PassAround;
+			{
+				bit::TUniquePtr<TestData> TEST = bit::MakeUnique<TestData>(69);
+				TEST.Get()->Value = 9999;
+				PassAround.Swap(TEST);
+			}
+
+
+			bit::TSharedPtr<TestData> Copy = SharedValue;
+			SharedValue = bit::Move(PassAround);
+			Weak = SharedValue;
+			Copy.Reset();
+
+			bit::TSharedPtr<MyValue> SharedTest;
+			SharedTest.Reset();
+			Outside = Weak.Lock();
 		}
 
-		bit::TSharedPtr<TestData> Copy = SharedValue;
-
-		bit::TSharedPtr<MyValue> SharedTest;
-		SharedTest.Reset();
 	}
-
-
 	{
 		bit::pmr::TArray<int32_t> MyArray{ LinearAllocator };
 		bit::pmr::TArray<int32_t> CopyArray{ FixedAllocator };

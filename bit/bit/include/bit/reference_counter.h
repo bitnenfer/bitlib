@@ -4,13 +4,14 @@
 
 namespace bit
 {
-	template<typename TAtomicValue>
+	template<typename TCounterType>
 	struct TNonAtomicRefCounter
 	{
-		typedef TNonAtomicRefCounter<TAtomicValue> SelfType_t;
+		typedef TNonAtomicRefCounter<TCounterType> SelfType_t;
+		typedef TCounterType CounterType_t;
 
 		TNonAtomicRefCounter() : Counter(0) {}
-		TNonAtomicRefCounter(TAtomicValue Init) : Counter(Init) {}
+		TNonAtomicRefCounter(TCounterType Init) : Counter(Init) {}
 		TNonAtomicRefCounter(SelfType_t&& Move) :
 			Counter(Move.Counter)
 		{
@@ -44,16 +45,17 @@ namespace bit
 	private:
 		TNonAtomicRefCounter(const SelfType_t&) = delete;
 		SelfType_t& operator=(const SelfType_t&) = delete;
-		TAtomicValue Counter;
+		TCounterType Counter;
 	};
 
-	template<typename TAtomicValue>
+	template<typename TCounterType>
 	struct TAtomicRefCounter
 	{
-		typedef TNonAtomicRefCounter<TAtomicValue> SelfType_t;
+		typedef TNonAtomicRefCounter<TCounterType> SelfType_t;
+		typedef TCounterType CounterType_t;
 
 		TAtomicRefCounter() : Counter(0) {}
-		TAtomicRefCounter(TAtomicValue Init) : Counter(Init) {}
+		TAtomicRefCounter(TCounterType Init) : Counter(Init) {}
 		TAtomicRefCounter(SelfType_t&& Move) :
 			Counter(Move.Counter)
 		{
@@ -88,6 +90,6 @@ namespace bit
 	private:
 		TAtomicRefCounter(const SelfType_t&) = delete;
 		SelfType_t& operator=(const SelfType_t&) = delete;
-		TAtomicValue Counter;
+		TCounterType Counter;
 	};
 }
