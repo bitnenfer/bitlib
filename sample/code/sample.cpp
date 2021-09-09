@@ -13,6 +13,7 @@
 #include <bit/virtual_memory.h>
 #include <bit/page_allocator.h>
 #include <bit/pointers.h>
+#include <bit/string.h>
 
 struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 {
@@ -53,18 +54,15 @@ struct CustomDeleter
 
 int main(int32_t Argc, const char* Argv[])
 {
-	//{
-	//	std::weak_ptr<TestData> MyWeakPtr;
-	//	{
-	//		std::shared_ptr<TestData> MyData = std::shared_ptr<TestData>(new TestData(100), CustomDeleter<TestData>());//std::make_shared<TestData>(100, CustomDeleter<TestData>());
-	//		MyWeakPtr = MyData;
-	//	}
-	//	std::shared_ptr<TestData> LockPtr = MyWeakPtr.lock();
-	//}
-
+	bit::TempFmtString("Hello %s", "World");
 
 	bit::CScopeTimer Timer("Sample");
 	bit::CPageAllocator PageAllocator("PageAllocator", bit::VirtualDefaultAddress(), bit::ToGiB(16));
+	bit::CString MyString = "Hello World";
+
+	MyString += "\nNewLine?";
+
+	BIT_LOG("My Str says = %s\n", *(MyString + "\nWOoo"));
 
 	MyValue* NM = PageAllocator.New<MyValue>(99);
 	size_t Alignment = bit::GetAddressAlignment(NM);

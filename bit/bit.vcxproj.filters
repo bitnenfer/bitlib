@@ -84,13 +84,16 @@
     <ClInclude Include="bit\include\bit\page_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\heap_allocator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="bit\include\bit\pointers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bit\include\bit\reference_counter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\tlsf_allocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\string.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -143,7 +146,10 @@
     <ClCompile Include="bit\src\bit\page_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\heap_allocator.cpp">
+    <ClCompile Include="bit\src\bit\tlsf_allocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\string.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

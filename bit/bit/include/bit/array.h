@@ -173,7 +173,7 @@ namespace bit
 		T& AddEmpty()
 		{
 			CheckGrow();
-			T DefaultElement;
+			T DefaultElement{};
 			Add(DefaultElement);
 			return GetLast();
 		}

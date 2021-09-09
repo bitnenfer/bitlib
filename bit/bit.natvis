@@ -212,4 +212,13 @@
       <Item Condition="ControlBlock != nullptr &amp;&amp; ControlBlock->StrongRefCounter.Counter &gt; 0" Name="[Ptr]">ControlBlock->Ptr</Item>
     </Expand>  
   </Type>
+  <Type Name="bit::CString">
+    <DisplayString Condition="Storage.Count == 0">""</DisplayString>
+    <DisplayString>{Storage.Data,s}</DisplayString>
+    <Expand>
+      <Item Name="Length" Condition="Storage.Count == 0">0</Item>
+      <Item Name="Length">Storage.Count-1</Item>
+      <Item Name="Storage">Storage</Item>
+    </Expand>
+  </Type>
 </AutoVisualizer>
