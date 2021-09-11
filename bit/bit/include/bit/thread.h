@@ -1,10 +1,11 @@
 #pragma once
 
 #include <bit/types.h>
+#include <bit/utils.h>
 
 namespace bit
 {
-	struct BITLIB_API CThread
+	struct BITLIB_API CThread : public CNonCopyable
 	{
 		typedef int32_t(*ThreadFunc_t)(void*);
 

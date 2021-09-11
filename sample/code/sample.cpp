@@ -56,11 +56,12 @@ int main(int32_t Argc, const char* Argv[])
 {
 	bit::TempFmtString("Hello %s", "World");
 
+	bit::IAllocator& DefaultAllocator = bit::GetDefaultAllocator();
 	bit::CScopeTimer Timer("Sample");
 	bit::CPageAllocator PageAllocator("PageAllocator", bit::VirtualDefaultAddress(), bit::ToGiB(16));
-	bit::CString MyString = "Hello World";
+	bit::CString MyString = "Testing";
 
-	MyString += "\nNewLine?";
+	MyString += bit::CString::Format("Hello wtf %.2f", 3.14f);
 
 	BIT_LOG("My Str says = %s\n", *(MyString + "\nWOoo"));
 

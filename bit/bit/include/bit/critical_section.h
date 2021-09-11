@@ -1,10 +1,11 @@
 #pragma once
 
 #include <bit/types.h>
+#include <bit/utils.h>
 
 namespace bit
 {
-	struct BITLIB_API CCriticalSection
+	struct BITLIB_API CCriticalSection : public CNonCopyable
 	{
 		CCriticalSection();
 		~CCriticalSection();

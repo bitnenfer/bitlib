@@ -6,6 +6,16 @@
 
 namespace bit
 {
+	struct BITLIB_API CNonCopyable
+	{
+	public:
+		CNonCopyable() {}
+
+	private:
+		CNonCopyable(const CNonCopyable&) = delete;
+		CNonCopyable& operator=(const CNonCopyable&) = delete;
+	};
+
 	template<typename T, T TValue> struct TConstValue { static BIT_CONSTEXPR T Value = TValue; };
 
 	template<typename T> struct TIsSigned : public TConstValue<bool, false> {};

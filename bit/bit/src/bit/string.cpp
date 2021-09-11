@@ -1,4 +1,5 @@
 #include <bit/string.h>
+#include <stdio.h>
 #include <stdarg.h>
 
 bit::CString::CString()
@@ -57,6 +58,17 @@ void bit::CString::Append(const CString& Other)
 	Storage.PopLast();
 	Storage.Add(Other.Storage);
 	Storage.AddEmpty();
+}
+
+/*static*/ bit::CString bit::CString::Format(const CharType_t* Fmt, ...)
+{
+	char Buffer[1024];
+	CString Output;
+	va_list VaList;
+	va_start(VaList, Fmt);
+	int32_t WriteSize = vsprintf_s(Buffer, 1024, Fmt, VaList);
+	va_end(VaList);
+	return CString(Buffer, WriteSize);
 }
 
 const bit::CharType_t* bit::CString::operator*() const

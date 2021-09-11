@@ -45,6 +45,8 @@ namespace bit
 		friend CString operator+(const CString& LHS, const CharType_t* RHS) { return (bit::CString(LHS) += RHS); }
 		friend CString operator+(const CharType_t* LHS, const CString& RHS) { return (bit::CString(LHS) += RHS); }
 		
+		static CString Format(const CharType_t* Fmt, ...);
+
 	private:
 		StringStorageType_t Storage;
 	};

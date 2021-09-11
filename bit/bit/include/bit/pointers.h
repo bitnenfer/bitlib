@@ -113,7 +113,7 @@ namespace bit
 		typename T, 
 		typename TDeleter = TDefaultDeleter<T>
 	>
-	struct TUniquePtr
+	struct TUniquePtr : public CNonCopyable
 	{
 		using SelfType = TUniquePtr<T, TDeleter>;
 
