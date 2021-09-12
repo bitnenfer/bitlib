@@ -16,6 +16,16 @@ namespace bit
 		CNonCopyable& operator=(const CNonCopyable&) = delete;
 	};
 
+	struct BITLIB_API CNonMovable
+	{
+	public:
+		CNonMovable() {}
+
+	private:
+		CNonMovable(CNonMovable&&) = delete;
+		CNonMovable& operator=(CNonMovable&&) = delete;
+	};
+
 	template<typename T, T TValue> struct TConstValue { static BIT_CONSTEXPR T Value = TValue; };
 
 	template<typename T> struct TIsSigned : public TConstValue<bool, false> {};

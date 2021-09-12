@@ -16,6 +16,7 @@
 #include <bit/string.h>
 #include <bit/scope_lock.h>
 #include <bit/mutex.h>
+#include <bit/rw_lock.h>
 
 struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 {
@@ -165,12 +166,13 @@ int main(int32_t Argc, const char* Argv[])
 
 		bit::CCriticalSection CS;
 		bit::CMutex Mtx;
+		bit::CRWLock RWLock;
 		bit::TArray<bit::CThread> Threads;
 
 		struct Payload
 		{
 			bit::THashTable<int32_t, int32_t>* HashTable;
-			bit::CMutex* Mtx;
+			bit::CRWLock* Lock;
 			int32_t Value;
 		};
 
@@ -179,7 +181,7 @@ int main(int32_t Argc, const char* Argv[])
 		for (int32_t Value : MyArray)
 		{
 			Threads.Add(bit::Move(bit::CThread()));
-			PayloadData.Add({ &Table, &Mtx, Value });
+			PayloadData.Add({ &Table, &RWLock, Value });
 			List.Insert(Value);
 		}
 
@@ -190,7 +192,8 @@ int main(int32_t Argc, const char* Argv[])
 			Threads[Index].Start([](void* UserData) -> int32_t
 			{
 				Payload& Data = *(Payload*)UserData;
-				bit::TScopedLock<bit::CMutex> Lock(Data.Mtx);
+				//bit::TScopedLock<bit::CMutex> Lock(Data.Lock);
+				bit::CScopedRWLock Lock(Data.Lock, bit::ERWLockType::LOCK_READ_WRITE);
 				BIT_LOG("Value = %d\n", Data.Value);
 				Data.HashTable->Insert(Data.Value, Data.Value);
 				return 0;
