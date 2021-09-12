@@ -96,6 +96,12 @@
     <ClInclude Include="bit\include\bit\string.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bit\include\bit\mutex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\scope_lock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bit.natvis" />
@@ -150,6 +156,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bit\src\bit\string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\windows\windows_mutex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

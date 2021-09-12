@@ -191,6 +191,7 @@
     <ClInclude Include="bit\include\bit\linked_list.h" />
     <ClInclude Include="bit\include\bit\memory.h" />
     <ClInclude Include="bit\include\bit\murmur_hash.h" />
+    <ClInclude Include="bit\include\bit\mutex.h" />
     <ClInclude Include="bit\include\bit\os.h" />
     <ClInclude Include="bit\include\bit\page_allocator.h" />
     <ClInclude Include="bit\include\bit\platform.h" />
@@ -198,6 +199,7 @@
     <ClInclude Include="bit\include\bit\platform_windows.h" />
     <ClInclude Include="bit\include\bit\pointers.h" />
     <ClInclude Include="bit\include\bit\reference_counter.h" />
+    <ClInclude Include="bit\include\bit\scope_lock.h" />
     <ClInclude Include="bit\include\bit\scope_timer.h" />
     <ClInclude Include="bit\include\bit\string.h" />
     <ClInclude Include="bit\include\bit\thread.h" />
@@ -224,6 +226,7 @@
     <ClCompile Include="bit\src\bit\windows\windows_critical_section.cpp" />
     <ClCompile Include="bit\src\bit\windows\windows_entry_point.cpp" />
     <ClCompile Include="bit\src\bit\windows\windows_memory.cpp" />
+    <ClCompile Include="bit\src\bit\windows\windows_mutex.cpp" />
     <ClCompile Include="bit\src\bit\windows\windows_os.cpp" />
     <ClCompile Include="bit\src\bit\windows\windows_thread.cpp" />
     <ClCompile Include="bit\src\bit\windows\windows_utils.cpp" />

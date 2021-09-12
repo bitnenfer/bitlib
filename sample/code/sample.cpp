@@ -14,6 +14,8 @@
 #include <bit/page_allocator.h>
 #include <bit/pointers.h>
 #include <bit/string.h>
+#include <bit/scope_lock.h>
+#include <bit/mutex.h>
 
 struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
 {
@@ -162,12 +164,13 @@ int main(int32_t Argc, const char* Argv[])
 		const char* WatValue = Cmds.GetValue("wat");
 
 		bit::CCriticalSection CS;
+		bit::CMutex Mtx;
 		bit::TArray<bit::CThread> Threads;
 
 		struct Payload
 		{
 			bit::THashTable<int32_t, int32_t>* HashTable;
-			bit::CCriticalSection* CS;
+			bit::CMutex* Mtx;
 			int32_t Value;
 		};
 
@@ -176,7 +179,7 @@ int main(int32_t Argc, const char* Argv[])
 		for (int32_t Value : MyArray)
 		{
 			Threads.Add(bit::Move(bit::CThread()));
-			PayloadData.Add({ &Table, &CS, Value });
+			PayloadData.Add({ &Table, &Mtx, Value });
 			List.Insert(Value);
 		}
 
@@ -187,7 +190,7 @@ int main(int32_t Argc, const char* Argv[])
 			Threads[Index].Start([](void* UserData) -> int32_t
 			{
 				Payload& Data = *(Payload*)UserData;
-				bit::CScopeLock Lock(Data.CS);
+				bit::TScopedLock<bit::CMutex> Lock(Data.Mtx);
 				BIT_LOG("Value = %d\n", Data.Value);
 				Data.HashTable->Insert(Data.Value, Data.Value);
 				return 0;

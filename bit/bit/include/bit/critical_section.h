@@ -17,13 +17,4 @@ namespace bit
 	private:
 		Handle_t Handle;
 	};
-
-	struct BITLIB_API CScopeLock
-	{
-		CScopeLock(CCriticalSection* CS);
-		~CScopeLock();
-
-	private:
-		CCriticalSection* CS;
-	};
 }

@@ -29,14 +29,3 @@ bool bit::CCriticalSection::TryLock()
 {
 	return TryEnterCriticalSection((CRITICAL_SECTION*)Handle) == TRUE;
 }
-
-bit::CScopeLock::CScopeLock(bit::CCriticalSection* CS) :
-	CS(CS)
-{
-	if (CS != nullptr) CS->Lock();
-}
-
-bit::CScopeLock::~CScopeLock()
-{
-	if (CS != nullptr) CS->Unlock();
-}
