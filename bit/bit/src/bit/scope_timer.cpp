@@ -10,5 +10,5 @@ bit::CScopeTimer::CScopeTimer(const char* TimerName) :
 bit::CScopeTimer::~CScopeTimer()
 {
 	double EndTime = bit::GetSeconds();
-	BIT_ALWAYS_LOG("Timer %s took %.4lf secs.\n", TimerName, EndTime - StartTime);
+	BIT_ALWAYS_LOG("Timer %s took %.4lf secs.", TimerName, EndTime - StartTime);
 }

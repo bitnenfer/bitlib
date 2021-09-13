@@ -126,10 +126,10 @@ namespace bit
 	}
 }
 
-template<typename T>
-bool operator==(const T& LHS, const T& RHS)
-{
-	BIT_IF_CONSTEXPR(sizeof(T) <= 8) return LHS == RHS;
-	else if (&RHS == &LHS) return true;
-	else return bit::Memcmp(&LHS, &RHS, sizeof(T));
-}
+//template<typename T>
+//bool operator==(const T& LHS, const T& RHS)
+//{
+//	BIT_IF_CONSTEXPR(sizeof(T) <= 8) return LHS == RHS;
+//	else if (&RHS == &LHS) return true;
+//	else return bit::Memcmp(&LHS, &RHS, sizeof(T));
+//}

@@ -73,3 +73,8 @@ int64_t bit::CCommandArgs::GetArgCount()
 {
 	return Entries.GetCount();
 }
+
+bool bit::operator==(const CCommandArgEntry& LHS, const CCommandArgEntry& RHS)
+{
+	return bit::Memcmp(&LHS, &RHS, sizeof(CCommandArgEntry));
+}

@@ -40,6 +40,7 @@ namespace bit
 		void Copy(const CString& Other);
 		void Append(const CharType_t* RawStr, StringSizeType_t Len);
 		void Append(const CString& Other);
+		StringStorageType_t& GetStorage();
 
 		friend CString operator+(const CString& LHS, const CString& RHS) { return (bit::CString(LHS) += RHS); }
 		friend CString operator+(const CString& LHS, const CharType_t* RHS) { return (bit::CString(LHS) += RHS); }

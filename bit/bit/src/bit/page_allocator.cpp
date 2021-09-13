@@ -21,7 +21,7 @@ bit::CPageAllocator::CPageAllocator(const char* Name, void* StartAddress, size_t
 	BitArray = (uint8_t*)bit::Malloc(PageByteCount);
 	bit::Memset(BitArray, 0, PageByteCount);
 #if BIT_BUILD_DEBUG
-	BIT_LOG("Page Allocator Setup Usage: %.2f KiB\n", (float)(sizeof(bit::CPageAllocator) + PageByteCount) / 1024.0f);
+	BIT_LOG("Page Allocator Setup Usage: %.2f KiB", (float)(sizeof(bit::CPageAllocator) + PageByteCount) / 1024.0f);
 #endif
 }
 
@@ -68,7 +68,7 @@ void bit::CPageAllocator::DebugPrintState(size_t PageIndex, size_t Depth)
 		{
 			BIT_LOG("\t");
 		}
-		BIT_LOG("%04u 0x%08X 0x%08X %s\n", PageIndex, (uintptr_t)GetPageAddress(PageIndex), GetPageSize(PageIndex), GetStateName(GetPageState(PageIndex)));
+		BIT_LOG("%04u 0x%08X 0x%08X %s", PageIndex, (uintptr_t)GetPageAddress(PageIndex), GetPageSize(PageIndex), GetStateName(GetPageState(PageIndex)));
 		DebugPrintState(GetPageLeftChildIdx(PageIndex), Depth + 1);
 		DebugPrintState(GetPageRightChildIdx(PageIndex), Depth + 1);
 	}
@@ -305,9 +305,9 @@ size_t bit::CPageAllocator::AllocPage(size_t Size)
 		}
 	}
 #if 0
-	BIT_LOG("*** Allocation Failed ***\n---- BEGIN ALLOCATOR STATE ----\n\n");
+	BIT_LOG("*** Allocation Failed ***---- BEGIN ALLOCATOR STATE ----");
 	DebugPrintState();
-	BIT_LOG("\n---- END ALLOCATOR STATE ----\n");
+	BIT_LOG("---- END ALLOCATOR STATE ----");
 #endif
 	return INVALID_PAGE;
 }

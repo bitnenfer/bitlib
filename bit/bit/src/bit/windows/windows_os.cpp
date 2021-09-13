@@ -96,7 +96,7 @@ void bit::Alert(const char* Fmt, ...)
 	va_list VaArgs;
 	va_start(VaArgs, Fmt);
 	vsprintf_s(CurrBuffer, 4096, Fmt, VaArgs);
-	OutputDebugStringA(TempFmtString("%s\n", CurrBuffer));
+	OutputDebugStringA(TempFmtString("%s", CurrBuffer));
 	printf("%s", CurrBuffer);
 	MessageBoxA(nullptr, CurrBuffer, "Alert", MB_OK | MB_ICONWARNING);
 	Index = (Index + 1) % 3;

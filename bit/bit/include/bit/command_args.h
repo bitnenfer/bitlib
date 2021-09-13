@@ -10,6 +10,8 @@ namespace bit
 		const char* Value;
 		size_t NameLen;
 		size_t ValueLen;
+
+		friend bool operator==(const CCommandArgEntry& LHS, const CCommandArgEntry& RHS);
 	};
 
 	BITLIB_API_TEMPLATE_STRUCT bit::TDefaultBlockAllocator<int32_t>;

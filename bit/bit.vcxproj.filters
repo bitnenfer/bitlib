@@ -105,6 +105,9 @@
     <ClInclude Include="bit\include\bit\rw_lock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bit\include\bit\thread_local_storage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="bit.natvis" />
@@ -168,6 +171,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bit\src\bit\rw_lock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\src\bit\windows\windows_thread_local_storage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bit\include\bit\thread_local_storage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

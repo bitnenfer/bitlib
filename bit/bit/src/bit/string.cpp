@@ -60,6 +60,11 @@ void bit::CString::Append(const CString& Other)
 	Storage.AddEmpty();
 }
 
+bit::StringStorageType_t& bit::CString::GetStorage()
+{
+	return Storage;
+}
+
 /*static*/ bit::CString bit::CString::Format(const CharType_t* Fmt, ...)
 {
 	char Buffer[1024];

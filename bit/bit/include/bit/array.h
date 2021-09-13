@@ -66,7 +66,7 @@ namespace bit
 			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
 			Data((T*)Allocator.GetAllocation())
 		{
-			Reserve(InitialCapacity);
+			Resize(InitialCapacity);
 		}
 
 		TArray(const SelfType_t& Copy) :
@@ -74,7 +74,7 @@ namespace bit
 			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
 			Data((T*)Allocator.GetAllocation())
 		{
-			Reserve(Copy.GetCount());
+			Resize(Copy.GetCount());
 			bit::Memcpy(GetData(), Copy.GetData(), Copy.GetCount());
 			Count = Copy.Count;
 			Capacity = Copy.Capacity;
@@ -101,7 +101,7 @@ namespace bit
 
 		BIT_FORCEINLINE T& At(TSizeType Index)
 		{
-			BIT_ASSERT_MSG(Count > 0 && Index < Count, "Index out of bounds. Index = %d. Count = %d\n", Index, Count);
+			BIT_ASSERT_MSG(Count > 0 && Index < Count, "Index out of bounds. Index = %d. Count = %d", Index, Count);
 			return GetData()[Index];
 		}
 
@@ -137,12 +137,18 @@ namespace bit
 			}
 		}
 
-		void Reserve(TSizeType NewSize)
+		/* We can either grow or shrink the internal storage for the array */
+		void Resize(TSizeType NewSize)
 		{
 			Allocator.Allocate(sizeof(T), NewSize);
 			BIT_ASSERT(Allocator.IsValid());
 			Data = (T*)Allocator.GetAllocation();
 			Capacity = NewSize;
+		}
+
+		void Compact()
+		{
+			Resize(Count);
 		}
 
 		void Add(const T& Element)
@@ -184,7 +190,7 @@ namespace bit
 			CheckGrow();
 			T* Ptr = &GetData()[Count++];
 			bit::Construct(Ptr, bit::Forward<TArgs>(ConstructorArgs)...);
-			return Ptr;
+			return *Ptr;
 		}
 
 		bool Contains(const T& Element)
@@ -271,7 +277,7 @@ namespace bit
 			#ifdef BIT_SLOW_ARRAY_GROW
 				Reserve((Allocator.GetAllocationSize() / sizeof(T)) + AddCount);
 			#else
-				Reserve((Allocator.GetAllocationSize() / sizeof(T)) * 2 + AddCount);
+				Resize((Allocator.GetAllocationSize() / sizeof(T)) * 2 + AddCount);
 			#endif
 			}
 		}
@@ -279,6 +285,50 @@ namespace bit
 		T* GetData() const { return Data; }
 
 		T* GetData(TSizeType Offset) const { return Data + Offset; }
+
+		/* This will invalidate addresses. If you have an element by pointer or reference it won't be valid anymore */
+		bool RemoveAt(TSizeType InIndex)
+		{
+			if (Count > 0 && InIndex < Count)
+			{
+				TSizeType Diff = Count - InIndex;
+				if (Diff > 1)
+				{
+					bit::Memcpy(&Data[InIndex], &Data[InIndex + 1], Diff * sizeof(T));
+				}
+				Count -= 1;
+				return true;
+			}
+			return false;
+		}
+
+		template<typename TSearchFunc>
+		bool Remove(TSearchFunc Func)
+		{
+			for (TSizeType Index = Count - 1; Index >= 0; Index--)
+			{
+				if (Func(Data[Index]))
+				{
+					return RemoveAt(Index);
+				}
+			}
+			return false;
+		}
+
+		template<typename TSearchFunc>
+		bool RemoveAll(TSearchFunc Func)
+		{
+			bool bFound = false;
+			for (TSizeType Index = Count - 1; Index >= 0; Index--)
+			{
+				if (Func(Data[Index]))
+				{
+					RemoveAt(Index);
+					bFound = true;
+				}
+			}
+			return bFound;
+		}
 
 	protected:
 		TAllocator Allocator;
@@ -319,7 +369,7 @@ namespace bit
 				Count(0),
 				Capacity(0)
 			{
-				Reserve(InitialCapacity);
+				Resize(InitialCapacity);
 			}
 
 			TArray(const SelfType_t& Copy) :
@@ -329,7 +379,7 @@ namespace bit
 				Capacity(0)
 			{
 				Allocator = Copy.Allocator;
-				Reserve(Copy.GetCount());
+				Resize(Copy.GetCount());
 				bit::Memcpy(Data, Copy.GetData(), Copy.GetCount());
 				Count = Copy.Count;
 			}
@@ -378,16 +428,21 @@ namespace bit
 				}
 			}
 
-			void Reserve(TSizeType NewSize)
+			void Resize(TSizeType NewSize)
 			{
 				Data = (T*)Allocator->Reallocate(Data, NewSize * sizeof(T), alignof(T));
 				Capacity = NewSize;
 				BIT_ASSERT(Data != nullptr);
 			}
 
+			void Compact()
+			{
+				Resize(Count);
+			}
+
 			BIT_FORCEINLINE T& At(TSizeType Index)
 			{
-				BIT_ASSERT_MSG(Count > 0 && Index < Count, "Index out of bounds. Index = %d. Count = %d\n", Index, Count);
+				BIT_ASSERT_MSG(Count > 0 && Index < Count, "Index out of bounds. Index = %d. Count = %d", Index, Count);
 				return GetData()[Index];
 			}
 
@@ -529,7 +584,7 @@ namespace bit
 	#ifdef BIT_SLOW_ARRAY_GROW
 					Reserve(Capacity + AddCount);
 	#else
-					Reserve(Capacity * 2 + AddCount);
+					Resize(Capacity * 2 + AddCount);
 	#endif
 				}
 			}
@@ -541,6 +596,50 @@ namespace bit
 			bool CanAdd(TSizeType AddCount) { return Count + AddCount <= GetCapacity(); }
 
 			IAllocator& GetAllocator() { return *Allocator; }
+
+			/* This will invalidate addresses. If you have an element by pointer or reference it won't be valid anymore */
+			bool RemoveAt(TSizeType InIndex)
+			{
+				if (Count > 0 && InIndex < Count)
+				{
+					TSizeType Diff = Count - InIndex;
+					if (Diff > 1)
+					{
+						bit::Memcpy(&Data[InIndex], &Data[InIndex + 1], Diff * sizeof(T));
+					}
+					Count -= 1;
+					return true;
+				}
+				return false;
+			}
+
+			template<typename TSearchFunc>
+			bool Remove(TSearchFunc Func)
+			{
+				for (TSizeType Index = Count - 1; Index >= 0; Index--)
+				{
+					if (Func(Data[Index]))
+					{
+						return RemoveAt(Index);
+					}
+				}
+				return false;
+			}
+
+			template<typename TSearchFunc>
+			bool RemoveAll(TSearchFunc Func)
+			{
+				bool bFound = false;
+				for (TSizeType Index = Count - 1; Index >= 0; Index--)
+				{
+					if (Func(Data[Index]))
+					{
+						RemoveAt(Index);
+						bFound = true;
+					}
+				}
+				return bFound;
+			}
 
 		protected:
 			bit::IAllocator* Allocator;
