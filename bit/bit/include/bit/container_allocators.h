@@ -5,12 +5,12 @@
 
 namespace bit
 {
-	typedef int32_t DefaultContainerSizeType_t;
+	typedef int32_t SizeType_t;
+	static_assert(bit::TIsSigned<SizeType_t>::Value, "Size type must be signed");
 
-	template<typename TSizeType = DefaultContainerSizeType_t>
-	struct TDefaultHeapAllocator
+	struct BITLIB_API CDefaultHeapAllocator
 	{
-		void* Allocate(void* Original, TSizeType Size, TSizeType Count)
+		void* Allocate(void* Original, SizeType_t Size, SizeType_t Count)
 		{
 			return bit::Realloc(Original, (size_t)(Size * Count), DEFAULT_ALIGNMENT);
 		}
@@ -21,17 +21,16 @@ namespace bit
 		}
 	};
 
-	template<typename TSizeType = DefaultContainerSizeType_t>
-	struct TDefaultBlockAllocator
+	struct BITLIB_API CDefaultBlockAllocator
 	{
-		TDefaultBlockAllocator(TDefaultBlockAllocator&& Allocator) :
+		CDefaultBlockAllocator(CDefaultBlockAllocator&& Allocator) :
 			Block(Allocator.Block),
 			AllocationSize(Allocator.AllocationSize)
 		{
 			Allocator.Block = nullptr;
 			Allocator.AllocationSize = 0;
 		}
-		TDefaultBlockAllocator& operator=(TDefaultBlockAllocator&& Allocator)
+		CDefaultBlockAllocator& operator=(CDefaultBlockAllocator&& Allocator)
 		{
 			Block = Allocator.Block;
 			AllocationSize = Allocator.AllocationSize;
@@ -40,17 +39,17 @@ namespace bit
 			return *this; 
 		}
 
-		TDefaultBlockAllocator() :
+		CDefaultBlockAllocator() :
 			Block(nullptr),
 			AllocationSize(0)
 		{}
 
-		~TDefaultBlockAllocator()
+		~CDefaultBlockAllocator()
 		{
 			Free();
 		}
 
-		void Allocate(TSizeType Size, TSizeType Count)
+		void Allocate(SizeType_t Size, SizeType_t Count)
 		{
 			Block = HeapAllocator.Allocate(Block, Size, Count);
 			AllocationSize = Size * Count;
@@ -66,27 +65,27 @@ namespace bit
 			}
 		}
 
-		TSizeType GetAllocationSize() const { return AllocationSize; }
+		SizeType_t GetAllocationSize() const { return AllocationSize; }
 		void* GetAllocation() const { return Block; }
 		bool IsValid() const { return Block != nullptr; }
 
 	private:
-		TDefaultBlockAllocator(const TDefaultBlockAllocator&) = delete;
+		CDefaultBlockAllocator(const CDefaultBlockAllocator&) = delete;
 		void* Block;
-		TSizeType AllocationSize;
-		TDefaultHeapAllocator<TSizeType> HeapAllocator;
+		SizeType_t AllocationSize;
+		CDefaultHeapAllocator HeapAllocator;
 	};
 
-	template<typename T, size_t Capacity, typename TSizeType = DefaultContainerSizeType_t>
+	template<typename T, size_t Capacity>
 	struct TFixedBlockAllocator
 	{
-		void Allocate(TSizeType Size, TSizeType Count)
+		void Allocate(SizeType_t Size, SizeType_t Count)
 		{
 			BIT_ASSERT_MSG(Size * Count <= Capacity * sizeof(T), "Block is too small to fit requested allocation.");
 		}
 
 		void Free() {}
-		TSizeType GetAllocationSize() const { return Capacity * sizeof(T); }
+		SizeType_t GetAllocationSize() const { return Capacity * sizeof(T); }
 		void* GetAllocation() const { return (void*)&Block[0]; }
 		bool IsValid() const { return true; }
 	
@@ -94,7 +93,7 @@ namespace bit
 		T Block[Capacity];
 	};
 
-	template<typename T, size_t InlineCount, typename TFallbackAllocator, typename TSizeType = DefaultContainerSizeType_t>
+	template<typename T, size_t InlineCount, typename TFallbackAllocator = CDefaultBlockAllocator>
 	struct TInlineBlockAllocator
 	{
 		TInlineBlockAllocator() :
@@ -135,7 +134,7 @@ namespace bit
 
 		bool IsUsingInlineBlock() const { return Block == &InlineBlock[0]; }
 
-		void Allocate(TSizeType Size, TSizeType Count)
+		void Allocate(SizeType_t Size, SizeType_t Count)
 		{
 			if (Size * Count > InlineCount * sizeof(T))
 			{
@@ -163,7 +162,7 @@ namespace bit
 				AllocationSize = 0;
 			}
 		}
-		TSizeType GetAllocationSize() const { return AllocationSize; }
+		SizeType_t GetAllocationSize() const { return AllocationSize; }
 		void* GetAllocation() const { return Block; }
 		bool IsValid() const { return Block != nullptr; }
 
@@ -173,19 +172,15 @@ namespace bit
 		T InlineBlock[InlineCount];
 		TFallbackAllocator FallbackAllocator;
 		void* Block;
-		TSizeType AllocationSize;
+		SizeType_t AllocationSize;
 	};
 
-	template<typename T, size_t InlineCount, typename TSizeType = DefaultContainerSizeType_t>
-	using TDefaultInlineBlockAllocator = TInlineBlockAllocator<T, InlineCount, TDefaultBlockAllocator<TSizeType>, TSizeType>;
-
-	template<typename TSizeType = DefaultContainerSizeType_t>
-	struct TDefaultLinkedListAllocator
+	struct BITLIB_API CDefaultLinkedListAllocator
 	{
 		template<typename TLinkType>
 		struct TLinkAllocator
 		{
-			TLinkType* AllocateLink(TSizeType Count)
+			TLinkType* AllocateLink(SizeType_t Count)
 			{
 				return (TLinkType*)HeapAllocator.Allocate(nullptr, sizeof(TLinkType), 1);
 			}
@@ -195,14 +190,13 @@ namespace bit
 				HeapAllocator.Free(Link);
 			}
 
-			TDefaultHeapAllocator<TSizeType> HeapAllocator;
+			CDefaultHeapAllocator HeapAllocator;
 		};
 	};
 
-	template<typename TSizeType = DefaultContainerSizeType_t>
-	struct TDefaultHashTableAllocator
+	struct BITLIB_API CDefaultHashTableAllocator
 	{
-		typedef TDefaultLinkedListAllocator<TSizeType> BucketEntryAllocatorType_t;
-		typedef TDefaultHeapAllocator<TSizeType> BucketAllocatorType_t;
+		typedef CDefaultLinkedListAllocator BucketEntryAllocatorType_t;
+		typedef CDefaultHeapAllocator BucketAllocatorType_t;
 	};
 }

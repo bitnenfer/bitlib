@@ -10,7 +10,7 @@ namespace bit
 	BITLIB_API IAllocator& GetDefaultAllocator();
 	BITLIB_API void* Memcpy(void* Dst, const void* Src, size_t Num);
 	BITLIB_API void* Memset(void* Ptr, int32_t Value, size_t Num);
-	BITLIB_API int Memcmp(const void* A, const void* B, size_t Num);
+	BITLIB_API bool Memcmp(const void* A, const void* B, size_t Num);
 	BITLIB_API size_t Strlen(const char* Str);
 	BITLIB_API bool StrContains(const char* A, const char* B, size_t* Offset);
 	BITLIB_API bool Strcmp(const char* A, const char* B);

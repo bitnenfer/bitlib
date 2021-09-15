@@ -2,13 +2,14 @@
 
 #include <bit/types.h>
 #include <bit/os.h>
+#include <bit/container_allocators.h>
 
 namespace bit
 {
-	template<typename T, typename TSizeType = int64_t>
+	template<typename T>
 	struct TIntrusiveLinkedList
 	{
-		typedef TIntrusiveLinkedList<T, TSizeType> SelfType_t;
+		typedef TIntrusiveLinkedList<T> SelfType_t;
 
 		TIntrusiveLinkedList(T& Owner) :
 			Prev(this),
@@ -96,9 +97,9 @@ namespace bit
 		bool IsEmpty() { return GetCount() == 0; }
 
 		T& GetOwner() const { return Owner; }
-		TSizeType GetCount()
+		SizeType_t GetCount()
 		{
-			TSizeType Count = 0;
+			SizeType_t Count = 0;
 			for (SelfType_t* Link = Head->Next; Link != Head; Link = Link->Next)
 			{
 				Count += 1;
@@ -110,10 +111,10 @@ namespace bit
 			return Count;
 		}
 
-		T& operator[](TSizeType Index)
+		T& operator[](SizeType_t Index)
 		{
 			BIT_ASSERT_MSG(Index < Head->Count, "Linked list index out of bounds");
-			TSizeType ElemIndex = 0;
+			SizeType_t ElemIndex = 0;
 			for (T& Element : *this)
 			{
 				if (ElemIndex++ == Index)
@@ -212,6 +213,6 @@ namespace bit
 		SelfType_t* Next;
 		SelfType_t* Head;
 		T& Owner;
-		TSizeType Count;
+		SizeType_t Count;
 	};
 }

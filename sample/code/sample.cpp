@@ -19,11 +19,21 @@
 #include <bit/rw_lock.h>
 #include <bit/thread_local_storage.h>
 
+struct SLBlock
+{
+
+	uint8_t* Blocks;
+	uint8_t Bitmap;
+};
 
 int main(int32_t Argc, const char* Argv[])
 {
 	bit::TArray<bit::CThread> Threads;
 	bit::TArray<int32_t> Data;
+
+	bit::THashTable<bit::CString, int32_t> Table;
+	Table.Insert("Hello", 99);
+	int32_t MyValue = Table["Hello"];
 
 	for (int32_t Index = 0; Index < 10; ++Index)
 	{

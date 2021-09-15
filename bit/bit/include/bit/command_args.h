@@ -14,7 +14,6 @@ namespace bit
 		friend bool operator==(const CCommandArgEntry& LHS, const CCommandArgEntry& RHS);
 	};
 
-	BITLIB_API_TEMPLATE_STRUCT bit::TDefaultBlockAllocator<int32_t>;
 	BITLIB_API_TEMPLATE_STRUCT bit::TArray<bit::CCommandArgEntry>;
 
 	struct BITLIB_API CCommandArgs

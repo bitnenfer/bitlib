@@ -34,7 +34,6 @@ namespace bit
 		int32_t InternalIndex;
 	};
 
-	BITLIB_API_TEMPLATE_STRUCT bit::TDefaultBlockAllocator<bit::DefaultContainerSizeType_t>;
 	BITLIB_API_TEMPLATE_STRUCT bit::TArray<CTLStorage>;
 
 	struct BITLIB_API CTLSAllocator

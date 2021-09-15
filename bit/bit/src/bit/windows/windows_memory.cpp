@@ -104,9 +104,9 @@ void* bit::Memset(void* Ptr, int32_t Value, size_t Num)
 	return BitMemset(Ptr, Value, Num);
 }
 
-int bit::Memcmp(const void* A, const void* B, size_t Num)
+bool bit::Memcmp(const void* A, const void* B, size_t Num)
 {
-	return memcmp(A, B, Num);
+	return memcmp(A, B, Num) == 0;
 }
 
 size_t bit::Strlen(const char* Str)

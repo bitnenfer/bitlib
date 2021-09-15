@@ -37,16 +37,13 @@ namespace bit
 
 	template<
 		typename T, 
-		typename TSizeType = DefaultContainerSizeType_t,
-		typename TAllocator = TDefaultBlockAllocator<TSizeType>
+		typename TAllocator = CDefaultBlockAllocator
 	>
 	struct TArray
 	{
-		static_assert(bit::TIsSigned<TSizeType>::Value, "Size type must be signed");
 
-		typedef TArray<T, TSizeType, TAllocator> SelfType_t;
+		typedef TArray<T, TAllocator> SelfType_t;
 		typedef T ElementType_t;
-		typedef TSizeType SizeType_t;
 
 		/* Begin range for loop implementation */
 		TPtrFwdIterator<T> begin() { return TPtrFwdIterator<T>(GetData()); }
@@ -61,7 +58,7 @@ namespace bit
 			Data((T*)Allocator.GetAllocation())
 		{}
 
-		TArray(TSizeType InitialCapacity) : 
+		TArray(SizeType_t InitialCapacity) : 
 			Count(0),
 			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
 			Data((T*)Allocator.GetAllocation())
@@ -99,7 +96,7 @@ namespace bit
 			Destroy();
 		}
 
-		BIT_FORCEINLINE T& At(TSizeType Index)
+		BIT_FORCEINLINE T& At(SizeType_t Index)
 		{
 			BIT_ASSERT_MSG(Count > 0 && Index < Count, "Index out of bounds. Index = %d. Count = %d", Index, Count);
 			return GetData()[Index];
@@ -109,17 +106,17 @@ namespace bit
 
 		T& GetFirst() { return At(0); }
 
-		T& operator[](TSizeType Index) { return At(Index); }
+		T& operator[](SizeType_t Index) { return At(Index); }
 
-		TSizeType GetCount() const { return Count; }
+		SizeType_t GetCount() const { return Count; }
 
-		TSizeType GetCountInBytes() const { return Count * sizeof(T); }
+		SizeType_t GetCountInBytes() const { return Count * sizeof(T); }
 
-		TSizeType GetCapacity() const { return	Capacity; }
+		SizeType_t GetCapacity() const { return	Capacity; }
 
-		TSizeType GetCapacityInBytes() const { return Capacity * sizeof(T); }
+		SizeType_t GetCapacityInBytes() const { return Capacity * sizeof(T); }
 
-		bool CanAdd(TSizeType AddCount) { return Count + AddCount <= GetCapacity(); }
+		bool CanAdd(SizeType_t AddCount) { return Count + AddCount <= GetCapacity(); }
 
 		bool IsEmpty() const { return Count == 0; }
 
@@ -138,7 +135,7 @@ namespace bit
 		}
 
 		/* We can either grow or shrink the internal storage for the array */
-		void Resize(TSizeType NewSize)
+		void Resize(SizeType_t NewSize)
 		{
 			Allocator.Allocate(sizeof(T), NewSize);
 			BIT_ASSERT(Allocator.IsValid());
@@ -163,7 +160,7 @@ namespace bit
 			GetData()[Count++] = bit::Move(Element);
 		}
 
-		void Add(const T* Buffer, TSizeType BufferCount)
+		void Add(const T* Buffer, SizeType_t BufferCount)
 		{
 			CheckGrow(BufferCount);
 			bit::Memcpy(&GetData()[Count], Buffer, sizeof(T) * BufferCount);
@@ -270,7 +267,7 @@ namespace bit
 			return *this;
 		}
 
-		void CheckGrow(TSizeType AddCount = 1)
+		void CheckGrow(SizeType_t AddCount = 1)
 		{
 			if (!CanAdd(AddCount))
 			{
@@ -284,14 +281,14 @@ namespace bit
 
 		T* GetData() const { return Data; }
 
-		T* GetData(TSizeType Offset) const { return Data + Offset; }
+		T* GetData(SizeType_t Offset) const { return Data + Offset; }
 
 		/* This will invalidate addresses. If you have an element by pointer or reference it won't be valid anymore */
-		bool RemoveAt(TSizeType InIndex)
+		bool RemoveAt(SizeType_t InIndex)
 		{
 			if (Count > 0 && InIndex < Count)
 			{
-				TSizeType Diff = Count - InIndex;
+				SizeType_t Diff = Count - InIndex;
 				if (Diff > 1)
 				{
 					bit::Memcpy(&Data[InIndex], &Data[InIndex + 1], Diff * sizeof(T));
@@ -305,7 +302,7 @@ namespace bit
 		template<typename TSearchFunc>
 		bool Remove(TSearchFunc Func)
 		{
-			for (TSizeType Index = Count - 1; Index >= 0; Index--)
+			for (SizeType_t Index = Count - 1; Index >= 0; Index--)
 			{
 				if (Func(Data[Index]))
 				{
@@ -319,7 +316,7 @@ namespace bit
 		bool RemoveAll(TSearchFunc Func)
 		{
 			bool bFound = false;
-			for (TSizeType Index = Count - 1; Index >= 0; Index--)
+			for (SizeType_t Index = Count - 1; Index >= 0; Index--)
 			{
 				if (Func(Data[Index]))
 				{
@@ -332,22 +329,20 @@ namespace bit
 
 	protected:
 		TAllocator Allocator;
-		TSizeType Count;
-		TSizeType Capacity;
+		SizeType_t Count;
+		SizeType_t Capacity;
 		T* Data;
 	};
 
 	namespace pmr
 	{
 		template<
-			typename T,
-			typename TSizeType = DefaultContainerSizeType_t
+			typename T
 		>
 		struct TArray
 		{
-			typedef TArray<T, TSizeType> SelfType_t;
+			typedef TArray<T> SelfType_t;
 			typedef T ElementType_t;
-			typedef TSizeType SizeType_t;
 
 			/* Begin range for loop implementation */
 			TPtrFwdIterator<T> begin() { return TPtrFwdIterator<T>(GetData()); }
@@ -363,7 +358,7 @@ namespace bit
 				Capacity(0)
 			{}
 
-			TArray(TSizeType InitialCapacity, IAllocator& Allocator) :
+			TArray(SizeType_t InitialCapacity, IAllocator& Allocator) :
 				Allocator(&Allocator),
 				Data(nullptr),
 				Count(0),
@@ -428,7 +423,7 @@ namespace bit
 				}
 			}
 
-			void Resize(TSizeType NewSize)
+			void Resize(SizeType_t NewSize)
 			{
 				Data = (T*)Allocator->Reallocate(Data, NewSize * sizeof(T), alignof(T));
 				Capacity = NewSize;
@@ -440,7 +435,7 @@ namespace bit
 				Resize(Count);
 			}
 
-			BIT_FORCEINLINE T& At(TSizeType Index)
+			BIT_FORCEINLINE T& At(SizeType_t Index)
 			{
 				BIT_ASSERT_MSG(Count > 0 && Index < Count, "Index out of bounds. Index = %d. Count = %d", Index, Count);
 				return GetData()[Index];
@@ -450,15 +445,15 @@ namespace bit
 
 			T& GetFirst() { return At(0); }
 
-			T& operator[](TSizeType Index) { return At(Index); }
+			T& operator[](SizeType_t Index) { return At(Index); }
 
-			TSizeType GetCount() const { return Count; }
+			SizeType_t GetCount() const { return Count; }
 
-			TSizeType GetCountInBytes() const { return Count * sizeof(T); }
+			SizeType_t GetCountInBytes() const { return Count * sizeof(T); }
 
-			TSizeType GetCapacity() const { return Capacity; }
+			SizeType_t GetCapacity() const { return Capacity; }
 
-			TSizeType GetCapacityInBytes() const { return Capacity * sizeof(T); }
+			SizeType_t GetCapacityInBytes() const { return Capacity * sizeof(T); }
 
 			void Add(const T& Element)
 			{
@@ -472,7 +467,7 @@ namespace bit
 				GetData()[Count++] = bit::Move(Element);
 			}
 
-			void Add(const T* Buffer, TSizeType BufferCount)
+			void Add(const T* Buffer, SizeType_t BufferCount)
 			{
 				CheckGrow(BufferCount);
 				bit::Memcpy(&GetData()[Count], Buffer, sizeof(T) * BufferCount);
@@ -577,7 +572,7 @@ namespace bit
 				return *this;
 			}
 
-			void CheckGrow(TSizeType AddCount = 1)
+			void CheckGrow(SizeType_t AddCount = 1)
 			{
 				if (!CanAdd(AddCount))
 				{
@@ -591,18 +586,18 @@ namespace bit
 
 			T* GetData() const { return Data; }
 
-			T* GetData(TSizeType Offset) const { return Data + Offset; }
+			T* GetData(SizeType_t Offset) const { return Data + Offset; }
 
-			bool CanAdd(TSizeType AddCount) { return Count + AddCount <= GetCapacity(); }
+			bool CanAdd(SizeType_t AddCount) { return Count + AddCount <= GetCapacity(); }
 
 			IAllocator& GetAllocator() { return *Allocator; }
 
 			/* This will invalidate addresses. If you have an element by pointer or reference it won't be valid anymore */
-			bool RemoveAt(TSizeType InIndex)
+			bool RemoveAt(SizeType_t InIndex)
 			{
 				if (Count > 0 && InIndex < Count)
 				{
-					TSizeType Diff = Count - InIndex;
+					SizeType_t Diff = Count - InIndex;
 					if (Diff > 1)
 					{
 						bit::Memcpy(&Data[InIndex], &Data[InIndex + 1], Diff * sizeof(T));
@@ -616,7 +611,7 @@ namespace bit
 			template<typename TSearchFunc>
 			bool Remove(TSearchFunc Func)
 			{
-				for (TSizeType Index = Count - 1; Index >= 0; Index--)
+				for (SizeType_t Index = Count - 1; Index >= 0; Index--)
 				{
 					if (Func(Data[Index]))
 					{
@@ -630,7 +625,7 @@ namespace bit
 			bool RemoveAll(TSearchFunc Func)
 			{
 				bool bFound = false;
-				for (TSizeType Index = Count - 1; Index >= 0; Index--)
+				for (SizeType_t Index = Count - 1; Index >= 0; Index--)
 				{
 					if (Func(Data[Index]))
 					{
@@ -644,8 +639,8 @@ namespace bit
 		protected:
 			bit::IAllocator* Allocator;
 			T* Data;
-			TSizeType Count;
-			TSizeType Capacity;
+			SizeType_t Count;
+			SizeType_t Capacity;
 		};
 	}
 }

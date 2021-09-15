@@ -185,6 +185,7 @@
     <ClInclude Include="bit\include\bit\command_args.h" />
     <ClInclude Include="bit\include\bit\container_allocators.h" />
     <ClInclude Include="bit\include\bit\critical_section.h" />
+    <ClInclude Include="bit\include\bit\hash.h" />
     <ClInclude Include="bit\include\bit\hash_table.h" />
     <ClInclude Include="bit\include\bit\intrusive_linked_list.h" />
     <ClInclude Include="bit\include\bit\linear_allocator.h" />
@@ -215,7 +216,6 @@
     <Natvis Include="bit.natvis" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="bit\include\bit\thread_local_storage.cpp" />
     <ClCompile Include="bit\src\bit\allocator.cpp" />
     <ClCompile Include="bit\src\bit\command_args.cpp" />
     <ClCompile Include="bit\src\bit\linear_allocator.cpp" />

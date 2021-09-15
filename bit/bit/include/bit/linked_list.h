@@ -104,18 +104,16 @@ namespace bit
 
 	template<
 		typename T, 
-		typename TSizeType = DefaultContainerSizeType_t,
-		typename TAllocator = TDefaultLinkedListAllocator<TSizeType>
+		typename TAllocator = CDefaultLinkedListAllocator
 	>
 	struct TLinkedList
 	{
-		typedef TLinkedList<T, TSizeType, TAllocator> SelfType_t;
+		typedef TLinkedList<T, TAllocator> SelfType_t;
 		typedef TLink<T> LinkType_t;
 		typedef typename TAllocator::template TLinkAllocator<LinkType_t> AllocatorType_t;
 		typedef T ElementType_t;
 		typedef TLinkIterator<LinkType_t> IteratorType_t;
 		typedef TConstLinkIterator<LinkType_t> ConstIteratorType_t;
-		typedef TSizeType SizeType_t;
 
 	public:
 		/* Begin range for loop implementation */
@@ -208,13 +206,13 @@ namespace bit
 			return FindLink(Element) != nullptr;
 		}
 
-		TSizeType GetCount() const { return Count; }
+		SizeType_t GetCount() const { return Count; }
 		bool IsEmpty() const { return Count == 0; }
 
-		T& operator[](TSizeType Index)
+		T& operator[](SizeType_t Index)
 		{
 			BIT_ASSERT_MSG(Index < Count, "Linked list index out of bounds");
-			TSizeType ElemIndex = 0;
+			SizeType_t ElemIndex = 0;
 			for (T& Element : *this)
 			{
 				if (ElemIndex++ == Index)
@@ -320,18 +318,17 @@ namespace bit
 		AllocatorType_t Allocator;
 		LinkType_t* Head;
 		LinkType_t* Tail;
-		TSizeType Count;
+		SizeType_t Count;
 	};
 
 	namespace pmr
 	{
-		template<typename T, typename TSizeType = DefaultContainerSizeType_t>
+		template<typename T>
 		struct TLinkedList
 		{
-			typedef TLinkedList<T, TSizeType> SelfType_t;
+			typedef TLinkedList<T> SelfType_t;
 			typedef TLink<T> LinkType_t;
 			typedef T ElementType_t;
-			typedef TSizeType SizeType_t;
 			typedef TLinkIterator<LinkType_t> IteratorType_t;
 			typedef TConstLinkIterator<LinkType_t> ConstIteratorType_t;
 
@@ -428,13 +425,13 @@ namespace bit
 				return FindLink(Element) != nullptr;
 			}
 
-			TSizeType GetCount() const { return Count; }
+			SizeType_t GetCount() const { return Count; }
 			bool IsEmpty() const { return Count == 0; }
 
-			T& operator[](TSizeType Index)
+			T& operator[](SizeType_t Index)
 			{
 				BIT_ASSERT_MSG(Index < Count, "Linked list index out of bounds");
-				TSizeType ElemIndex = 0;
+				SizeType_t ElemIndex = 0;
 				for (T& Element : *this)
 				{
 					if (ElemIndex++ == Index)
@@ -540,7 +537,7 @@ namespace bit
 			bit::IAllocator* Allocator;
 			LinkType_t* Head;
 			LinkType_t* Tail;
-			TSizeType Count;
+			SizeType_t Count;
 		};
 	}
 }

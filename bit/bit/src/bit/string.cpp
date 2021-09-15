@@ -8,10 +8,10 @@ bit::CString::CString()
 }
 
 bit::CString::CString(const CharType_t* RawStr) :
-	CString(RawStr, (StringSizeType_t)bit::Strlen(RawStr))
+	CString(RawStr, (SizeType_t)bit::Strlen(RawStr))
 {}
 
-bit::CString::CString(const CharType_t * RawStr, StringSizeType_t Len)
+bit::CString::CString(const CharType_t * RawStr, SizeType_t Len)
 {
 	Copy(RawStr, Len);
 }
@@ -26,14 +26,14 @@ bit::CString::CString(CString&& Other) noexcept
 	Storage = bit::Move(Other.Storage);
 }
 
-bit::StringSizeType_t bit::CString::GetLength() const
+bit::SizeType_t bit::CString::GetLength() const
 {
-	StringSizeType_t Count = Storage.GetCount();
+	SizeType_t Count = Storage.GetCount();
 	if (Count > 0) return Count - 1;
 	return 0;
 }
 
-void bit::CString::Copy(const CharType_t* RawStr, StringSizeType_t Len)
+void bit::CString::Copy(const CharType_t* RawStr, SizeType_t Len)
 {
 	Storage.Reset();
 	Storage.Add(RawStr, Len);
@@ -46,7 +46,7 @@ void bit::CString::Copy(const CString& Other)
 	Storage.Add(Other.Storage);
 }
 
-void bit::CString::Append(const CharType_t* RawStr, StringSizeType_t Len)
+void bit::CString::Append(const CharType_t* RawStr, SizeType_t Len)
 {
 	Storage.PopLast();
 	Storage.Add(RawStr, Len);
@@ -60,7 +60,7 @@ void bit::CString::Append(const CString& Other)
 	Storage.AddEmpty();
 }
 
-bit::StringStorageType_t& bit::CString::GetStorage()
+bit::StringStorage_t& bit::CString::GetStorage()
 {
 	return Storage;
 }
@@ -89,7 +89,7 @@ bit::CString& bit::CString::operator+=(const bit::CString& Other)
 
 bit::CString& bit::CString::operator+=(const CharType_t* RawStr)
 {
-	Append(RawStr, (StringSizeType_t)bit::Strlen(RawStr));
+	Append(RawStr, (SizeType_t)bit::Strlen(RawStr));
 	return *this;
 }
 
@@ -101,7 +101,7 @@ bit::CString& bit::CString::operator=(CString&& Other) noexcept
 
 bit::CString& bit::CString::operator=(const CharType_t* RawStr)
 {
-	Copy(RawStr, (StringSizeType_t)bit::Strlen(RawStr));
+	Copy(RawStr, (SizeType_t)bit::Strlen(RawStr));
 	return *this;
 }
 
@@ -109,4 +109,14 @@ bit::CString& bit::CString::operator=(const CString& Other)
 {
 	Copy(Other);
 	return *this;
+}
+
+bool bit::operator==(const CString& LHS, const CString& RHS)
+{
+	return LHS.GetLength() == RHS.GetLength() && bit::Memcmp(*LHS, *RHS, LHS.GetLength());
+}
+
+bool bit::operator!=(const CString& LHS, const CString& RHS)
+{
+	return !(LHS == RHS);
 }
