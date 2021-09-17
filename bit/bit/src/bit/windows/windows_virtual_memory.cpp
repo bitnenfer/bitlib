@@ -31,7 +31,7 @@ bit::CVirtualAddressSpace::CVirtualAddressSpace(CVirtualAddressSpace&& Move)
 	BaseAddress = Move.BaseAddress;
 	ReservedSize = Move.ReservedSize;
 	CommittedSize = Move.CommittedSize;
-	bit::Memset(&Move, 0, sizeof(CVirtualAddressSpace));
+	Move.Invalidate();
 }
 
 bit::CVirtualAddressSpace& bit::CVirtualAddressSpace::operator=(CVirtualAddressSpace&& Move)
@@ -39,8 +39,25 @@ bit::CVirtualAddressSpace& bit::CVirtualAddressSpace::operator=(CVirtualAddressS
 	BaseAddress = Move.BaseAddress;
 	ReservedSize = Move.ReservedSize;
 	CommittedSize = Move.CommittedSize;
-	bit::Memset(&Move, 0, sizeof(CVirtualAddressSpace));
+	Move.Invalidate();
 	return *this;
+}
+
+void* bit::CVirtualAddressSpace::CommitAll()
+{
+	void* Pages = VirtualAlloc(BaseAddress, ReservedSize, MEM_COMMIT, PAGE_READWRITE);
+	if (Pages != nullptr) CommittedSize = ReservedSize;
+	return Pages;
+}
+
+bool bit::CVirtualAddressSpace::DecommitAll()
+{
+	if (VirtualFree(BaseAddress, ReservedSize, MEM_DECOMMIT))
+	{
+		CommittedSize = 0;
+		return true;
+	}
+	return false;
 }
 
 void* bit::CVirtualAddressSpace::CommitPagesByAddress(void* Address, size_t Size)
@@ -151,6 +168,13 @@ bool bit::CVirtualAddressSpace::IsValid() const
 	return BaseAddress != nullptr; 
 }
 
+void bit::CVirtualAddressSpace::Invalidate()
+{
+	BaseAddress = nullptr;
+	ReservedSize = 0;
+	CommittedSize = 0;
+}
+
 bool bit::VirtualReserveSpace(void* Address, size_t Size, CVirtualAddressSpace& OutVirtualMemorySpace)
 {
 	void* Ptr = VirtualAlloc(Address, Size, MEM_RESERVE, PAGE_READWRITE);
@@ -165,8 +189,10 @@ void bit::VirtualReleaseSpace(bit::CVirtualAddressSpace& VirtualMemoryRegion)
 {
 	if (VirtualMemoryRegion.IsValid())
 	{
-		VirtualFree(VirtualMemoryRegion.GetBaseAddress(), VirtualMemoryRegion.GetRegionSize(), MEM_RELEASE);
-		bit::Memset(&VirtualMemoryRegion, 0, sizeof(bit::CVirtualAddressSpace));
+		void* Base = VirtualMemoryRegion.GetBaseAddress();
+		size_t Size = VirtualMemoryRegion.GetRegionSize();
+		VirtualFree(Base, Size, MEM_DECOMMIT);
+		VirtualFree(Base, Size, MEM_RELEASE);
 	}
 }
 

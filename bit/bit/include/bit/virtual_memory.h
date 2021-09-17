@@ -17,6 +17,8 @@ namespace bit
 		CVirtualAddressSpace(void* BaseAddress, size_t ReservedSize);
 		CVirtualAddressSpace(CVirtualAddressSpace&& Move);
 		CVirtualAddressSpace& operator=(CVirtualAddressSpace&& Move);
+		void* CommitAll();
+		bool DecommitAll();
 		void* CommitPagesByAddress(void* Address, size_t Size);
 		bool DecommitPagesByAddress(void* Address, size_t Size);
 		bool ProtectPagesByAddress(void* Address, size_t Size, EPageProtectionType Protection);
@@ -30,6 +32,7 @@ namespace bit
 		size_t GetCommittedSize() const;
 		size_t GetPageCount() const;
 		bool IsValid() const;
+		void Invalidate();
 
 	private:
 		CVirtualAddressSpace(const CVirtualAddressSpace&) = delete;
