@@ -26,7 +26,7 @@ namespace bit
 		CNonMovable& operator=(CNonMovable&&) = delete;
 	};
 
-	template<typename T, T TValue> struct TConstValue { static BIT_CONSTEXPR T Value = TValue; };
+	template<typename T, T TValue> struct TConstValue { static constexpr T Value = TValue; };
 
 	template<typename T> struct TIsSigned : public TConstValue<bool, false> {};
 	template<> struct TIsSigned<int8_t> : public TConstValue<bool, true> {};
@@ -79,20 +79,20 @@ namespace bit
 	}
 
 	template<class T>
-	BIT_CONSTEXPR T ConstMax(T A, T B)
+	constexpr T ConstMax(T A, T B)
 	{
 		if (A > B) return A;
 		return B;
 	}
 	template<class T>
-	BIT_CONSTEXPR T ConstMin(T A, T B)
+	constexpr T ConstMin(T A, T B)
 	{
 		if (A < B) return A;
 		return B;
 	}
 
 	template<typename T>
-	BIT_CONSTEXPR T ConstClamp(T Value, T MinValue, T MaxValue)
+	constexpr T ConstClamp(T Value, T MinValue, T MaxValue)
 	{
 		return (Value >= MaxValue) ? MaxValue : ((Value <= MinValue) ? MinValue : Value);
 	}
@@ -167,7 +167,7 @@ namespace bit
 
 	BITLIB_API size_t Log2(size_t Value);
 
-	BIT_CONSTEXPR size_t ConstLog2(size_t Value)
+	constexpr size_t ConstLog2(size_t Value)
 	{
 		size_t BitIndex = 0;
 	#if BIT_PLATFORM_X64

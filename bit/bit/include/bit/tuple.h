@@ -14,6 +14,7 @@ namespace bit
 	struct TTuple : public TTuple<TOthers...>
 	{
 		typedef TTuple<T, TOthers...> SelfType_t;
+		typedef TTuple<TOthers...> BaseType_t;
 
 		TTuple(T Value, TOthers... Others) :
 			TTuple<TOthers...>(Others...),
@@ -32,6 +33,9 @@ namespace bit
 	template<typename T>
 	struct TTuple<T>
 	{
+		typedef TTuple<T> SelfType_t;
+		typedef TTuple<T> BaseType_t;
+		
 		TTuple(T Value) :
 			Value(Value)
 		{}

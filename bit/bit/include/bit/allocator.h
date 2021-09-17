@@ -6,7 +6,7 @@
 
 namespace bit
 {
-	static BIT_CONSTEXPR size_t ALLOCATOR_MAX_NAME_LEN = 128;
+	static constexpr size_t ALLOCATOR_MAX_NAME_LEN = 128;
 	struct BITLIB_API CMemoryUsageInfo
 	{
 		size_t AllocatedBytes;

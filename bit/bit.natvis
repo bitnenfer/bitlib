@@ -221,4 +221,22 @@
       <Item Name="Storage">Storage</Item>
     </Expand>
   </Type>
+  <Type Name="bit::TTuple&lt;&gt;">
+    <DisplayString>{{}}</DisplayString>
+  </Type>
+
+  <Type Name="bit::TTuple&lt;*&gt;">
+    <DisplayString>{Value}</DisplayString>
+    <Expand>
+      <Item Name="Value">Value</Item>
+    </Expand>
+  </Type>
+  
+  <Type Name="bit::TTuple&lt;*,*&gt;">
+    <DisplayString>{Value}, {*(BaseType_t*)this}</DisplayString>
+    <Expand>
+      <Item Name="Value">Value</Item>
+      <ExpandedItem>*(BaseType_t*)this</ExpandedItem>
+    </Expand>
+  </Type>
 </AutoVisualizer>

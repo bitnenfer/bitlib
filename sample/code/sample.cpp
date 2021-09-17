@@ -54,6 +54,7 @@ namespace tlsf
 		static constexpr size_t FL_COUNT = bit::ConstMin(bit::ConstLog2(MAX_POOL_SIZE), MAX_FL_COUNT);
 		static constexpr size_t SL_COUNT = 1 << SLI;
 		static constexpr size_t MIN_BLOCK_SIZE = sizeof(TLSFBlockHeader);
+		static constexpr size_t NUM_LIST = 0;
 	};
 
 	struct TLSFStructure

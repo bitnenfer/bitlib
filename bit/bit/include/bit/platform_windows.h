@@ -51,12 +51,6 @@
 #error "This is a C++ library. Requires > C++11. If you're using MSVC, set this compiler option /Zc:__cplusplus"
 #endif
 
-#if BIT_CPP_VER >= BIT_CPP11
-#define BIT_CONSTEXPR constexpr
-#else
-#define BIT_CONSTEXPR const
-#endif
-
 #if BIT_CPP_VER >= BIT_CPP17
 #define BIT_IF_CONSTEXPR if constexpr
 #else

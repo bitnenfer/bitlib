@@ -5,9 +5,9 @@
 namespace bit
 {
 	#if BIT_PLATFORM_X64
-	static BIT_CONSTEXPR size_t DEFAULT_HASH_SEED = 0xDEADBEEFDEADBEEF;
+	static constexpr size_t DEFAULT_HASH_SEED = 0xDEADBEEFDEADBEEF;
 	#elif BIT_PLATFORM_X86
-	static BIT_CONSTEXPR size_t DEFAULT_HASH_SEED = 0xDEADBEEF;
+	static constexpr size_t DEFAULT_HASH_SEED = 0xDEADBEEF;
 	#endif
 	BITLIB_API size_t MurmurHash(const void* Key, size_t Len, size_t Seed);
 

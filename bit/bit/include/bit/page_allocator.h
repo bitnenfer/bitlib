@@ -9,11 +9,11 @@ namespace bit
 	/* Alignment isn't respected here. It'll be aligned to page size */
 	struct BITLIB_API CPageAllocator : public bit::IAllocator
 	{
-		static BIT_CONSTEXPR size_t DEFAULT_PAGE_GRANULARITY = 1 << 16; // 64 KiB Pages
-		static BIT_CONSTEXPR size_t BITS_PER_PAGE = 2; // 2 bits because we want to have 3 states (free = 00, split, 01, used = 10)
-		static BIT_CONSTEXPR size_t INVALID_LEVEL = 0xFFFFFFFF;
-		static BIT_CONSTEXPR size_t INVALID_PAGE = 0xFFFFFFFF;
-		static BIT_CONSTEXPR size_t DEFAULT_PAGE_ALIGNMENT = 0; // We don't use alignment here. By default it'll be aligned to page size.
+		static constexpr size_t DEFAULT_PAGE_GRANULARITY = 1 << 16; // 64 KiB Pages
+		static constexpr size_t BITS_PER_PAGE = 2; // 2 bits because we want to have 3 states (free = 00, split, 01, used = 10)
+		static constexpr size_t INVALID_LEVEL = 0xFFFFFFFF;
+		static constexpr size_t INVALID_PAGE = 0xFFFFFFFF;
+		static constexpr size_t DEFAULT_PAGE_ALIGNMENT = 0; // We don't use alignment here. By default it'll be aligned to page size.
 
 		CPageAllocator(const char* Name, void* StartAddress, size_t RegionSize, size_t AllocationGranularity = DEFAULT_PAGE_GRANULARITY);
 		~CPageAllocator();

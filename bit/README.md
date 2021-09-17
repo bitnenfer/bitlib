@@ -11,7 +11,7 @@ Convetions
 - Templated classes must start with a T prefix and written in PascalCase.
 - Global functions are written in PascalCase.
 - Global variables must be prefixed with a G and written in PascalCase.
-- Constant variables must be written in upper case SNAKE_CASE. If possible set as constexpr (BIT_CONSTEXPR).
+- Constant variables must be written in upper case SNAKE_CASE. If possible set as constexpr (constexpr).
 - Member Functions and Data Members are written in PascalCase.
 - Boolean variables must start with a b prefix.
 - Files must be written in snake_case. For ex: hash_table.cpp / hash_table.h

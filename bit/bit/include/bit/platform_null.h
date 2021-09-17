@@ -13,7 +13,7 @@
 #define BIT_CPP17 0
 #define BIT_CPP14 0
 #define BIT_CPP11 0
-#define BIT_CONSTEXPR
+#define constexpr
 
 #error Invalid Platform
 
