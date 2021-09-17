@@ -59,7 +59,6 @@ namespace bit
 		return static_cast<T&&>(Arg);
 	}
 
-
 	template<class T>
 	BIT_FORCEINLINE T Max(T A, T B)
 	{
@@ -73,16 +72,35 @@ namespace bit
 		return B;
 	}
 
-	template<typename T> 
-	BIT_FORCEINLINE T Clamp(T Value, T MinValue, T MaxValue) 
-	{ 
-		return (Value >= MaxValue) ? MaxValue : ((Value <= MinValue) ? MinValue : Value); 
+	template<typename T>
+	BIT_FORCEINLINE T Clamp(T Value, T MinValue, T MaxValue)
+	{
+		return (Value >= MaxValue) ? MaxValue : ((Value <= MinValue) ? MinValue : Value);
+	}
+
+	template<class T>
+	BIT_CONSTEXPR T ConstMax(T A, T B)
+	{
+		if (A > B) return A;
+		return B;
+	}
+	template<class T>
+	BIT_CONSTEXPR T ConstMin(T A, T B)
+	{
+		if (A < B) return A;
+		return B;
+	}
+
+	template<typename T>
+	BIT_CONSTEXPR T ConstClamp(T Value, T MinValue, T MaxValue)
+	{
+		return (Value >= MaxValue) ? MaxValue : ((Value <= MinValue) ? MinValue : Value);
 	}
 
 	template<typename TLHS, typename TRHS>
 	BIT_FORCEINLINE TLHS BitCast(TRHS Value) 
 	{ 
-		return *(TLHS*)& Value; 
+		return *(TLHS*)&Value; 
 	}
 
 	template<typename T>
@@ -149,6 +167,29 @@ namespace bit
 
 	BITLIB_API size_t Log2(size_t Value);
 
+	BIT_CONSTEXPR size_t ConstLog2(size_t Value)
+	{
+		size_t BitIndex = 0;
+	#if BIT_PLATFORM_X64
+		for (size_t Index = 0; Index < 64; ++Index)
+		{
+			if (((Value >> Index) & 0b1) > 0)
+			{
+				BitIndex = Index;
+			}
+		}
+	#elif BIT_PLAFORM_X86
+		for (size_t Index = 0; Index < 32; ++Index)
+		{
+			if (((Value >> Index) & 0b1) > 0)
+			{
+				BitIndex = Index;
+			}
+	}
+	#endif
+		return BitIndex;
+	}
+
 	// This function counts the number of bits before a set bit is found
 	// and assumes the alignment based on that. It might not be the selected alignment
 	// at allocation time, but it'll always be greater or equal.
@@ -187,4 +228,8 @@ namespace bit
 		return Ptr >= Start && Ptr <= End;
 	}
 
+	BIT_FORCEINLINE size_t RoundUp(size_t Value, size_t RoundTo)
+	{
+		return ((Value + RoundTo - 1) / RoundTo) * RoundTo;
+	}
 }

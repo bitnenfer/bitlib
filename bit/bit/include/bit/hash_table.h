@@ -367,11 +367,14 @@ namespace bit
 
 		TValue& operator[](const TKey& Key)
 		{
-			CTableKey TableKey = GetTableKey(Key);
-			BucketEntryType_t* Entry = Buckets[TableKey.BucketIndex].Find(TableKey.Hash, Key);
-			if (Entry != nullptr)
+			if (Buckets != nullptr)
 			{
-				return Entry->Data.Value;
+				CTableKey TableKey = GetTableKey(Key);
+				BucketEntryType_t* Entry = Buckets[TableKey.BucketIndex].Find(TableKey.Hash, Key);
+				if (Entry != nullptr)
+				{
+					return Entry->Data.Value;
+				}
 			}
 			TValue Default{};
 			return Insert(Key, Default);

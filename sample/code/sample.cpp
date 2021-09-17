@@ -18,51 +18,70 @@
 #include <bit/mutex.h>
 #include <bit/rw_lock.h>
 #include <bit/thread_local_storage.h>
+#include <bit/tuple.h>
 
-struct SLBlock
+
+namespace tlsf
 {
+	struct TLSFBlockStatusBits
+	{
+		enum : uint8_t
+		{
+			STATUS_BUSY_OR_FREE_BIT = 0b01,
+			STATUS_LAST_ON_POOL_BIT = 0b10
+		};
+	};
 
-	uint8_t* Blocks;
-	uint8_t Bitmap;
-};
+	struct TLSFBlockHeader
+	{
+		bool IsFree() const { return (Size & TLSFBlockStatusBits::STATUS_BUSY_OR_FREE_BIT) > 0; }
+		bool IsLastOnThePool() const { return (Size & TLSFBlockStatusBits::STATUS_LAST_ON_POOL_BIT) > 0; }
+		uint32_t Size;
+		TLSFBlockHeader* PrevPhysicalBlock;
+	};
+
+	struct TLSFBlockFree : public TLSFBlockHeader
+	{
+		TLSFBlockHeader* NextFree;
+		TLSFBlockHeader* PrevFree;
+	};
+
+	struct TLSFParams
+	{
+		static constexpr size_t SLI = 4;
+		static constexpr size_t MAX_POOL_SIZE = bit::TToGiB<2>::Value;
+		static constexpr size_t MAX_FL_COUNT = 31;
+		static constexpr size_t FL_COUNT = bit::ConstMin(bit::ConstLog2(MAX_POOL_SIZE), MAX_FL_COUNT);
+		static constexpr size_t SL_COUNT = 1 << SLI;
+		static constexpr size_t MIN_BLOCK_SIZE = sizeof(TLSFBlockHeader);
+	};
+
+	struct TLSFStructure
+	{
+		uint32_t FLBitmap;
+		uint32_t SLBitmap[TLSFParams::FL_COUNT];
+		TLSFBlockFree* Blocks[TLSFParams::FL_COUNT][TLSFParams::SL_COUNT];
+	};
+
+	bit::TTuple<size_t, size_t> Mapping(size_t Size)
+	{
+		// First level index is the last set bit
+		size_t FL = bit::Log2(Size);
+		// Second level index is the next rightmost SLI bits
+		// For example if SLI is 4, then 460 would result in 
+		// 0000000111001100
+		//       / |..|	
+		//    FL    SL
+		// FL = 8, SL = 12
+		size_t SL = (Size >> (FL - TLSFParams::SLI)) ^ (TLSFParams::SL_COUNT);
+		return { FL, SL };
+	}
+}
 
 int main(int32_t Argc, const char* Argv[])
 {
-	bit::TArray<bit::CThread> Threads;
-	bit::TArray<int32_t> Data;
-
-	bit::THashTable<bit::CString, int32_t> Table;
-	Table.Insert("Hello", 99);
-	int32_t MyValue = Table["Hello"];
-
-	for (int32_t Index = 0; Index < 10; ++Index)
-	{
-		Data.Add(Index);
-	}
-
-	if (Data.RemoveAll([](int32_t& Value) { return Value % 2 == 0; }))
-	{
-		BIT_LOG("Remove was successful!");
-	}
-
-	Data.Compact();
-
-	for (int32_t Index = 0; Index < bit::GetOSProcessorCount(); ++Index)
-	{
-		Threads.Allocate().Start([](void* UserData) 
-		{
-			bit::CTLSHandle TLS = bit::CTLSAllocator::Get().Allocate(bit::Malloc(128));
-			bit::CThread::SleepThread(100);
-			bit::Free(TLS->GetData());
-			bit::CTLSAllocator::Get().Free(TLS);
-			return 0;
-		}, 4096, nullptr);
-	}
-
-	for (bit::CThread& Thread : Threads)
-	{
-		Thread.Join();
-	}
-
+	bit::TTuple<size_t, size_t> Map = tlsf::Mapping(460);
+	size_t FL = Map.Get<0>();
+	size_t SL = Map.Get<1>();
 	return 0;
 }

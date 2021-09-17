@@ -207,6 +207,7 @@
     <ClInclude Include="bit\include\bit\thread.h" />
     <ClInclude Include="bit\include\bit\thread_local_storage.h" />
     <ClInclude Include="bit\include\bit\tlsf_allocator.h" />
+    <ClInclude Include="bit\include\bit\tuple.h" />
     <ClInclude Include="bit\include\bit\types.h" />
     <ClInclude Include="bit\include\bit\utils.h" />
     <ClInclude Include="bit\include\bit\virtual_memory.h" />

@@ -60,4 +60,14 @@ namespace bit
 			return bit::MurmurHash(*String, String.GetLength(), bit::DEFAULT_HASH_SEED);
 		}
 	};
+
+	template<>
+	struct BITLIB_API THash<const char*>
+	{
+		typedef size_t HashType_t;
+		HashType_t operator()(const char* Str) const
+		{
+			return bit::MurmurHash(Str, bit::Strlen(Str), bit::DEFAULT_HASH_SEED);
+		}
+	};
 }
