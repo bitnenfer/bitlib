@@ -119,6 +119,7 @@ namespace bit
 
 		size_t GetBlockSize(void* Block)
 		{
+			if (Block == nullptr) return 0;
 			return ((TLSFBlockHeader*)Block)->GetSize();
 		}
 
@@ -169,6 +170,8 @@ namespace bit
 int main(int32_t Argc, const char* Argv[])
 {
 	bit::TLSFStructure* Tlsf = bit::CreateTLSF(bit::ToMiB(20));
+	void* Block = Tlsf->Malloc(99);
+	Tlsf->Free(Block);
 	bit::DestroyTLSF(Tlsf);
 
 	return 0;
