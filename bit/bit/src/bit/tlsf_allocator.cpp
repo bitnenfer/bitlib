@@ -170,7 +170,7 @@ bit::CTLSFAllocator::CMemoryPool* bit::CTLSFAllocator::CreateMemoryPool(size_t P
 	{
 		CMemoryPool* Pool = reinterpret_cast<CMemoryPool*>(VirtualAddress.CommitAll());
 		Pool->Next = nullptr;
-		Pool->UsableSize = VirtualAddress.GetRegionSize() - sizeof(CMemoryPool);
+		Pool->UsableSize = (uint32_t)VirtualAddress.GetRegionSize() - sizeof(CMemoryPool);
 		Pool->BaseAddress = bit::ForwardPtr(Pool, sizeof(CMemoryPool));
 		Pool->VirtualMemory = bit::Move(VirtualAddress);
 		return Pool;
@@ -231,7 +231,7 @@ RetryAllocation:
 		return Block;
 	}
 	size_t NextFreeFL = bit::Log2(FLBitmap);
-	if ((1 << NextFreeFL) >= Size)
+	if ((1ULL << NextFreeFL) >= Size)
 	{
 		size_t NextFreeSL = bit::Log2(SLBitmap[NextFreeFL]);
 		CBlockFree* FreeBlock = FreeBlocks[NextFreeFL][NextFreeSL];

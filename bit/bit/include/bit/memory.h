@@ -3,6 +3,11 @@
 #include <bit/types.h>
 #include <bit/allocator.h>
 
+#define KiB * (1024ULL)
+#define MiB * (1024ULL KiB)
+#define GiB * (1024ULL MiB)
+#define TiB * (1024ULL MiB)
+
 namespace bit
 {
 	struct IAllocator;
@@ -16,28 +21,12 @@ namespace bit
 	BITLIB_API bool Strcmp(const char* A, const char* B);
 	BITLIB_API size_t Fmt(char* Buffer, size_t BufferSize, const char* Fmt, ...);
 	BITLIB_API const char* TempFmtString(const char* Fmt, ...);
-	BITLIB_API size_t ToKiB(size_t Value);
-	BITLIB_API size_t ToMiB(size_t Value);
-	BITLIB_API size_t ToGiB(size_t Value);
-	BITLIB_API size_t ToTiB(size_t Value);
 	BITLIB_API double FromKiB(size_t Value);
 	BITLIB_API double FromMiB(size_t Value);
 	BITLIB_API double FromGiB(size_t Value);
 	BITLIB_API double FromTiB(size_t Value);
 	BITLIB_API void* AllocateFromOS(size_t Size);
 	BITLIB_API bool FreeFromOS(void* Ptr);
-
-	template<size_t Size>
-	struct TToKib { static constexpr size_t Value = Size * 1024; };
-
-	template<size_t Size>
-	struct TToMiB { static constexpr size_t Value = TToKib<Size>::Value * 1024; };
-
-	template<size_t Size>
-	struct TToGiB { static constexpr size_t Value = TToMiB<Size>::Value * 1024; };
-
-	template<size_t Size>
-	struct TToTiB { static constexpr size_t Value = TToGiB<Size>::Value * 1024; };
 
 	template<size_t Size>
 	struct TFromKiB { static constexpr double Value = (double)Size / 1024.0; };

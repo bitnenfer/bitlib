@@ -48,7 +48,7 @@ namespace bit
 
 	public:
 		static constexpr size_t SLI = 4;
-		static constexpr size_t MAX_POOL_SIZE = bit::TToGiB<4>::Value;
+		static constexpr size_t MAX_POOL_SIZE = 4 GiB;
 		static constexpr size_t FL_COUNT = bit::ConstLog2(MAX_POOL_SIZE);
 		static constexpr size_t SL_COUNT = 1 << SLI;
 		static constexpr size_t MIN_BLOCK_SIZE = sizeof(CBlockHeader);

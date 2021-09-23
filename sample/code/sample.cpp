@@ -61,7 +61,7 @@ int main(int32_t Argc, const char* Argv[])
 
 	bit::IAllocator& DefaultAllocator = bit::GetDefaultAllocator();
 	bit::CScopeTimer Timer("Sample");
-	bit::CPageAllocator PageAllocator("PageAllocator", bit::VirtualDefaultAddress(), bit::ToGiB(16));
+	bit::CPageAllocator PageAllocator("PageAllocator", bit::VirtualDefaultAddress(), 16 GiB);
 	bit::CString MyString = "Testing";
 
 	MyString += bit::CString::Format("Hello wtf %.2f", 3.14f);
@@ -76,8 +76,8 @@ int main(int32_t Argc, const char* Argv[])
 
 	auto MX = bit::Forward<size_t>(bit::Move(Alignment));
 
-	bit::CLinearAllocator LinearAllocator("TestLinearAllocator", PageAllocator.AllocateArena(bit::ToMiB(100)));
-	bit::TFixedMemoryArena<bit::TToKib<1>::Value> FixedMemoryArena;
+	bit::CLinearAllocator LinearAllocator("TestLinearAllocator", PageAllocator.AllocateArena(100 MiB));
+	bit::TFixedMemoryArena<1 KiB> FixedMemoryArena;
 
 	bit::CLinearAllocator FixedAllocator("FixedLinearAllocator", FixedMemoryArena);
 
