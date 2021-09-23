@@ -150,14 +150,16 @@ namespace bit
 #endif
 	}
 
-	BIT_FORCEINLINE void* ForwardPtr(void* Ptr, size_t Offset)
+	template<typename T = void*>
+	T* ForwardPtr(void* Ptr, size_t Offset)
 	{
-		return (void*)((uintptr_t)Ptr + (uintptr_t)Offset);
+		return (T*)((uintptr_t)Ptr + (uintptr_t)Offset);
 	}
 
-	BIT_FORCEINLINE void* BackwardPtr(void* Ptr, size_t Offset)
+	template<typename T = void*>
+	T* BackwardPtr(void* Ptr, size_t Offset)
 	{
-		return (void*)((uintptr_t)Ptr - (uintptr_t)Offset);
+		return (T*)((uintptr_t)Ptr - (uintptr_t)Offset);
 	}
 
 	BIT_FORCEINLINE size_t PtrDiff(const void* A, const void* B)

@@ -1,5 +1,6 @@
 #include <bit/memory.h>
 #include <bit/allocator.h>
+#include <bit/tlsf_allocator.h>
 #include <intrin.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -71,15 +72,15 @@ namespace bit
 		
 		HANDLE Heap;
 	};
-	static uint8_t HeapInitialBuffer[sizeof(CWindowsHeapAllocator)];
-	static CWindowsHeapAllocator* DefaultAllocator = nullptr;
+	static uint8_t HeapInitialBuffer[sizeof(CTLSFAllocator)];
+	static CTLSFAllocator* DefaultAllocator = nullptr;
 }
 
 bit::IAllocator& bit::GetDefaultAllocator()
 {
 	if (DefaultAllocator == nullptr)
 	{
-		DefaultAllocator = BitPlacementNew(HeapInitialBuffer) CWindowsHeapAllocator();
+		DefaultAllocator = BitPlacementNew(HeapInitialBuffer) CTLSFAllocator("MainAllocator");
 	}
 	return *DefaultAllocator;
 }

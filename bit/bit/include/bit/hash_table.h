@@ -150,10 +150,16 @@ namespace bit
 	template<typename T, typename THashType>
 	struct TBucketEntry
 	{
+		typedef TBucketEntry<T, THashType> SelfType_t;
 		typedef T DataType_t;
 		typedef THashType HashType_t;
 		DataType_t Data;
 		HashType_t Hash;
+
+		friend bool operator==(const SelfType_t& LHS, const SelfType_t& RHS)
+		{
+			return bit::Memcmp(&LHS, &RHS, sizeof(SelfType_t));
+		}
 	};
 
 	template<typename TBucketEntryContainer>
