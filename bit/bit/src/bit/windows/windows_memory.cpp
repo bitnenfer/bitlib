@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include "windows_common.h"
 
+#define BIT_USE_WIN32_HEAP_AS_DEFAULT_ALLOCATOR 0
+
 #pragma function(memcpy)
 void* BitMemcpy(void* Dst, const void* Src, size_t Num)
 {
@@ -27,6 +29,7 @@ extern "C" int strcmp(const char* A, const char* B);
 
 namespace bit
 {
+#if BIT_USE_WIN32_HEAP_AS_DEFAULT_ALLOCATOR
 	struct CWindowsHeapAllocator : public bit::IAllocator
 	{
 		CWindowsHeapAllocator() :
@@ -72,15 +75,20 @@ namespace bit
 		
 		HANDLE Heap;
 	};
+	static uint8_t HeapInitialBuffer[sizeof(CWindowsHeapAllocator)];
+	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) CWindowsHeapAllocator(); }
+#else
 	static uint8_t HeapInitialBuffer[sizeof(CTLSFAllocator)];
-	static CTLSFAllocator* DefaultAllocator = nullptr;
+	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) CTLSFAllocator("MainAllocator"); }
+#endif
+	static IAllocator* DefaultAllocator = nullptr;
 }
 
 bit::IAllocator& bit::GetDefaultAllocator()
 {
 	if (DefaultAllocator == nullptr)
 	{
-		DefaultAllocator = BitPlacementNew(HeapInitialBuffer) CTLSFAllocator("MainAllocator");
+		DefaultAllocator = CreateDefaultAllocator();
 	}
 	return *DefaultAllocator;
 }

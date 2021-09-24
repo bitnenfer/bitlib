@@ -11,7 +11,7 @@ bit::CPageAllocator::CPageAllocator(const char* Name, void* StartAddress, size_t
 	BIT_ASSERT(VirtualAddressSpace.GetRegionSize() > 0); // Can't be 0
 	BIT_ASSERT(VirtualAddressSpace.IsValid());
 	BIT_ASSERT(bit::IsPow2(VirtualAddressSpace.GetRegionSize())); // ***  TotalSize is not a power of 2 value. TotalSize MUST be power of 2. *** 
-	LevelCount = bit::Log2(VirtualAddressSpace.GetRegionSize() / PageGranularity) + 1;
+	LevelCount = bit::BitScanReverse64(VirtualAddressSpace.GetRegionSize() / PageGranularity) + 1;
 	PageCount = bit::Pow2(LevelCount) - 1; // We subtract 1 because we can't have a block at the end of memory.
 	size_t PageBitCount = PageCount * BITS_PER_PAGE;
 	size_t PageByteCount = PageBitCount / 8;
@@ -89,7 +89,7 @@ bit::CPageAllocator::EPageState bit::CPageAllocator::GetPageState(size_t PageInd
 
 size_t bit::CPageAllocator::GetPageLevel(size_t PageIndex)
 {
-	return bit::Clamp(bit::Log2(PageIndex + 1), (size_t)0, (size_t)LevelCount - 1);
+	return bit::Clamp(bit::BitScanReverse(PageIndex + 1), (size_t)0, (size_t)LevelCount - 1);
 }
 
 size_t bit::CPageAllocator::GetPageSize(size_t PageIndex)
@@ -133,7 +133,7 @@ size_t bit::CPageAllocator::GetLevelForPageCountRecursive(size_t PageTotalSize, 
 size_t bit::CPageAllocator::GetLevelForSize(size_t Size)
 {
 	if (Size == 0 || Size > VirtualAddressSpace.GetRegionSize()) return INVALID_LEVEL;
-	return bit::Log2(VirtualAddressSpace.GetRegionSize() / RoundToPageGranularity(Size));
+	return bit::BitScanReverse(VirtualAddressSpace.GetRegionSize() / RoundToPageGranularity(Size));
 }
 
 void* bit::CPageAllocator::GetPageAddress(size_t PageIndex)
@@ -141,7 +141,7 @@ void* bit::CPageAllocator::GetPageAddress(size_t PageIndex)
 	const size_t PageLevel = GetPageLevel(PageIndex);
 	const size_t SlotIndex = GetPageSlot(PageLevel, PageIndex);
 	const size_t PageSize = VirtualAddressSpace.GetRegionSize() >> PageLevel;
-	return bit::ForwardPtr(VirtualAddressSpace.GetBaseAddress(), SlotIndex * PageSize);
+	return bit::OffsetPtr(VirtualAddressSpace.GetBaseAddress(), SlotIndex * PageSize);
 }
 
 size_t bit::CPageAllocator::GetPageIndex(const void* Address)

@@ -43,8 +43,6 @@ struct TestData
 	uint32_t Value;
 };
 
-//#include <memory>
-//
 template<typename T>
 struct CustomDeleter
 {
@@ -154,7 +152,7 @@ int main(int32_t Argc, const char* Argv[])
 			Total += Pow2Value;
 		});
 
-		size_t Value = bit::Log2(0x1234);
+		size_t Value = bit::BitScanReverse(0x1234LLU);
 
 		bit::AtomicExchange((int64_t*)&Value, 0xFFFF);
 

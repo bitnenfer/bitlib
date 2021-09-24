@@ -4,3 +4,8 @@
 
 #include <Windows.h>
 
+#undef BitScanReverse64
+#undef BitScanReverse
+#undef BitScanForward64
+#undef BitScanForward
+

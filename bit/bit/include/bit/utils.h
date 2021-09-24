@@ -136,30 +136,24 @@ namespace bit
 	{
 		#if BIT_PLATFORM_X64
 		return ((Value)+((Alignment)-1LL)) & ~((Alignment)-1LL);
-		#elif BIT_PLAFORM_X86
+		#elif BIT_PLATFORM_X86
 		return ((Value)+((Alignment)-1)) & ~((Alignment)-1);
 		#endif
 	}
 
 	BIT_FORCEINLINE void* AlignPtr(void* Ptr, size_t Alignment)
 	{
-#if BIT_PLATFORM_X64
+	#if BIT_PLATFORM_X64
 		return (void*)(((uintptr_t)(Ptr)+((uintptr_t)(Alignment)-1LL)) & ~((uintptr_t)(Alignment)-1LL));
-#elif BIT_PLAFORM_X86
+	#elif BIT_PLATFORM_X86
 		return (void*)(((uintptr_t)(Ptr)+((uintptr_t)(Alignment)-1)) & ~((uintptr_t)(Alignment)-1));
-#endif
+	#endif
 	}
 
-	template<typename T = void*>
-	T* ForwardPtr(void* Ptr, size_t Offset)
+	template<typename T = void>
+	T* OffsetPtr(void* Ptr, int64_t Offset)
 	{
-		return (T*)((uintptr_t)Ptr + (uintptr_t)Offset);
-	}
-
-	template<typename T = void*>
-	T* BackwardPtr(void* Ptr, size_t Offset)
-	{
-		return (T*)((uintptr_t)Ptr - (uintptr_t)Offset);
+		return reinterpret_cast<T*>((intptr_t)Ptr + (intptr_t)Offset);
 	}
 
 	BIT_FORCEINLINE size_t PtrDiff(const void* A, const void* B)
@@ -167,30 +161,52 @@ namespace bit
 		return (size_t)bit::Abs((intptr_t)A - (intptr_t)B);
 	}
 
-	BITLIB_API size_t Log2(size_t Value);
+	BITLIB_API uint64_t BitScanReverse64(uint64_t Value);
+	BITLIB_API uint32_t BitScanReverse32(uint32_t Value);
+	BITLIB_API uint64_t BitScanForward64(uint64_t Value);
+	BITLIB_API uint32_t BitScanForward32(uint32_t Value);
 
-	constexpr size_t ConstLog2(size_t Value)
+	template<typename T>
+	T BitScanReverse(T Value);
+	template<> BITLIB_API uint64_t BitScanReverse<uint64_t>(uint64_t Value);
+	template<> BITLIB_API uint32_t BitScanReverse<uint32_t>(uint32_t Value);
+
+	template<typename T>
+	T BitScanForward(T Value);
+	template<> BITLIB_API uint64_t BitScanForward<uint64_t>(uint64_t Value);
+	template<> BITLIB_API uint32_t BitScanForward<uint32_t>(uint32_t Value);
+
+	constexpr uint64_t ConstBitScanReverse64(uint64_t Value)
 	{
-		size_t BitIndex = 0;
-	#if BIT_PLATFORM_X64
-		for (size_t Index = 0; Index < 64; ++Index)
+		if (Value == 0) return 64;
+		uint64_t BitIndex = 0;
+		for (uint64_t Index = 0; Index < 64; ++Index)
 		{
 			if (((Value >> Index) & 0b1) > 0)
 			{
 				BitIndex = Index;
 			}
 		}
-	#elif BIT_PLAFORM_X86
-		for (size_t Index = 0; Index < 32; ++Index)
+		return BitIndex;
+	}
+	constexpr uint32_t ConstBitScanReverse32(uint32_t Value)
+	{
+		if (Value == 0) return 32;
+		uint32_t BitIndex = 0;
+		for (uint32_t Index = 0; Index < 32; ++Index)
 		{
 			if (((Value >> Index) & 0b1) > 0)
 			{
 				BitIndex = Index;
 			}
-	}
-	#endif
+		}
 		return BitIndex;
 	}
+
+	template<typename T>
+	constexpr T ConstBitScanReverse(T Value);
+	template<> constexpr uint64_t ConstBitScanReverse<uint64_t>(uint64_t Value) { return ConstBitScanReverse64(Value); }
+	template<> constexpr uint32_t ConstBitScanReverse<uint32_t>(uint32_t Value) { return ConstBitScanReverse32(Value); }
 
 	// This function counts the number of bits before a set bit is found
 	// and assumes the alignment based on that. It might not be the selected alignment
@@ -203,7 +219,7 @@ namespace bit
 
 	BIT_FORCEINLINE size_t NextPow2(size_t Size)
 	{
-		uint64_t BitIndex = Log2(Size - 1);
+		uint64_t BitIndex = BitScanReverse64(Size - 1);
 		return 1LL << (BitIndex + 1);
 	}
 

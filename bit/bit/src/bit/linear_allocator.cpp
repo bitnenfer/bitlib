@@ -11,7 +11,7 @@ namespace bit
 
 		static CLinearAllocatorHeader* GetHeader(void* Ptr)
 		{
-			return (CLinearAllocatorHeader*)bit::BackwardPtr(Ptr, sizeof(CLinearAllocatorHeader));
+			return (CLinearAllocatorHeader*)bit::OffsetPtr(Ptr, -(int64_t)sizeof(CLinearAllocatorHeader));
 		}
 	};
 }
@@ -40,12 +40,12 @@ void bit::CLinearAllocator::Reset()
 
 void* bit::CLinearAllocator::Allocate(size_t Size, size_t Alignment)
 {
-	uint8_t* BufferCurr = (uint8_t*)bit::ForwardPtr(Arena.GetBaseAddress(), BufferOffset);
+	uint8_t* BufferCurr = (uint8_t*)bit::OffsetPtr(Arena.GetBaseAddress(), BufferOffset);
 	if ((size_t)bit::PtrDiff(BufferCurr, BufferCurr + Size + sizeof(CLinearAllocatorHeader)) < Arena.GetSizeInBytes())
 	{
 		void* NonAligned = BufferCurr + sizeof(CLinearAllocatorHeader);
 		void* Aligned = bit::AlignPtr(NonAligned, Alignment);
-		size_t TotalSize = bit::PtrDiff(BufferCurr, bit::ForwardPtr(Aligned, Size));
+		size_t TotalSize = bit::PtrDiff(BufferCurr, bit::OffsetPtr(Aligned, Size));
 		CLinearAllocatorHeader* Header = CLinearAllocatorHeader::GetHeader(Aligned);
 		Header->BlockSize = TotalSize;
 		Header->RequestedSize = Size;
@@ -75,7 +75,7 @@ void* bit::CLinearAllocator::Reallocate(void* Pointer, size_t Size, size_t Align
 void bit::CLinearAllocator::Free(void* Pointer) 
 { 
 	CLinearAllocatorHeader* Header = CLinearAllocatorHeader::GetHeader(Pointer);
-	void* PossiblePrevAddress = bit::BackwardPtr(bit::ForwardPtr(Arena.GetBaseAddress(), BufferOffset), Header->BlockSize);
+	void* PossiblePrevAddress = bit::OffsetPtr(bit::OffsetPtr(Arena.GetBaseAddress(), BufferOffset), -(int64_t)Header->BlockSize);
 	if (Header == PossiblePrevAddress)
 	{
 		BufferOffset -= Header->BlockSize;
@@ -90,7 +90,7 @@ size_t bit::CLinearAllocator::GetSize(void* Pointer)
 bit::CMemoryUsageInfo bit::CLinearAllocator::GetMemoryUsageInfo()
 {
 	CMemoryUsageInfo Info = {};
-	Info.AllocatedBytes = (size_t)bit::PtrDiff(bit::ForwardPtr(Arena.GetBaseAddress(), BufferOffset), Arena.GetBaseAddress());
+	Info.AllocatedBytes = (size_t)bit::PtrDiff(bit::OffsetPtr(Arena.GetBaseAddress(), BufferOffset), Arena.GetBaseAddress());
 	Info.CommittedBytes = Arena.GetSizeInBytes();
 	Info.ReservedBytes = Arena.GetSizeInBytes();
 	return Info;

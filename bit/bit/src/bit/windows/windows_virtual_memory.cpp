@@ -140,12 +140,12 @@ void* bit::CVirtualAddressSpace::GetBaseAddress() const
 
 void* bit::CVirtualAddressSpace::GetAddress(size_t Offset) const
 {
-	return bit::ForwardPtr(BaseAddress, Offset);
+	return bit::OffsetPtr(BaseAddress, Offset);
 }
 
 void* bit::CVirtualAddressSpace::GetEndAddress() const
 {
-	return bit::ForwardPtr(BaseAddress, ReservedSize);
+	return bit::OffsetPtr(BaseAddress, ReservedSize);
 }
 
 size_t bit::CVirtualAddressSpace::GetRegionSize() const
