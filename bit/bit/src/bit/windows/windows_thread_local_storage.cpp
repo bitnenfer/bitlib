@@ -3,11 +3,11 @@
 #include <bit/scope_lock.h>
 #include "windows_common.h"
 
-bit::CTLStorage::CTLStorage() :
+bit::ThreadLocalStorage::ThreadLocalStorage() :
 	Index(-1)
 {}
 
-bit::CTLStorage::CTLStorage(int32_t InIndex, void* InitialData) :
+bit::ThreadLocalStorage::ThreadLocalStorage(int32_t InIndex, void* InitialData) :
 	Index(InIndex)
 {
 	if (IsValid())
@@ -16,12 +16,12 @@ bit::CTLStorage::CTLStorage(int32_t InIndex, void* InitialData) :
 	}
 }
 
-bool bit::CTLStorage::IsValid() const
+bool bit::ThreadLocalStorage::IsValid() const
 {
 	return Index != -1;
 }
 
-void bit::CTLStorage::SetData(void* InData)
+void bit::ThreadLocalStorage::SetData(void* InData)
 {
 	if (IsValid())
 	{
@@ -29,7 +29,7 @@ void bit::CTLStorage::SetData(void* InData)
 	}
 }
 
-void* bit::CTLStorage::GetData()
+void* bit::ThreadLocalStorage::GetData()
 {
 	if (IsValid())
 	{
@@ -38,53 +38,53 @@ void* bit::CTLStorage::GetData()
 	return nullptr;
 }
 
-bit::CTLSHandle::CTLSHandle() : 
+bit::ThreadLocalStorageHandle::ThreadLocalStorageHandle() : 
 	InternalIndex(-1)
 {}
 
-bit::CTLSHandle::CTLSHandle(int32_t InIndex) :
+bit::ThreadLocalStorageHandle::ThreadLocalStorageHandle(int32_t InIndex) :
 	InternalIndex(InIndex)
 {}
 
-bit::CTLStorage* bit::CTLSHandle::operator->()
+bit::ThreadLocalStorage* bit::ThreadLocalStorageHandle::operator->()
 {
 	if (InternalIndex != -1)
 	{
-		return &(CTLSAllocator::Get().GetAllTLSAllocs()[InternalIndex]);
+		return &(ThreadLocalStorageAllocator::Get().GetAllTLSAllocs()[InternalIndex]);
 	}
 	return nullptr;
 }
 
-bit::CTLSHandle::operator bool()
+bit::ThreadLocalStorageHandle::operator bool()
 {
 	if (InternalIndex != -1)
 	{
-		return InternalIndex < CTLSAllocator::Get().GetAllTLSAllocs().GetCount();
+		return InternalIndex < ThreadLocalStorageAllocator::Get().GetAllTLSAllocs().GetCount();
 	}
 	return false;
 }
 
-bit::CTLSAllocator& bit::CTLSAllocator::Get()
+bit::ThreadLocalStorageAllocator& bit::ThreadLocalStorageAllocator::Get()
 {
-	static bit::CTLSAllocator Instance{};
+	static bit::ThreadLocalStorageAllocator Instance{};
 	return Instance;
 }
 
-bit::CTLSHandle bit::CTLSAllocator::Allocate(void* InitialData)
+bit::ThreadLocalStorageHandle bit::ThreadLocalStorageAllocator::Allocate(void* InitialData)
 {
-	bit::TScopedLock<CMutex> Lock(&StorageMutex);
+	bit::ScopedLock<Mutex> Lock(&StorageMutex);
 	DWORD TLSIndex = TlsAlloc();
 	BIT_ASSERT_MSG(TLSIndex != TLS_OUT_OF_INDEXES, "Ran out of thread local storage index space");
 	if (TLSIndex != TLS_OUT_OF_INDEXES)
 	{
 		AllStorage.AddEmpty();
-		BitPlacementNew(&AllStorage.GetLast()) CTLStorage(TLSIndex, InitialData);
-		return CTLSHandle(AllStorage.GetCount() - 1);
+		BitPlacementNew(&AllStorage.GetLast()) ThreadLocalStorage(TLSIndex, InitialData);
+		return ThreadLocalStorageHandle(AllStorage.GetCount() - 1);
 	}
-	return CTLSHandle(-1);
+	return ThreadLocalStorageHandle(-1);
 }
 
-void bit::CTLSAllocator::Free(CTLSHandle TLSStorage)
+void bit::ThreadLocalStorageAllocator::Free(ThreadLocalStorageHandle TLSStorage)
 {
 	if (TLSStorage && TLSStorage->IsValid())
 	{
@@ -96,12 +96,12 @@ void bit::CTLSAllocator::Free(CTLSHandle TLSStorage)
 	}
 }
 
-bit::TArray<bit::CTLStorage>& bit::CTLSAllocator::GetAllTLSAllocs()
+bit::Array<bit::ThreadLocalStorage>& bit::ThreadLocalStorageAllocator::GetAllTLSAllocs()
 {
 	return AllStorage;
 }
 
-bool bit::operator==(const CTLStorage& LHS, const CTLStorage& RHS)
+bool bit::operator==(const ThreadLocalStorage& LHS, const ThreadLocalStorage& RHS)
 {
 	return LHS.Index == RHS.Index;
 }

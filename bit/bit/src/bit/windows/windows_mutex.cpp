@@ -1,22 +1,22 @@
 #include <bit/mutex.h>
 #include "windows_common.h"
 
-bit::CMutex::CMutex()
+bit::Mutex::Mutex()
 {
 	Handle = (Handle_t)CreateMutex(nullptr, false, nullptr);
 }
 
-bit::CMutex::~CMutex()
+bit::Mutex::~Mutex()
 {
 	CloseHandle((HANDLE)Handle);
 }
 
-void bit::CMutex::Lock()
+void bit::Mutex::Lock()
 {
 	WaitForSingleObject((HANDLE)Handle, INFINITE);
 }
 
-void bit::CMutex::Unlock()
+void bit::Mutex::Unlock()
 {
 	ReleaseMutex((HANDLE)Handle);
 }

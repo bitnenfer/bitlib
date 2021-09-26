@@ -5,10 +5,10 @@
 
 namespace bit
 {
-	struct BITLIB_API CCriticalSection : public CNonCopyable
+	struct BITLIB_API CriticalSection : public NonCopyable
 	{
-		CCriticalSection();
-		~CCriticalSection();
+		CriticalSection();
+		~CriticalSection();
 
 		void Lock();
 		void Unlock();

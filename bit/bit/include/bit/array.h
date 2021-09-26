@@ -8,57 +8,57 @@
 namespace bit
 {
 	template<typename T>
-	struct TPtrFwdIterator
+	struct PtrFwdIterator
 	{
-		TPtrFwdIterator(T* Ptr) : Ptr(Ptr) {}
+		PtrFwdIterator(T* Ptr) : Ptr(Ptr) {}
 		T& operator*() const { return *Ptr; }
 		T* operator->() { return Ptr; }
-		TPtrFwdIterator& operator++() { Ptr++; return *this; }
-		TPtrFwdIterator operator++(int32_t) { TPtrFwdIterator Self = *this; ++(*this); return Self; }
-		friend bool operator==(const TPtrFwdIterator& A, const TPtrFwdIterator& B) { return A.Ptr == B.Ptr; }
-		friend bool operator!=(const TPtrFwdIterator& A, const TPtrFwdIterator& B) { return A.Ptr != B.Ptr; }
+		PtrFwdIterator& operator++() { Ptr++; return *this; }
+		PtrFwdIterator operator++(int32_t) { PtrFwdIterator Self = *this; ++(*this); return Self; }
+		friend bool operator==(const PtrFwdIterator& A, const PtrFwdIterator& B) { return A.Ptr == B.Ptr; }
+		friend bool operator!=(const PtrFwdIterator& A, const PtrFwdIterator& B) { return A.Ptr != B.Ptr; }
 	private:
 		T* Ptr;
 	};
 
 	template<typename T>
-	struct TConstPtrFwdIterator
+	struct ConstPtrFwdIterator
 	{
-		TConstPtrFwdIterator(const T* Ptr) : Ptr(Ptr) {}
+		ConstPtrFwdIterator(const T* Ptr) : Ptr(Ptr) {}
 		const T& operator*() const { return *Ptr; }
 		const T* operator->() const { return Ptr; }
-		TConstPtrFwdIterator& operator++() { Ptr++; return *this; }
-		TConstPtrFwdIterator operator++(int32_t) { TConstPtrFwdIterator Self = *this; ++(*this); return Self; }
-		friend bool operator==(const TConstPtrFwdIterator& A, const TConstPtrFwdIterator& B) { return A.Ptr == B.Ptr; }
-		friend bool operator!=(const TConstPtrFwdIterator& A, const TConstPtrFwdIterator& B) { return A.Ptr != B.Ptr; }
+		ConstPtrFwdIterator& operator++() { Ptr++; return *this; }
+		ConstPtrFwdIterator operator++(int32_t) { ConstPtrFwdIterator Self = *this; ++(*this); return Self; }
+		friend bool operator==(const ConstPtrFwdIterator& A, const ConstPtrFwdIterator& B) { return A.Ptr == B.Ptr; }
+		friend bool operator!=(const ConstPtrFwdIterator& A, const ConstPtrFwdIterator& B) { return A.Ptr != B.Ptr; }
 	private:
 		const T* Ptr;
 	};
 
 	template<
 		typename T, 
-		typename TAllocator = CDefaultBlockAllocator
+		typename TAllocator = DefaultBlockAllocator
 	>
-	struct TArray
+	struct Array
 	{
 
-		typedef TArray<T, TAllocator> SelfType_t;
+		typedef Array<T, TAllocator> SelfType_t;
 		typedef T ElementType_t;
 
 		/* Begin range for loop implementation */
-		TPtrFwdIterator<T> begin() { return TPtrFwdIterator<T>(GetData()); }
-		TPtrFwdIterator<T> end() { return TPtrFwdIterator<T>(GetData(Count)); }
-		TConstPtrFwdIterator<T> cbegin() const { return TConstPtrFwdIterator<T>(GetData()); }
-		TConstPtrFwdIterator<T> cend() const { return TConstPtrFwdIterator<T>(GetData(Count)); }
+		PtrFwdIterator<T> begin() { return PtrFwdIterator<T>(GetData()); }
+		PtrFwdIterator<T> end() { return PtrFwdIterator<T>(GetData(Count)); }
+		ConstPtrFwdIterator<T> cbegin() const { return ConstPtrFwdIterator<T>(GetData()); }
+		ConstPtrFwdIterator<T> cend() const { return ConstPtrFwdIterator<T>(GetData(Count)); }
 		/* End range for loop implementation */
 
-		TArray() : 
+		Array() : 
 			Count(0), 
 			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
 			Data((T*)Allocator.GetAllocation())
 		{}
 
-		TArray(SizeType_t InitialCapacity) : 
+		Array(SizeType_t InitialCapacity) : 
 			Count(0),
 			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
 			Data((T*)Allocator.GetAllocation())
@@ -66,7 +66,7 @@ namespace bit
 			Resize(InitialCapacity);
 		}
 
-		TArray(const SelfType_t& Copy) :
+		Array(const SelfType_t& Copy) :
 			Count(0),
 			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
 			Data((T*)Allocator.GetAllocation())
@@ -77,7 +77,7 @@ namespace bit
 			Capacity = Copy.Capacity;
 		}
 
-		TArray(SelfType_t&& Move) :
+		Array(SelfType_t&& Move) :
 			Count(0),
 			Capacity(Allocator.GetAllocationSize() / sizeof(T)),
 			Data((T*)Allocator.GetAllocation())
@@ -91,7 +91,7 @@ namespace bit
 			Move.Data = nullptr;
 		}
 
-		~TArray()
+		~Array()
 		{
 			Destroy();
 		}
@@ -339,26 +339,26 @@ namespace bit
 		template<
 			typename T
 		>
-		struct TArray
+		struct Array
 		{
-			typedef TArray<T> SelfType_t;
+			typedef Array<T> SelfType_t;
 			typedef T ElementType_t;
 
 			/* Begin range for loop implementation */
-			TPtrFwdIterator<T> begin() { return TPtrFwdIterator<T>(GetData()); }
-			TPtrFwdIterator<T> end() { return TPtrFwdIterator<T>(GetData(Count)); }
-			TConstPtrFwdIterator<T> cbegin() const { return TConstPtrFwdIterator<T>(GetData()); }
-			TConstPtrFwdIterator<T> cend() const { return TConstPtrFwdIterator<T>(GetData(Count)); }
+			PtrFwdIterator<T> begin() { return PtrFwdIterator<T>(GetData()); }
+			PtrFwdIterator<T> end() { return PtrFwdIterator<T>(GetData(Count)); }
+			ConstPtrFwdIterator<T> cbegin() const { return ConstPtrFwdIterator<T>(GetData()); }
+			ConstPtrFwdIterator<T> cend() const { return ConstPtrFwdIterator<T>(GetData(Count)); }
 			/* End range for loop implementation */
 
-			TArray(IAllocator& Allocator) :
+			Array(Allocator& Allocator) :
 				Allocator(&Allocator),
 				Data(nullptr),
 				Count(0),
 				Capacity(0)
 			{}
 
-			TArray(SizeType_t InitialCapacity, IAllocator& Allocator) :
+			Array(SizeType_t InitialCapacity, Allocator& Allocator) :
 				Allocator(&Allocator),
 				Data(nullptr),
 				Count(0),
@@ -367,7 +367,7 @@ namespace bit
 				Resize(InitialCapacity);
 			}
 
-			TArray(const SelfType_t& Copy) :
+			Array(const SelfType_t& Copy) :
 				Allocator(nullptr),
 				Data(nullptr),
 				Count(0),
@@ -379,7 +379,7 @@ namespace bit
 				Count = Copy.Count;
 			}
 			
-			TArray(SelfType_t&& Move) :
+			Array(SelfType_t&& Move) :
 				Allocator(nullptr),
 				Data(nullptr),
 				Count(0),
@@ -392,7 +392,7 @@ namespace bit
 				Move.Invalidate();
 			}
 			
-			~TArray()
+			~Array()
 			{
 				Destroy();
 			}
@@ -590,7 +590,7 @@ namespace bit
 
 			bool CanAdd(SizeType_t AddCount) { return Count + AddCount <= GetCapacity(); }
 
-			IAllocator& GetAllocator() { return *Allocator; }
+			Allocator& GetAllocator() { return *Allocator; }
 
 			/* This will invalidate addresses. If you have an element by pointer or reference it won't be valid anymore */
 			bool RemoveAt(SizeType_t InIndex)
@@ -637,7 +637,7 @@ namespace bit
 			}
 
 		protected:
-			bit::IAllocator* Allocator;
+			bit::Allocator* Allocator;
 			T* Data;
 			SizeType_t Count;
 			SizeType_t Capacity;

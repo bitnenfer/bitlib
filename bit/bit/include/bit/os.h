@@ -4,7 +4,7 @@
 
 namespace bit
 {
-	enum class EProcessorArch
+	enum class ProcessorArch
 	{
 		PROC_ARCH_UNKNOWN,
 		PROC_ARCH_X64,
@@ -24,7 +24,7 @@ namespace bit
 	BITLIB_API void* GetOSMinAddress();
 	BITLIB_API void* GetOSMaxAddress();
 	BITLIB_API int32_t GetOSProcessorCount();
-	BITLIB_API EProcessorArch GetOSProcessorArch();
+	BITLIB_API ProcessorArch GetOSProcessorArch();
 }
 
 #if BIT_BUILD_DEBUG

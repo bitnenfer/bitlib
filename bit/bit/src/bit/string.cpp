@@ -2,121 +2,121 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-bit::CString::CString()
+bit::String::String()
 {
 	Storage.AddEmpty();
 }
 
-bit::CString::CString(const CharType_t* RawStr) :
-	CString(RawStr, (SizeType_t)bit::Strlen(RawStr))
+bit::String::String(const CharType_t* RawStr) :
+	String(RawStr, (SizeType_t)bit::Strlen(RawStr))
 {}
 
-bit::CString::CString(const CharType_t * RawStr, SizeType_t Len)
+bit::String::String(const CharType_t * RawStr, SizeType_t Len)
 {
 	Copy(RawStr, Len);
 }
 
-bit::CString::CString(const CString& Other)
+bit::String::String(const String& Other)
 {
 	Storage.Add(Other.Storage);
 }
 
-bit::CString::CString(CString&& Other) noexcept
+bit::String::String(String&& Other) noexcept
 {
 	Storage = bit::Move(Other.Storage);
 }
 
-bit::SizeType_t bit::CString::GetLength() const
+bit::SizeType_t bit::String::GetLength() const
 {
 	SizeType_t Count = Storage.GetCount();
 	if (Count > 0) return Count - 1;
 	return 0;
 }
 
-void bit::CString::Copy(const CharType_t* RawStr, SizeType_t Len)
+void bit::String::Copy(const CharType_t* RawStr, SizeType_t Len)
 {
 	Storage.Reset();
 	Storage.Add(RawStr, Len);
 	Storage.AddEmpty();
 }
 
-void bit::CString::Copy(const CString& Other)
+void bit::String::Copy(const String& Other)
 {
 	Storage.Reset();
 	Storage.Add(Other.Storage);
 }
 
-void bit::CString::Append(const CharType_t* RawStr, SizeType_t Len)
+void bit::String::Append(const CharType_t* RawStr, SizeType_t Len)
 {
 	Storage.PopLast();
 	Storage.Add(RawStr, Len);
 	Storage.AddEmpty();
 }
 
-void bit::CString::Append(const CString& Other)
+void bit::String::Append(const String& Other)
 {
 	Storage.PopLast();
 	Storage.Add(Other.Storage);
 	Storage.AddEmpty();
 }
 
-bit::StringStorage_t& bit::CString::GetStorage()
+bit::StringStorage_t& bit::String::GetStorage()
 {
 	return Storage;
 }
 
-/*static*/ bit::CString bit::CString::Format(const CharType_t* Fmt, ...)
+/*static*/ bit::String bit::String::Format(const CharType_t* Fmt, ...)
 {
 	char Buffer[1024];
-	CString Output;
+	String Output;
 	va_list VaList;
 	va_start(VaList, Fmt);
 	int32_t WriteSize = vsprintf_s(Buffer, 1024, Fmt, VaList);
 	va_end(VaList);
-	return CString(Buffer, WriteSize);
+	return String(Buffer, WriteSize);
 }
 
-const bit::CharType_t* bit::CString::operator*() const
+const bit::CharType_t* bit::String::operator*() const
 {
 	return Storage.GetData();
 }
 
-bit::CString& bit::CString::operator+=(const bit::CString& Other)
+bit::String& bit::String::operator+=(const bit::String& Other)
 {
 	Append(Other);
 	return *this;
 }
 
-bit::CString& bit::CString::operator+=(const CharType_t* RawStr)
+bit::String& bit::String::operator+=(const CharType_t* RawStr)
 {
 	Append(RawStr, (SizeType_t)bit::Strlen(RawStr));
 	return *this;
 }
 
-bit::CString& bit::CString::operator=(CString&& Other) noexcept
+bit::String& bit::String::operator=(String&& Other) noexcept
 {
 	Storage = bit::Move(Other.Storage);
 	return *this;
 }
 
-bit::CString& bit::CString::operator=(const CharType_t* RawStr)
+bit::String& bit::String::operator=(const CharType_t* RawStr)
 {
 	Copy(RawStr, (SizeType_t)bit::Strlen(RawStr));
 	return *this;
 }
 
-bit::CString& bit::CString::operator=(const CString& Other)
+bit::String& bit::String::operator=(const String& Other)
 {
 	Copy(Other);
 	return *this;
 }
 
-bool bit::operator==(const CString& LHS, const CString& RHS)
+bool bit::operator==(const String& LHS, const String& RHS)
 {
 	return LHS.GetLength() == RHS.GetLength() && bit::Memcmp(*LHS, *RHS, LHS.GetLength());
 }
 
-bool bit::operator!=(const CString& LHS, const CString& RHS)
+bool bit::operator!=(const String& LHS, const String& RHS)
 {
 	return !(LHS == RHS);
 }

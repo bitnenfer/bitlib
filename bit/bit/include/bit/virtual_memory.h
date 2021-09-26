@@ -5,26 +5,26 @@
 
 namespace bit
 {
-	enum class EPageProtectionType
+	enum class PageProtectionType
 	{
 		PROTECTION_TYPE_READ_WRITE,
 		PROTECTION_TYPE_READ_ONLY
 	};
 
-	struct BITLIB_API CVirtualAddressSpace
+	struct BITLIB_API VirtualAddressSpace
 	{
-		CVirtualAddressSpace();
-		CVirtualAddressSpace(void* BaseAddress, size_t ReservedSize);
-		CVirtualAddressSpace(CVirtualAddressSpace&& Move);
-		CVirtualAddressSpace& operator=(CVirtualAddressSpace&& Move);
+		VirtualAddressSpace();
+		VirtualAddressSpace(void* BaseAddress, size_t ReservedSize);
+		VirtualAddressSpace(VirtualAddressSpace&& Move);
+		VirtualAddressSpace& operator=(VirtualAddressSpace&& Move);
 		void* CommitAll();
 		bool DecommitAll();
 		void* CommitPagesByAddress(void* Address, size_t Size);
 		bool DecommitPagesByAddress(void* Address, size_t Size);
-		bool ProtectPagesByAddress(void* Address, size_t Size, EPageProtectionType Protection);
+		bool ProtectPagesByAddress(void* Address, size_t Size, PageProtectionType Protection);
 		void* CommitPagesByOffset(size_t Offset, size_t Size);
 		bool DecommitPagesByOffset(size_t Offset, size_t Size);
-		bool ProtectPagesByOffset(size_t Offset, size_t Size, EPageProtectionType Protection);
+		bool ProtectPagesByOffset(size_t Offset, size_t Size, PageProtectionType Protection);
 		void* GetBaseAddress() const;
 		void* GetAddress(size_t Offset) const;
 		void* GetEndAddress() const;
@@ -35,15 +35,15 @@ namespace bit
 		void Invalidate();
 
 	private:
-		CVirtualAddressSpace(const CVirtualAddressSpace&) = delete;
-		CVirtualAddressSpace& operator=(const CVirtualAddressSpace&) = delete;
+		VirtualAddressSpace(const VirtualAddressSpace&) = delete;
+		VirtualAddressSpace& operator=(const VirtualAddressSpace&) = delete;
 
 		void* BaseAddress = nullptr;
 		size_t ReservedSize = 0;
 		size_t CommittedSize = 0;
 	};
 
-	BITLIB_API bool VirtualReserveSpace(void* Address, size_t Size, CVirtualAddressSpace& OutVirtualMemorySpace);
-	BITLIB_API void VirtualReleaseSpace(CVirtualAddressSpace& VirtualMemorySpace);
+	BITLIB_API bool VirtualReserveSpace(void* Address, size_t Size, VirtualAddressSpace& OutVirtualMemorySpace);
+	BITLIB_API void VirtualReleaseSpace(VirtualAddressSpace& VirtualMemorySpace);
 	BITLIB_API void* VirtualDefaultAddress();
 }

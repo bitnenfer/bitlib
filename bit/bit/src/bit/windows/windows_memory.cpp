@@ -1,6 +1,7 @@
 #include <bit/memory.h>
 #include <bit/allocator.h>
 #include <bit/tlsf_allocator.h>
+#include <bit/scope_lock.h>
 #include <intrin.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -30,21 +31,23 @@ extern "C" int strcmp(const char* A, const char* B);
 namespace bit
 {
 #if BIT_USE_WIN32_HEAP_AS_DEFAULT_ALLOCATOR
-	struct CWindowsHeapAllocator : public bit::IAllocator
+	struct WindowsHeapAllocator : public bit::Allocator
 	{
-		CWindowsHeapAllocator() :
-			IAllocator::IAllocator("CWindowsHeapAllocator"),
+		WindowsHeapAllocator() :
+			Allocator::Allocator("WindowsHeapAllocator"),
 			Heap(nullptr)
 		{
-			Heap = GetProcessHeap();
+			Heap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
 		}
 
 		void* Allocate(size_t Size, size_t Alignment) override
 		{
+			bit::ScopedLock<Mutex> Lock(&AccessLock);
 			return HeapAlloc(Heap, 0, Size);
 		}
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override
 		{
+			bit::ScopedLock<Mutex> Lock(&AccessLock);
 			if (Pointer != nullptr)
 				return HeapReAlloc(Heap, 0, Pointer, Size);
 			else
@@ -52,17 +55,20 @@ namespace bit
 		}
 		void Free(void* Pointer) override
 		{
+			bit::ScopedLock<Mutex> Lock(&AccessLock);
 			HeapFree(Heap, 0, Pointer);
 		}
 		size_t GetSize(void* Pointer) override
 		{
+			bit::ScopedLock<Mutex> Lock(&AccessLock);
 			return HeapSize(Heap, 0, Pointer);
 		}
 
-		CMemoryUsageInfo GetMemoryUsageInfo() override
+		MemoryUsageInfo GetMemoryUsageInfo() override
 		{
+			bit::ScopedLock<Mutex> Lock(&AccessLock);
 			HEAP_SUMMARY Summary = {};
-			CMemoryUsageInfo Info = {};
+			MemoryUsageInfo Info = {};
 			Summary.cb = sizeof(HEAP_SUMMARY);
 			if (HeapSummary(Heap, 0, &Summary))
 			{
@@ -74,17 +80,18 @@ namespace bit
 		}
 		
 		HANDLE Heap;
+		Mutex AccessLock;
 	};
-	static uint8_t HeapInitialBuffer[sizeof(CWindowsHeapAllocator)];
-	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) CWindowsHeapAllocator(); }
+	static uint8_t HeapInitialBuffer[sizeof(WindowsHeapAllocator)];
+	Allocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) WindowsHeapAllocator(); }
 #else
-	static uint8_t HeapInitialBuffer[sizeof(CTLSFAllocator)];
-	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) CTLSFAllocator("MainAllocator"); }
+	static uint8_t HeapInitialBuffer[sizeof(TLSFAllocator)];
+	Allocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) TLSFAllocator("MainAllocator"); }
 #endif
-	static IAllocator* DefaultAllocator = nullptr;
+	static Allocator* DefaultAllocator = nullptr;
 }
 
-bit::IAllocator& bit::GetDefaultAllocator()
+bit::Allocator& bit::GetDefaultAllocator()
 {
 	if (DefaultAllocator == nullptr)
 	{

@@ -5,14 +5,14 @@
 namespace bit
 {
 	template<typename TCounterType>
-	struct TNonAtomicRefCounter
+	struct NonAtomicRefCounter
 	{
-		typedef TNonAtomicRefCounter<TCounterType> SelfType_t;
+		typedef NonAtomicRefCounter<TCounterType> SelfType_t;
 		typedef TCounterType CounterType_t;
 
-		TNonAtomicRefCounter() : Counter(0) {}
-		TNonAtomicRefCounter(TCounterType Init) : Counter(Init) {}
-		TNonAtomicRefCounter(SelfType_t&& Move) :
+		NonAtomicRefCounter() : Counter(0) {}
+		NonAtomicRefCounter(TCounterType Init) : Counter(Init) {}
+		NonAtomicRefCounter(SelfType_t&& Move) :
 			Counter(Move.Counter)
 		{
 			Move.Counter = 0;
@@ -43,20 +43,20 @@ namespace bit
 		bool GetCount() const { return Counter; }
 
 	private:
-		TNonAtomicRefCounter(const SelfType_t&) = delete;
+		NonAtomicRefCounter(const SelfType_t&) = delete;
 		SelfType_t& operator=(const SelfType_t&) = delete;
 		TCounterType Counter;
 	};
 
 	template<typename TCounterType>
-	struct TAtomicRefCounter
+	struct AtomicRefCounter
 	{
-		typedef TNonAtomicRefCounter<TCounterType> SelfType_t;
+		typedef NonAtomicRefCounter<TCounterType> SelfType_t;
 		typedef TCounterType CounterType_t;
 
-		TAtomicRefCounter() : Counter(0) {}
-		TAtomicRefCounter(TCounterType Init) : Counter(Init) {}
-		TAtomicRefCounter(SelfType_t&& Move) :
+		AtomicRefCounter() : Counter(0) {}
+		AtomicRefCounter(TCounterType Init) : Counter(Init) {}
+		AtomicRefCounter(SelfType_t&& Move) :
 			Counter(Move.Counter)
 		{
 			bit::AtomicExchange(&Counter, Move.Counter);
@@ -88,7 +88,7 @@ namespace bit
 		bool GetCount() const { return Counter; }
 
 	private:
-		TAtomicRefCounter(const SelfType_t&) = delete;
+		AtomicRefCounter(const SelfType_t&) = delete;
 		SelfType_t& operator=(const SelfType_t&) = delete;
 		TCounterType Counter;
 	};

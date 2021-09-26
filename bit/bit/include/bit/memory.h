@@ -10,9 +10,9 @@
 
 namespace bit
 {
-	struct IAllocator;
+	struct Allocator;
 
-	BITLIB_API IAllocator& GetDefaultAllocator();
+	BITLIB_API Allocator& GetDefaultAllocator();
 	BITLIB_API void* Memcpy(void* Dst, const void* Src, size_t Num);
 	BITLIB_API void* Memset(void* Ptr, int32_t Value, size_t Num);
 	BITLIB_API bool Memcmp(const void* A, const void* B, size_t Num);
@@ -29,16 +29,16 @@ namespace bit
 	BITLIB_API bool FreeFromOS(void* Ptr);
 
 	template<size_t Size>
-	struct TFromKiB { static constexpr double Value = (double)Size / 1024.0; };
+	struct ConstFromKiB { static constexpr double Value = (double)Size / 1024.0; };
 
 	template<size_t Size>
-	struct TFromMiB { static constexpr double Value = TFromKiB<Size>::Value / 1024.0; };
+	struct ConstFromMiB { static constexpr double Value = ConstFromKiB<Size>::Value / 1024.0; };
 
 	template<size_t Size>
-	struct TFromGiB { static constexpr double Value = TFromMiB<Size>::Value / 1024.0; };
+	struct ConstFromGiB { static constexpr double Value = ConstFromMiB<Size>::Value / 1024.0; };
 
 	template<size_t Size>
-	struct TFromTiB { static constexpr double Value = TFromTiB<Size>::Value / 1024.0; };
+	struct ConstFromTiB { static constexpr double Value = ConstFromGiB<Size>::Value / 1024.0; };
 
 	BIT_FORCEINLINE void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
 	{
@@ -114,11 +114,3 @@ namespace bit
 		bit::Free(Ptr);
 	}
 }
-
-//template<typename T>
-//bool operator==(const T& LHS, const T& RHS)
-//{
-//	BIT_IF_CONSTEXPR(sizeof(T) <= 8) return LHS == RHS;
-//	else if (&RHS == &LHS) return true;
-//	else return bit::Memcmp(&LHS, &RHS, sizeof(T));
-//}

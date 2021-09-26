@@ -13,11 +13,11 @@ namespace bit
 		typename TBucketType,
 		typename TBucketIteratorType
 	>
-	struct THashTableIterator
+	struct HashTableIterator
 	{
-		typedef THashTableIterator<T, TBucketType, TBucketIteratorType> SelfType_t;
+		typedef HashTableIterator<T, TBucketType, TBucketIteratorType> SelfType_t;
 
-		THashTableIterator(TBucketType* Buckets, TBucketIteratorType Iter, SizeType_t BucketIndex, SizeType_t BucketCount) :
+		HashTableIterator(TBucketType* Buckets, TBucketIteratorType Iter, SizeType_t BucketIndex, SizeType_t BucketCount) :
 			Buckets(Buckets),
 			Iter(Iter),
 			BucketIndex(BucketIndex),
@@ -78,11 +78,11 @@ namespace bit
 		typename TBucketType,
 		typename TBucketIteratorType
 	>
-	struct TConstHashTableIterator
+	struct ConstHashTableIterator
 	{
-		typedef TConstHashTableIterator<T, TBucketType, TBucketIteratorType> SelfType_t;
+		typedef ConstHashTableIterator<T, TBucketType, TBucketIteratorType> SelfType_t;
 
-		TConstHashTableIterator(TBucketType* Buckets, TBucketIteratorType Iter, SizeType_t BucketIndex, SizeType_t BucketCount) :
+		ConstHashTableIterator(TBucketType* Buckets, TBucketIteratorType Iter, SizeType_t BucketIndex, SizeType_t BucketCount) :
 			Buckets(Buckets),
 			Iter(Iter),
 			BucketIndex(BucketIndex),
@@ -139,7 +139,7 @@ namespace bit
 	};
 
 	template<typename TKey, typename TValue>
-	struct TKeyValue
+	struct KeyValue
 	{
 		typedef TKey KeyType_t;
 		typedef TValue ValueType_t;
@@ -148,9 +148,9 @@ namespace bit
 	};
 
 	template<typename T, typename THashType>
-	struct TBucketEntry
+	struct BucketEntry
 	{
-		typedef TBucketEntry<T, THashType> SelfType_t;
+		typedef BucketEntry<T, THashType> SelfType_t;
 		typedef T DataType_t;
 		typedef THashType HashType_t;
 		DataType_t Data;
@@ -163,7 +163,7 @@ namespace bit
 	};
 
 	template<typename TBucketEntryContainer>
-	struct TBucket
+	struct Bucket
 	{
 		typedef typename TBucketEntryContainer::ElementType_t EntryType_t;
 		typedef typename EntryType_t::DataType_t DataType_t;
@@ -229,24 +229,24 @@ namespace bit
 	template<
 		typename TKey,
 		typename TValue,
-		typename TAllocator = CDefaultHashTableAllocator
+		typename TAllocator = DefaultHashTableAllocator
 	>
-	struct THashTable
+	struct HashTable
 	{
-		typedef THash<TKey> HashFunc_t;
+		typedef Hash<TKey> HashFunc_t;
 		typedef typename HashFunc_t::HashType_t HashType_t;
-		typedef THashTable<TKey, TValue, TAllocator> SelfType_t;
+		typedef HashTable<TKey, TValue, TAllocator> SelfType_t;
 		typedef typename TAllocator::BucketEntryAllocatorType_t BucketEntryAllocator_t;
 		typedef typename TAllocator::BucketAllocatorType_t BucketAllocatorType_t;
-		typedef TKeyValue<TKey, TValue> PairType_t;
-		typedef TBucketEntry<PairType_t, HashType_t> BucketEntryType_t;
-		typedef TLinkedList<BucketEntryType_t, BucketEntryAllocator_t> BucketEntryContainerType_t;
-		typedef TBucket<BucketEntryContainerType_t> BucketType_t;
-		typedef typename THashTableIterator<TKeyValue<TKey, TValue>, BucketType_t, typename BucketEntryContainerType_t::IteratorType_t> IteratorType_t;
-		typedef typename TConstHashTableIterator<TKeyValue<TKey, TValue>, BucketType_t, typename BucketEntryContainerType_t::ConstIteratorType_t> ConstIteratorType_t;
+		typedef KeyValue<TKey, TValue> PairType_t;
+		typedef BucketEntry<PairType_t, HashType_t> BucketEntryType_t;
+		typedef LinkedList<BucketEntryType_t, BucketEntryAllocator_t> BucketEntryContainerType_t;
+		typedef Bucket<BucketEntryContainerType_t> BucketType_t;
+		typedef typename HashTableIterator<KeyValue<TKey, TValue>, BucketType_t, typename BucketEntryContainerType_t::IteratorType_t> IteratorType_t;
+		typedef typename ConstHashTableIterator<KeyValue<TKey, TValue>, BucketType_t, typename BucketEntryContainerType_t::ConstIteratorType_t> ConstIteratorType_t;
 
 	private:
-		struct CTableKey
+		struct HashTableKey
 		{
 			HashType_t Hash;
 			SizeType_t BucketIndex;
@@ -260,7 +260,7 @@ namespace bit
 		ConstIteratorType_t cend() const { return ConstIteratorType_t(Buckets, Buckets[FurthestBucket].Container.cend(), FurthestBucket, BucketCount); }
 		/* End range for loop implementation */
 
-		THashTable() :
+		HashTable() :
 			Buckets(nullptr),
 			BucketCount(0),
 			ElementCount(0),
@@ -268,7 +268,7 @@ namespace bit
 			ClosestBucket(0)
 		{}
 
-		THashTable(SizeType_t InitialCapacity) :
+		HashTable(SizeType_t InitialCapacity) :
 			Buckets(nullptr),
 			BucketCount(0),
 			ElementCount(0),
@@ -278,7 +278,7 @@ namespace bit
 			ReHash(InitialCapacity);
 		}
 
-		~THashTable()
+		~HashTable()
 		{
 			bit::DestroyArray(Buckets, BucketCount);
 			Allocator.Free(Buckets);
@@ -324,7 +324,7 @@ namespace bit
 		{
 			CheckGrow();
 			ElementCount += 1;
-			CTableKey TableKey = GetTableKey(Key);
+			HashTableKey TableKey = GetTableKey(Key);
 			FurthestBucket = bit::Max(FurthestBucket, TableKey.BucketIndex);
 			ClosestBucket = bit::Min(ClosestBucket, TableKey.BucketIndex);
 			return Buckets[TableKey.BucketIndex].Insert(TableKey.Hash, Key, Value)->Data.Value;
@@ -334,7 +334,7 @@ namespace bit
 		{
 			CheckGrow();
 			ElementCount += 1;
-			CTableKey TableKey = GetTableKey(Key);
+			HashTableKey TableKey = GetTableKey(Key);
 			FurthestBucket = bit::Max(FurthestBucket, TableKey.BucketIndex);
 			ClosestBucket = bit::Min(ClosestBucket, TableKey.BucketIndex);
 			return Buckets[TableKey.BucketIndex].Insert(TableKey.Hash, Key, bit::Move(Value))->Data.Value;
@@ -342,7 +342,7 @@ namespace bit
 
 		bool Erase(const TKey& Key)
 		{
-			CTableKey TableKey = GetTableKey(Key);
+			HashTableKey TableKey = GetTableKey(Key);
 			BucketType_t& Bucket = Buckets[TableKey.BucketIndex];
 			if (Bucket.Erase(TableKey.Hash, Key))
 			{
@@ -367,7 +367,7 @@ namespace bit
 
 		bool Contains(const TKey& Key)
 		{
-			CTableKey TableKey = GetTableKey(Key);
+			HashTableKey TableKey = GetTableKey(Key);
 			return Buckets[TableKey.BucketIndex].Find(TableKey.Hash, Key) != nullptr;
 		}
 
@@ -375,7 +375,7 @@ namespace bit
 		{
 			if (Buckets != nullptr)
 			{
-				CTableKey TableKey = GetTableKey(Key);
+				HashTableKey TableKey = GetTableKey(Key);
 				BucketEntryType_t* Entry = Buckets[TableKey.BucketIndex].Find(TableKey.Hash, Key);
 				if (Entry != nullptr)
 				{
@@ -402,7 +402,7 @@ namespace bit
 
 
 	private:
-		CTableKey GetTableKey(const TKey& Key) const
+		HashTableKey GetTableKey(const TKey& Key) const
 		{
 			HashType_t Hash = GetHash(Key);
 			SizeType_t Index = Hash % BucketCount;
@@ -430,7 +430,7 @@ namespace bit
 			typedef typename DataType_t::ValueType_t ValueType_t;
 			typedef typename TBucketEntryContainer::SizeType_t SizeType_t;
 
-			TBucket(bit::IAllocator* Allocator) :
+			TBucket(bit::Allocator* Allocator) :
 				Container(*Allocator)
 			{}
 
@@ -494,21 +494,21 @@ namespace bit
 			typename TKey,
 			typename TValue
 		>
-		struct THashTable
+		struct HashTable
 		{
-			typedef THash<TKey> HashFunc_t;
+			typedef Hash<TKey> HashFunc_t;
 			typedef typename HashFunc_t::HashType_t HashType_t;
-			typedef THashTable<TKey, TValue> SelfType_t;
-			typedef TKeyValue<TKey, TValue> PairType_t;
-			typedef TBucketEntry<PairType_t, HashType_t> BucketEntryType_t;
-			typedef TLinkedList<BucketEntryType_t> BucketEntryContainerType_t;
+			typedef HashTable<TKey, TValue> SelfType_t;
+			typedef KeyValue<TKey, TValue> PairType_t;
+			typedef BucketEntry<PairType_t, HashType_t> BucketEntryType_t;
+			typedef LinkedList<BucketEntryType_t> BucketEntryContainerType_t;
 			typedef TBucket<BucketEntryContainerType_t> BucketType_t;
-			typedef typename THashTableIterator<TKeyValue<TKey, TValue>, BucketType_t, typename BucketEntryContainerType_t::IteratorType_t> IteratorType_t;
-			typedef typename TConstHashTableIterator<TKeyValue<TKey, TValue>, BucketType_t, typename BucketEntryContainerType_t::ConstIteratorType_t> ConstIteratorType_t;
+			typedef typename HashTableIterator<KeyValue<TKey, TValue>, BucketType_t, typename BucketEntryContainerType_t::IteratorType_t> IteratorType_t;
+			typedef typename ConstHashTableIterator<KeyValue<TKey, TValue>, BucketType_t, typename BucketEntryContainerType_t::ConstIteratorType_t> ConstIteratorType_t;
 
 
 		private:
-			struct CTableKey
+			struct HashTableKey
 			{
 				HashType_t Hash;
 				SizeType_t BucketIndex;
@@ -523,7 +523,7 @@ namespace bit
 			ConstIteratorType_t cend() const { return ConstIteratorType_t(Buckets, Buckets[FurthestBucket].Container.cend(), FurthestBucket, BucketCount); }
 			/* End range for loop implementation */
 
-			THashTable(bit::IAllocator& Allocator) :
+			HashTable(bit::Allocator& Allocator) :
 				Allocator(&Allocator),
 				Buckets(nullptr),
 				BucketCount(0),
@@ -532,7 +532,7 @@ namespace bit
 				ClosestBucket(0)
 			{}
 
-			THashTable(SizeType_t InitialCapacity, bit::IAllocator& Allocator) :
+			HashTable(SizeType_t InitialCapacity, bit::Allocator& Allocator) :
 				Allocator(&Allocator),
 				Buckets(nullptr),
 				BucketCount(0),
@@ -543,7 +543,7 @@ namespace bit
 				ReHash(InitialCapacity);
 			}
 
-			~THashTable()
+			~HashTable()
 			{
 				bit::DestroyArray(Buckets, BucketCount);
 				if (Allocator != nullptr)
@@ -591,7 +591,7 @@ namespace bit
 			{
 				CheckGrow();
 				ElementCount += 1;
-				CTableKey TableKey = GetTableKey(Key);
+				HashTableKey TableKey = GetTableKey(Key);
 				FurthestBucket = bit::Max(FurthestBucket, TableKey.BucketIndex);
 				ClosestBucket = bit::Min(ClosestBucket, TableKey.BucketIndex);
 				return Buckets[TableKey.BucketIndex].Insert(TableKey.Hash, Key, Value)->Data.Value;
@@ -601,7 +601,7 @@ namespace bit
 			{
 				CheckGrow();
 				ElementCount += 1;
-				CTableKey TableKey = GetTableKey(Key);
+				HashTableKey TableKey = GetTableKey(Key);
 				FurthestBucket = bit::Max(FurthestBucket, TableKey.BucketIndex);
 				ClosestBucket = bit::Min(ClosestBucket, TableKey.BucketIndex);
 				return Buckets[TableKey.BucketIndex].Insert(TableKey.Hash, Key, bit::Move(Value))->Data.Value;
@@ -609,7 +609,7 @@ namespace bit
 
 			bool Erase(const TKey& Key)
 			{
-				CTableKey TableKey = GetTableKey(Key);
+				HashTableKey TableKey = GetTableKey(Key);
 				BucketType_t& Bucket = Buckets[TableKey.BucketIndex];
 				if (Bucket.Erase(TableKey.Hash, Key))
 				{
@@ -634,13 +634,13 @@ namespace bit
 
 			bool Contains(const TKey& Key)
 			{
-				CTableKey TableKey = GetTableKey(Key);
+				HashTableKey TableKey = GetTableKey(Key);
 				return Buckets[TableKey.BucketIndex].Find(TableKey.Hash, Key) != nullptr;
 			}
 
 			TValue& operator[](const TKey& Key)
 			{
-				CTableKey TableKey = GetTableKey(Key);
+				HashTableKey TableKey = GetTableKey(Key);
 				BucketEntryType_t* Entry = Buckets[TableKey.BucketIndex].Find(TableKey.Hash, Key);
 				if (Entry != nullptr)
 				{
@@ -666,14 +666,14 @@ namespace bit
 			
 
 		private:
-			CTableKey GetTableKey(const TKey& Key) const
+			HashTableKey GetTableKey(const TKey& Key) const
 			{
 				HashType_t Hash = GetHash(Key);
 				SizeType_t Index = Hash % BucketCount;
 				return { Hash, Index };
 			}
 
-			IAllocator* Allocator;
+			Allocator* Allocator;
 			BucketType_t* Buckets;
 			SizeType_t BucketCount;
 			SizeType_t ElementCount;

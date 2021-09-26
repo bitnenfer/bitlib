@@ -6,40 +6,40 @@
 
 namespace bit
 {
-	struct BITLIB_API CNonCopyable
+	struct BITLIB_API NonCopyable
 	{
 	public:
-		CNonCopyable() {}
+		NonCopyable() {}
 
 	private:
-		CNonCopyable(const CNonCopyable&) = delete;
-		CNonCopyable& operator=(const CNonCopyable&) = delete;
+		NonCopyable(const NonCopyable&) = delete;
+		NonCopyable& operator=(const NonCopyable&) = delete;
 	};
 
-	struct BITLIB_API CNonMovable
+	struct BITLIB_API NonMovable
 	{
 	public:
-		CNonMovable() {}
+		NonMovable() {}
 
 	private:
-		CNonMovable(CNonMovable&&) = delete;
-		CNonMovable& operator=(CNonMovable&&) = delete;
+		NonMovable(NonMovable&&) = delete;
+		NonMovable& operator=(NonMovable&&) = delete;
 	};
 
-	template<typename T, T TValue> struct TConstValue { static constexpr T Value = TValue; };
+	template<typename T, T TValue> struct ConstValue { static constexpr T Value = TValue; };
 
-	template<typename T> struct TIsSigned : public TConstValue<bool, false> {};
-	template<> struct TIsSigned<int8_t> : public TConstValue<bool, true> {};
-	template<> struct TIsSigned<int16_t> : public TConstValue<bool, true> {};
-	template<> struct TIsSigned<int32_t> : public TConstValue<bool, true> {};
-	template<> struct TIsSigned<int64_t> : public TConstValue<bool, true> {};
+	template<typename T> struct IsSigned : public ConstValue<bool, false> {};
+	template<> struct IsSigned<int8_t> : public ConstValue<bool, true> {};
+	template<> struct IsSigned<int16_t> : public ConstValue<bool, true> {};
+	template<> struct IsSigned<int32_t> : public ConstValue<bool, true> {};
+	template<> struct IsSigned<int64_t> : public ConstValue<bool, true> {};
 
 	template<typename T> struct RemoveRef { typedef T Type; };
 	template<typename T> struct RemoveRef<T&> { typedef T Type; };
 	template<typename T> struct RemoveRef<T&&> { typedef T Type; };
 
-	template<typename T> struct TIsLValueRef : public TConstValue<bool, false> {};
-	template<typename T> struct TIsLValueRef<T&> : public TConstValue<bool, true> {};
+	template<typename T> struct IsLValueRef : public ConstValue<bool, false> {};
+	template<typename T> struct IsLValueRef<T&> : public ConstValue<bool, true> {};
 
 	template <typename T>
 	typename RemoveRef<T>::Type&& Move(T&& Arg) noexcept
@@ -151,9 +151,9 @@ namespace bit
 	}
 
 	template<typename T = void>
-	T* OffsetPtr(void* Ptr, int64_t Offset)
+	T* OffsetPtr(void* Ptr, intptr_t Offset)
 	{
-		return reinterpret_cast<T*>((intptr_t)Ptr + (intptr_t)Offset);
+		return reinterpret_cast<T*>((intptr_t)Ptr + Offset);
 	}
 
 	BIT_FORCEINLINE size_t PtrDiff(const void* A, const void* B)
@@ -170,6 +170,8 @@ namespace bit
 	T BitScanReverse(T Value);
 	template<> BITLIB_API uint64_t BitScanReverse<uint64_t>(uint64_t Value);
 	template<> BITLIB_API uint32_t BitScanReverse<uint32_t>(uint32_t Value);
+	template<> BITLIB_API int64_t BitScanReverse<int64_t>(int64_t Value);
+	template<> BITLIB_API int32_t BitScanReverse<int32_t>(int32_t Value);
 
 	template<typename T>
 	T BitScanForward(T Value);
@@ -219,8 +221,22 @@ namespace bit
 
 	BIT_FORCEINLINE size_t NextPow2(size_t Size)
 	{
-		uint64_t BitIndex = BitScanReverse64(Size - 1);
-		return 1LL << (BitIndex + 1);
+		size_t Exp = BitScanReverse(Size - 1) + 1;
+	#if BIT_PLATFORM_X64
+		return 1LL << Exp;
+	#elif BIT_PLATFORM_X86
+		return 1 << Exp;
+	#endif
+	}
+
+	constexpr size_t ConstNextPow2(size_t Size)
+	{
+		size_t Exp = ConstBitScanReverse(Size - 1) + 1;
+	#if BIT_PLATFORM_X64
+		return 1LL << Exp;
+	#elif BIT_PLATFORM_X86
+		return 1 << Exp;
+	#endif
 	}
 
 	template<typename T> 
@@ -232,14 +248,14 @@ namespace bit
 		return (((Value) & ((Value)-1)) == 0);
 	}
 
-	BIT_FORCEINLINE size_t Pow2(size_t Exp)
-	{
-	#if BIT_PLATFORM_X64
-		return 1LL << Exp;
-	#elif BIT_PLATFORM_X86
-		return 1 << Exp;
-	#endif
-	}
+	template<typename T>
+	T Pow2(T Exp);
+
+	template<>
+	BITLIB_API uint64_t Pow2<uint64_t>(uint64_t Exp);
+
+	template<>
+	BITLIB_API uint32_t Pow2<uint32_t>(uint32_t Exp);
 
 	BIT_FORCEINLINE bool PtrInRange(const void* Ptr, const void* Start, const void* End)
 	{

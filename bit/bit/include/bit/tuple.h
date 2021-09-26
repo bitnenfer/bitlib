@@ -7,36 +7,36 @@ namespace bit
 	namespace _
 	{
 		template<bit::SizeType_t Index, typename T>
-		struct TTupleGet {};
+		struct TupleGet {};
 	}
 
 	template<typename T, typename... TOthers>
-	struct TTuple : public TTuple<TOthers...>
+	struct Tuple : public Tuple<TOthers...>
 	{
-		typedef TTuple<T, TOthers...> SelfType_t;
-		typedef TTuple<TOthers...> BaseType_t;
+		typedef Tuple<T, TOthers...> SelfType_t;
+		typedef Tuple<TOthers...> BaseType_t;
 
-		TTuple(T Value, TOthers... Others) :
-			TTuple<TOthers...>(Others...),
+		Tuple(T Value, TOthers... Others) :
+			Tuple<TOthers...>(Others...),
 			Value(Value)
 		{}
 
 		template<bit::SizeType_t Index>
 		auto Get()
 		{
-			return _::TTupleGet<Index, SelfType_t>::Get(*this);
+			return _::TupleGet<Index, SelfType_t>::Get(*this);
 		}
 
 		T Value;
 	};
 
 	template<typename T>
-	struct TTuple<T>
+	struct Tuple<T>
 	{
-		typedef TTuple<T> SelfType_t;
-		typedef TTuple<T> BaseType_t;
+		typedef Tuple<T> SelfType_t;
+		typedef Tuple<T> BaseType_t;
 		
-		TTuple(T Value) :
+		Tuple(T Value) :
 			Value(Value)
 		{}
 		T Value;
@@ -44,20 +44,20 @@ namespace bit
 	namespace _
 	{
 		template<typename T, typename... TOthers>
-		struct TTupleGet<0, TTuple<T, TOthers...>>
+		struct TupleGet<0, Tuple<T, TOthers...>>
 		{
-			static T& Get(TTuple<T, TOthers...>& Tuple)
+			static T& Get(Tuple<T, TOthers...>& Tuple)
 			{
 				return Tuple.Value;
 			}
 		};
 
 		template<bit::SizeType_t Index, typename T, typename... TOthers>
-		struct TTupleGet<Index, TTuple<T, TOthers...>>
+		struct TupleGet<Index, Tuple<T, TOthers...>>
 		{
-			static auto Get(TTuple<T, TOthers...>& Tuple)
+			static auto Get(Tuple<T, TOthers...>& Tuple)
 			{
-				return TTupleGet<Index - 1, TTuple<TOthers...>>::Get(Tuple);
+				return TTupleGet<Index - 1, Tuple<TOthers...>>::Get(Tuple);
 			}
 		};
 	}
@@ -65,6 +65,6 @@ namespace bit
 	template<bit::SizeType_t Index, typename TTupleType>
 	auto TGet(TTupleType& Tuple)
 	{
-		return _::TTupleGet<Index, TTupleType>::Get(Tuple);
+		return _::TupleGet<Index, TTupleType>::Get(Tuple);
 	}
 }

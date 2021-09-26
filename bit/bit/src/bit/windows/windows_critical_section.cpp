@@ -2,30 +2,30 @@
 #include <bit/memory.h>
 #include "windows_common.h"
 
-bit::CCriticalSection::CCriticalSection() :
+bit::CriticalSection::CriticalSection() :
 	Handle(nullptr)
 {
 	Handle = Malloc(sizeof(CRITICAL_SECTION), bit::DEFAULT_ALIGNMENT);
 	InitializeCriticalSection((CRITICAL_SECTION*)Handle);
 }
 
-bit::CCriticalSection::~CCriticalSection()
+bit::CriticalSection::~CriticalSection()
 {
 	DeleteCriticalSection((CRITICAL_SECTION*)Handle);
 	Free(Handle);
 }
 
-void bit::CCriticalSection::Lock()
+void bit::CriticalSection::Lock()
 {
 	EnterCriticalSection((CRITICAL_SECTION*)Handle);
 }
 
-void bit::CCriticalSection::Unlock()
+void bit::CriticalSection::Unlock()
 {
 	LeaveCriticalSection((CRITICAL_SECTION*)Handle);
 }
 
-bool bit::CCriticalSection::TryLock()
+bool bit::CriticalSection::TryLock()
 {
 	return TryEnterCriticalSection((CRITICAL_SECTION*)Handle) == TRUE;
 }

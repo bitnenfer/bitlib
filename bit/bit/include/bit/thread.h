@@ -5,27 +5,27 @@
 
 namespace bit
 {
-	struct BITLIB_API CThread : public CNonCopyable
+	struct BITLIB_API Thread : public NonCopyable
 	{
 		typedef int32_t(*ThreadFunc_t)(void*);
 
-		CThread(CThread&& MoveRef);
-		CThread();
-		~CThread();
+		Thread(Thread&& MoveRef);
+		Thread();
+		~Thread();
 		void Start(ThreadFunc_t pFunc, size_t StackSize, void* UserData);
 		void Join();
 		int32_t GetId();
 		bool IsValid();
 		Handle_t GetHandle();
-		CThread& operator=(CThread&& MoveRef);
+		Thread& operator=(Thread&& MoveRef);
 
 		static int32_t GetCurrentThreadId();
 		static void YieldThread();
 		static void SleepThread(uint32_t Milliseconds);
 
 	private:
-		CThread(const CThread& CopyRef) = delete;
-		CThread& operator=(const CThread& CopyRef) = delete;
+		Thread(const Thread& CopyRef) = delete;
+		Thread& operator=(const Thread& CopyRef) = delete;
 		Handle_t Handle;
 		void* UserPayload;
 	};

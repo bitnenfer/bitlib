@@ -17,18 +17,18 @@ static SYSTEM_INFO BitGetSystemInfo()
 	return SystemInfo;
 }
 
-static bit::EProcessorArch BitGetProcArch()
+static bit::ProcessorArch BitGetProcArch()
 {
 	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
 	switch (SystemInfo.wProcessorArchitecture)
 	{
-	case PROCESSOR_ARCHITECTURE_AMD64: return bit::EProcessorArch::PROC_ARCH_X64;
-	case PROCESSOR_ARCHITECTURE_ARM: return bit::EProcessorArch::PROC_ARCH_ARM;
-	case PROCESSOR_ARCHITECTURE_ARM64: return bit::EProcessorArch::PROC_ARCH_ARM64;
-	case PROCESSOR_ARCHITECTURE_IA64: return bit::EProcessorArch::PROC_ARCH_IA64;
-	case PROCESSOR_ARCHITECTURE_INTEL: return bit::EProcessorArch::PROC_ARCH_X86;
+	case PROCESSOR_ARCHITECTURE_AMD64: return bit::ProcessorArch::PROC_ARCH_X64;
+	case PROCESSOR_ARCHITECTURE_ARM: return bit::ProcessorArch::PROC_ARCH_ARM;
+	case PROCESSOR_ARCHITECTURE_ARM64: return bit::ProcessorArch::PROC_ARCH_ARM64;
+	case PROCESSOR_ARCHITECTURE_IA64: return bit::ProcessorArch::PROC_ARCH_IA64;
+	case PROCESSOR_ARCHITECTURE_INTEL: return bit::ProcessorArch::PROC_ARCH_X86;
 	}
-	return bit::EProcessorArch::PROC_ARCH_UNKNOWN;
+	return bit::ProcessorArch::PROC_ARCH_UNKNOWN;
 }
 
 void BitOSInit()
@@ -67,10 +67,10 @@ int32_t bit::GetOSProcessorCount()
 	return SystemInfo.dwNumberOfProcessors;
 }
 
-bit::EProcessorArch bit::GetOSProcessorArch()
+bit::ProcessorArch bit::GetOSProcessorArch()
 {
 	static SYSTEM_INFO SystemInfo = BitGetSystemInfo();
-	static bit::EProcessorArch ProcArch = BitGetProcArch();
+	static bit::ProcessorArch ProcArch = BitGetProcArch();
 	return ProcArch;
 }
 

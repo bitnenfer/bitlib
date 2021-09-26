@@ -18,18 +18,18 @@
 #include <bit/mutex.h>
 #include <bit/rw_lock.h>
 
-struct MyValue : public bit::TIntrusiveLinkedList<MyValue>
+struct MyValue : public bit::IntrusiveLinkedList<MyValue>
 {
 	MyValue(int32_t Value) :
-		bit::TIntrusiveLinkedList<MyValue>(*this),
+		bit::IntrusiveLinkedList<MyValue>(*this),
 		Value(Value)
 	{}
 	int32_t Value;
 };
 
-struct MemoryBlock : public bit::TIntrusiveLinkedList<MemoryBlock>
+struct MemoryBlock : public bit::IntrusiveLinkedList<MemoryBlock>
 {
-	MemoryBlock() : bit::TIntrusiveLinkedList<MemoryBlock>(*this) {}
+	MemoryBlock() : bit::IntrusiveLinkedList<MemoryBlock>(*this) {}
 	size_t Size;
 };
 
@@ -55,14 +55,19 @@ struct CustomDeleter
 
 int main(int32_t Argc, const char* Argv[])
 {
+#if 0
+	void* B = bit::Malloc(4);
+	bit::Free(B);
+
+#else
 	bit::TempFmtString("Hello %s", "World");
 
-	bit::IAllocator& DefaultAllocator = bit::GetDefaultAllocator();
-	bit::CScopeTimer Timer("Sample");
-	bit::CPageAllocator PageAllocator("PageAllocator", bit::VirtualDefaultAddress(), 16 GiB);
-	bit::CString MyString = "Testing";
+	bit::Allocator& DefaultAllocator = bit::GetDefaultAllocator();
+	bit::ScopeTimer Timer("Sample");
+	bit::PageAllocator PageAllocator("PageAllocator", bit::VirtualDefaultAddress(), 1 GiB);
+	bit::String MyString = "Testing";
 
-	MyString += bit::CString::Format("Hello wtf %.2f", 3.14f);
+	MyString += bit::String::Format("Hello wtf %.2f", 3.14f);
 
 	BIT_LOG("My Str says = %s\n", *(MyString + "\nWOoo"));
 
@@ -74,19 +79,18 @@ int main(int32_t Argc, const char* Argv[])
 
 	auto MX = bit::Forward<size_t>(bit::Move(Alignment));
 
-	bit::CLinearAllocator LinearAllocator("TestLinearAllocator", PageAllocator.AllocateArena(100 MiB));
-	bit::TFixedMemoryArena<1 KiB> FixedMemoryArena;
-
-	bit::CLinearAllocator FixedAllocator("FixedLinearAllocator", FixedMemoryArena);
+	bit::LinearAllocator LinearAllocator("TestLinearAllocator", PageAllocator.AllocateArena(10 MiB));
+	bit::FixedMemoryArena<1 KiB> FixedMemoryArena;
+	bit::LinearAllocator FixedAllocator("FixedLinearAllocator", FixedMemoryArena);
 
 	bit::TSharedPtr<TestData> Outside;
 	{
 		bit::TWeakPtr<TestData> Weak;
 		{
 			bit::TSharedPtr<TestData> SharedValue = bit::MakeSharedWithAllocator<TestData>(FixedAllocator, 100);
-			bit::TUniquePtr<TestData> PassAround;
+			bit::UniquePtr<TestData> PassAround;
 			{
-				bit::TUniquePtr<TestData> TEST = bit::MakeUnique<TestData>(69);
+				bit::UniquePtr<TestData> TEST = bit::MakeUnique<TestData>(69);
 				TEST.Get()->Value = 9999;
 				PassAround.Swap(TEST);
 			}
@@ -104,10 +108,10 @@ int main(int32_t Argc, const char* Argv[])
 
 	}
 	{
-		bit::pmr::TArray<int32_t> MyArray{ LinearAllocator };
-		bit::pmr::TArray<int32_t> CopyArray{ FixedAllocator };
-		bit::THashTable<int32_t, int32_t> Table{};
-		bit::TLinkedList<int32_t> List{};
+		bit::pmr::Array<int32_t> MyArray{ LinearAllocator };
+		bit::pmr::Array<int32_t> CopyArray{ FixedAllocator };
+		bit::HashTable<int32_t, int32_t> Table{};
+		bit::LinkedList<int32_t> List{};
 		MyValue MyRoot{ 0 };
 
 		Table.Insert(69, 0);
@@ -152,33 +156,33 @@ int main(int32_t Argc, const char* Argv[])
 			Total += Pow2Value;
 		});
 
-		size_t Value = bit::BitScanReverse(0x1234LLU);
+		int32_t Value = bit::BitScanReverse(0x1234);
 
-		bit::AtomicExchange((int64_t*)&Value, 0xFFFF);
+		bit::AtomicExchange(&Value, 0xFFFF);
 
-		bit::CCommandArgs Cmds(Argv, Argc);
+		bit::CommandArgs Cmds(Argv, Argc);
 		bool bFoo = Cmds.Contains("foo");
 		bool bBar = Cmds.Contains("bar");
 		bool bWat = Cmds.Contains("wat");
 		const char* WatValue = Cmds.GetValue("wat");
 
-		bit::CCriticalSection CS;
-		bit::CMutex Mtx;
-		bit::CRWLock RWLock;
-		bit::TArray<bit::CThread> Threads;
+		bit::CriticalSection CS;
+		bit::Mutex Mtx;
+		bit::RWLock RWLock;
+		bit::Array<bit::Thread> Threads;
 
 		struct Payload
 		{
-			bit::THashTable<int32_t, int32_t>* HashTable;
-			bit::CRWLock* Lock;
+			bit::HashTable<int32_t, int32_t>* HashTable;
+			bit::RWLock* Lock;
 			int32_t Value;
 		};
 
-		bit::TArray<Payload> PayloadData;
+		bit::Array<Payload> PayloadData;
 
 		for (int32_t Value : MyArray)
 		{
-			Threads.Add(bit::Move(bit::CThread()));
+			Threads.Add(bit::Move(bit::Thread()));
 			PayloadData.Add({ &Table, &RWLock, Value });
 			List.Insert(Value);
 		}
@@ -191,14 +195,14 @@ int main(int32_t Argc, const char* Argv[])
 			{
 				Payload& Data = *(Payload*)UserData;
 				//bit::TScopedLock<bit::CMutex> Lock(Data.Lock);
-				bit::CScopedRWLock Lock(Data.Lock, bit::ERWLockType::LOCK_READ_WRITE);
+				bit::ScopedRWLock Lock(Data.Lock, bit::RWLockType::LOCK_READ_WRITE);
 				BIT_LOG("Value = %d\n", Data.Value);
 				Data.HashTable->Insert(Data.Value, Data.Value);
 				return 0;
 			}, 4096, &PayloadData[Index]);
 		}
 
-		for (bit::CThread& Thread : Threads)
+		for (bit::Thread& Thread : Threads)
 		{
 			Thread.Join();
 		}
@@ -214,6 +218,12 @@ int main(int32_t Argc, const char* Argv[])
 			idx++;
 		}
 	}
-	bit::CMemoryUsageInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
+	bit::MemoryUsageInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
+	BIT_LOG("Memory Usage Info:\n\tAllocated %.4lf KiB\n\tCommitted %.4lfKiB\n\tReserved %.4lfKiB\n", 
+			bit::FromKiB(MemInfo.AllocatedBytes),
+			bit::FromKiB(MemInfo.CommittedBytes),
+			bit::FromKiB(MemInfo.ReservedBytes)
+	);
+#endif
 	return 0;
 }

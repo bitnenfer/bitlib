@@ -7,11 +7,11 @@
 namespace bit
 {
 	template<typename T>
-	struct TIntrusiveLinkedList
+	struct IntrusiveLinkedList
 	{
-		typedef TIntrusiveLinkedList<T> SelfType_t;
+		typedef IntrusiveLinkedList<T> SelfType_t;
 
-		TIntrusiveLinkedList(T& Owner) :
+		IntrusiveLinkedList(T& Owner) :
 			Prev(this),
 			Next(this),
 			Head(this),
@@ -19,7 +19,7 @@ namespace bit
 			Count(0)
 		{}
 
-		~TIntrusiveLinkedList()
+		~IntrusiveLinkedList()
 		{
 			Unlink();
 		}
@@ -128,9 +128,9 @@ namespace bit
 		}
 
 		/* Begin range for loop implementation */
-		struct CIterator
+		struct Iterator
 		{
-			CIterator(SelfType_t* Link) :
+			Iterator(SelfType_t* Link) :
 				Link(Link)
 			{}
 
@@ -142,28 +142,28 @@ namespace bit
 			{
 				return &Link->GetOwner();
 			}
-			CIterator& operator++()
+			Iterator& operator++()
 			{
 				Link = Link->Next;
 				return *this;
 			}
-			CIterator operator++(int32_t) { CIterator Self = *this; ++(*this); return Self; }
+			Iterator operator++(int32_t) { Iterator Self = *this; ++(*this); return Self; }
 
-			friend bool operator==(const CIterator& A, const CIterator& B)
+			friend bool operator==(const Iterator& A, const Iterator& B)
 			{
 				return A.Link == B.Link;
 			}
 
-			friend bool operator!=(const CIterator& A, const CIterator& B)
+			friend bool operator!=(const Iterator& A, const Iterator& B)
 			{
 				return A.Link != B.Link;
 			}
 
 			SelfType_t* Link;
 		};
-		struct CConstIterator
+		struct ConstIterator
 		{
-			CConstIterator(const SelfType_t* Link) :
+			ConstIterator(const SelfType_t* Link) :
 				Link(Link)
 			{}
 
@@ -175,29 +175,29 @@ namespace bit
 			{
 				return &Link->GetOwner();
 			}
-			CConstIterator& operator++()
+			ConstIterator& operator++()
 			{
 				Link = Link->Next;
 				return *this;
 			}
-			CConstIterator operator++(int32_t) { CConstIterator Self = *this; ++(*this); return Self; }
+			ConstIterator operator++(int32_t) { ConstIterator Self = *this; ++(*this); return Self; }
 
-			friend bool operator==(const CConstIterator& A, const CConstIterator& B)
+			friend bool operator==(const ConstIterator& A, const ConstIterator& B)
 			{
 				return A.Link == B.Link;
 			}
 
-			friend bool operator!=(const CConstIterator& A, const CConstIterator& B)
+			friend bool operator!=(const ConstIterator& A, const ConstIterator& B)
 			{
 				return A.Link != B.Link;
 			}
 
 			const SelfType_t* Link;
 		};
-		CIterator begin() { return CIterator(Head->Next); }
-		CIterator end() { return CIterator(Head); }
-		CConstIterator cbegin() { return CConstIterator(Head->Next); }
-		CConstIterator cend() { return CConstIterator(Head); }
+		Iterator begin() { return Iterator(Head->Next); }
+		Iterator end() { return Iterator(Head); }
+		ConstIterator cbegin() { return ConstIterator(Head->Next); }
+		ConstIterator cend() { return ConstIterator(Head); }
 		/* End range for loop implementation */
 
 	private:

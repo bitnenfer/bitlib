@@ -2,11 +2,15 @@
 #include <bit/os.h>
 #include <bit/scope_lock.h>
 
-bit::CTLSFAllocator::CTLSFAllocator(size_t InitialPoolSize, const char* Name) :
-	IAllocator(Name),
+#define BIT_ENABLE_BLOCK_MARKING 0
+
+bit::TLSFAllocator::TLSFAllocator(size_t InitialPoolSize, const char* Name) :
+	Allocator(Name),
 	FLBitmap(0),
 	MemoryPoolList(nullptr),
-	AllocatedAmount(0)
+	MemoryPoolCount(0),
+	UsedSpaceInBytes(0),
+	AvailableSpaceInBytes(0)
 {
 	bit::Memset(SLBitmap, 0, sizeof(SLBitmap));
 	bit::Memset(FreeBlocks, 0, sizeof(FreeBlocks));
@@ -17,35 +21,38 @@ bit::CTLSFAllocator::CTLSFAllocator(size_t InitialPoolSize, const char* Name) :
 	}
 }
 
-bit::CTLSFAllocator::CTLSFAllocator(const char* Name) :
-	IAllocator(Name),
+bit::TLSFAllocator::TLSFAllocator(const char* Name) :
+	Allocator(Name),
 	FLBitmap(0),
 	MemoryPoolList(nullptr),
-	AllocatedAmount(0)
+	MemoryPoolCount(0),
+	UsedSpaceInBytes(0),
+	AvailableSpaceInBytes(0)
 {
 	bit::Memset(SLBitmap, 0, sizeof(SLBitmap));
 	bit::Memset(FreeBlocks, 0, sizeof(FreeBlocks));
 }
 
-bit::CTLSFAllocator::~CTLSFAllocator()
+bit::TLSFAllocator::~TLSFAllocator()
 {
-	CMemoryPool* Block = MemoryPoolList;
+	MemoryPool* Block = MemoryPoolList;
 	while (Block != nullptr)
 	{
-		CMemoryPool* Next = Block->Next;
+		MemoryPool* Next = Block->Next;
 		VirtualReleaseSpace(Block->VirtualMemory);
 		Block = Next;
 	}
 }
 
-void* bit::CTLSFAllocator::Allocate(size_t Size, size_t Alignment)
+void* bit::TLSFAllocator::Allocate(size_t Size, size_t Alignment)
 {
-	bit::TScopedLock<CMutex> Lock(&Mutex);
+	bit::ScopedLock<Mutex> Lock(&AccessLock);
 	if (FLBitmap == 0) CreateAndInsertMemoryPool(Size); // No available blocks in the pool.
 
-	uint32_t AlignedSize = (uint32_t)bit::AlignUint(Size, alignof(CBlockHeader));
-	CBlockMap Map = Mapping(AlignedSize);
-	CBlockFree* Block = FindSuitableBlock(AlignedSize, Map);
+	TLSFSizeType_t AdjustedSize = (TLSFSizeType_t)bit::Max((TLSFSizeType_t)Size, MIN_ALLOC_SIZE);
+	TLSFSizeType_t AlignedSize = (TLSFSizeType_t)bit::AlignUint(AdjustedSize, alignof(BlockHeader));
+	BlockMap Map = Mapping(AlignedSize);
+	BlockFreeHeader* Block = FindSuitableBlock(AlignedSize, Map);
 	if (Block == nullptr)
 	{
 		CreateAndInsertMemoryPool(Size); // No available blocks in the pool.
@@ -54,21 +61,24 @@ void* bit::CTLSFAllocator::Allocate(size_t Size, size_t Alignment)
 	if (Block != nullptr)
 	{
 		RemoveBlock(Block, Map);
-		if (Block->Header.GetSize() > AlignedSize)
+		if (Block->GetSize() - AlignedSize > MIN_ALLOC_SIZE)
 		{
-			CBlockFree* RemainingBlock = Split(Block, AlignedSize);
+			BlockFreeHeader* RemainingBlock = Split(Block, AlignedSize);
 			if (RemainingBlock != Block)
 			{
-				InsertBlock(RemainingBlock, Mapping(RemainingBlock->Header.GetSize()));
+				InsertBlock(RemainingBlock, Mapping(RemainingBlock->GetSize()));
 			}
 		}
-		AllocatedAmount += Block->Header.GetFullSize();
+		UsedSpaceInBytes += Block->GetFullSize();
+	#if BIT_ENABLE_BLOCK_MARKING
+		FillBlock(Block, 0xAA);
+	#endif
 		return GetPointerFromBlockHeader(Block);
 	}
 	return nullptr; /* Out of memory */
 }
 
-void* bit::CTLSFAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
+void* bit::TLSFAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
 {
 	if (Pointer == nullptr) return Allocate(Size, Alignment);
 	size_t BlockSize = GetSize(Pointer);
@@ -79,50 +89,53 @@ void* bit::CTLSFAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignme
 	return NewBlock;
 }
 
-void bit::CTLSFAllocator::Free(void* Pointer)
+void bit::TLSFAllocator::Free(void* Pointer)
 {
 	if (Pointer != nullptr)
 	{
-		bit::TScopedLock<CMutex> Lock(&Mutex);
-		CBlockFree* FreeBlock = GetBlockHeaderFromPointer(Pointer);
-		AllocatedAmount -= FreeBlock->Header.GetFullSize();
-		CBlockFree* MergedBlock = Merge(FreeBlock);
-		InsertBlock(MergedBlock, Mapping(MergedBlock->Header.GetSize()));
+		bit::ScopedLock<Mutex> Lock(&AccessLock);
+		BlockFreeHeader* FreeBlock = GetBlockHeaderFromPointer(Pointer);
+	#if BIT_ENABLE_BLOCK_MARKING
+		FillBlock(FreeBlock, 0xDD);
+	#endif
+		UsedSpaceInBytes -= FreeBlock->GetFullSize();
+		BlockFreeHeader* MergedBlock = Merge(FreeBlock);
+		InsertBlock(MergedBlock, Mapping(MergedBlock->GetSize()));
 	}
 }
 
-size_t bit::CTLSFAllocator::GetSize(void* Pointer)
+size_t bit::TLSFAllocator::GetSize(void* Pointer)
 {
 	if (Pointer != nullptr)
 	{
-		return GetBlockHeaderFromPointer(Pointer)->Header.GetSize();
+		return GetBlockHeaderFromPointer(Pointer)->GetSize();
 	}
 	return 0;
 }
 
-bit::CMemoryUsageInfo bit::CTLSFAllocator::GetMemoryUsageInfo()
+bit::MemoryUsageInfo bit::TLSFAllocator::GetMemoryUsageInfo()
 {
-	CMemoryUsageInfo Usage = {};
-	CMemoryPool* Pool = MemoryPoolList;
+	MemoryUsageInfo Usage = {};
+	MemoryPool* Pool = MemoryPoolList;
 	while (Pool != nullptr)
 	{
 		Usage.CommittedBytes += Pool->VirtualMemory.GetCommittedSize();
 		Usage.ReservedBytes += Pool->VirtualMemory.GetRegionSize();
 		Pool = Pool->Next;
 	}
-	Usage.AllocatedBytes = AllocatedAmount;
+	Usage.AllocatedBytes = UsedSpaceInBytes;
 	return Usage;
 }
 
-size_t bit::CTLSFAllocator::TrimMemory()
+size_t bit::TLSFAllocator::TrimMemory()
 {
-	bit::TScopedLock<CMutex> Lock(&Mutex);
+	bit::ScopedLock<Mutex> Lock(&AccessLock);
 	size_t Total = 0;
-	CMemoryPool* Pool = MemoryPoolList;
-	CMemoryPool* Prev = nullptr;
+	MemoryPool* Pool = MemoryPoolList;
+	MemoryPool* Prev = nullptr;
 	while (Pool != nullptr)
 	{
-		CMemoryPool* Next = Pool->Next;
+		MemoryPool* Next = Pool->Next;
 		if (IsPoolReleasable(Pool))
 		{
 			VirtualReleaseSpace(Pool->VirtualMemory);
@@ -139,98 +152,101 @@ size_t bit::CTLSFAllocator::TrimMemory()
 	return Total;
 }
 
-bool bit::CTLSFAllocator::IsPoolReleasable(CMemoryPool* Pool)
+bool bit::TLSFAllocator::IsPoolReleasable(MemoryPool* Pool)
 {
-	CBlockFree* Block = reinterpret_cast<CBlockFree*>(Pool->BaseAddress);
+	BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(Pool->BaseAddress);
 	while (Block != nullptr)
 	{
-		if (!Block->Header.IsLastPhysicalBlock() && !Block->Header.IsFree())
+		if (!Block->IsLastPhysicalBlock() && !Block->IsFree())
 		{
 			return false;
 		}
-		if (Block->Header.GetSize() == 0 && 
-			Block->Header.IsLastPhysicalBlock()) break; // We reached the end of the pool
+		if (Block->GetSize() == 0 && 
+			Block->IsLastPhysicalBlock()) break; // We reached the end of the pool
 		Block = GetNextBlock(Block);
 	}
 	return true;
 }
 
-void bit::CTLSFAllocator::CreateAndInsertMemoryPool(size_t PoolSize)
+void bit::TLSFAllocator::CreateAndInsertMemoryPool(size_t PoolSize)
 {
 	InsertMemoryPool(CreateMemoryPool(PoolSize));
 }
 
-void bit::CTLSFAllocator::InsertMemoryPool(CMemoryPool* NewMemoryPool)
+void bit::TLSFAllocator::InsertMemoryPool(MemoryPool* NewMemoryPool)
 {
-	CBlockFree* Block = reinterpret_cast<CBlockFree*>(NewMemoryPool->BaseAddress);
-	Block->Header.Reset(NewMemoryPool->UsableSize - sizeof(CBlockFree) - sizeof(CBlockHeader));
-	InsertBlock(Block, Mapping(Block->Header.GetSize()));
+	BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(NewMemoryPool->BaseAddress);
+	Block->Reset(NewMemoryPool->UsableSize - sizeof(BlockFreeHeader) - sizeof(BlockHeader));
+	InsertBlock(Block, Mapping(Block->GetSize()));
 
-	CBlockFree* EndOfBlock = GetNextBlock(Block);
-	EndOfBlock->Header.Reset(0);
-	EndOfBlock->Header.SetLastPhysicalBlock();
-	EndOfBlock->Header.PrevPhysicalBlock = reinterpret_cast<CBlockHeader*>(Block);
+	BlockFreeHeader* EndOfBlock = GetNextBlock(Block);
+	EndOfBlock->Reset(0);
+	EndOfBlock->SetLastPhysicalBlock();
+	EndOfBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(Block);
 	EndOfBlock->NextFree = nullptr;
 	EndOfBlock->PrevFree = nullptr;
 	
 	NewMemoryPool->Next = MemoryPoolList;
 	MemoryPoolList = NewMemoryPool;
+	AvailableSpaceInBytes += Block->GetFullSize();
+	MemoryPoolCount += 1;
 }
 
-bit::CTLSFAllocator::CMemoryPool* bit::CTLSFAllocator::CreateMemoryPool(size_t PoolSize)
+bit::TLSFAllocator::MemoryPool* bit::TLSFAllocator::CreateMemoryPool(size_t PoolSize)
 {
-	size_t AlignedSize = bit::RoundUp(bit::AlignUint(PoolSize + sizeof(CMemoryPool), alignof(CBlockHeader)), bit::GetOSAllocationGranularity() * 2);
-	CVirtualAddressSpace VirtualAddress = {};
+	size_t AlignedSize = bit::RoundUp(bit::AlignUint(PoolSize + sizeof(MemoryPool), alignof(BlockHeader)), bit::GetOSAllocationGranularity() * 2);
+	VirtualAddressSpace VirtualAddress = {};
 	if (VirtualReserveSpace(nullptr, AlignedSize, VirtualAddress))
 	{
-		CMemoryPool* Pool = reinterpret_cast<CMemoryPool*>(VirtualAddress.CommitAll());
+		MemoryPool* Pool = reinterpret_cast<MemoryPool*>(VirtualAddress.CommitAll());
 		Pool->Next = nullptr;
-		Pool->BaseAddress = bit::AlignPtr(bit::OffsetPtr(Pool, sizeof(CMemoryPool)), alignof(CBlockHeader));
-		Pool->UsableSize = (uint32_t)bit::PtrDiff(Pool->BaseAddress, VirtualAddress.GetEndAddress());
+		Pool->BaseAddress = bit::AlignPtr(bit::OffsetPtr(Pool, sizeof(MemoryPool)), alignof(BlockHeader));
+		Pool->UsableSize = (TLSFSizeType_t)bit::PtrDiff(Pool->BaseAddress, VirtualAddress.GetEndAddress());
 		Pool->VirtualMemory = bit::Move(VirtualAddress);
 		return Pool;
 	}
 	return nullptr;
 }
 
-bit::CTLSFAllocator::CBlockMap bit::CTLSFAllocator::Mapping(size_t Size) const
+bit::TLSFAllocator::BlockMap bit::TLSFAllocator::Mapping(size_t Size) const
 {
 	// First level index is the last set bit
-	uint64_t FL = bit::BitScanReverse64(Size);
+	TLSFSizeType_t FL = bit::BitScanReverse((TLSFSizeType_t)Size);
 	// Second level index is the next rightmost SLI bits
 	// For example if SLI is 4, then 460 would result in 
 	// 0000000111001100
 	//       / |..|	
 	//    FL    SL
 	// FL = 8, SL = 12
-	uint64_t SL = (Size >> (FL - SLI)) ^ (SL_COUNT);
+	TLSFSizeType_t SL = ((TLSFSizeType_t)Size >> (FL - SLI)) ^ (SL_COUNT);
+	FL -= COUNT_OFFSET - 1; // We need to adjust index so it maps to min alloc size range to max alloc size
 	return { FL, SL };
 }
 
-bit::CTLSFAllocator::CBlockFree* bit::CTLSFAllocator::GetBlockHeaderFromPointer(void* Block) const
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::GetBlockHeaderFromPointer(void* Block) const
 {
-	return bit::OffsetPtr<CBlockFree>(Block, -(int64_t)sizeof(CBlockHeader));
+	return bit::OffsetPtr<BlockFreeHeader>(Block, -(intptr_t)sizeof(BlockHeader));
 }
 
-void* bit::CTLSFAllocator::GetPointerFromBlockHeader(CBlockFree* Block) const
+void* bit::TLSFAllocator::GetPointerFromBlockHeader(BlockHeader* Block) const
 {
-	return bit::OffsetPtr(Block, sizeof(CBlockHeader));
+	return bit::OffsetPtr(Block, sizeof(BlockHeader));
 }
 
-bit::CTLSFAllocator::CBlockFree* bit::CTLSFAllocator::Merge(CBlockFree* Block)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::Merge(BlockFreeHeader* Block)
 {
-	CBlockFree* Next = GetNextBlock(Block);
-	if (Next->Header.GetSize() > 0 && Next->Header.IsFree())
+	BlockFreeHeader* Next = GetNextBlock(Block);
+	if (Next->GetSize() > 0 && Next->IsFree())
 	{
-		CBlockMap Map = Mapping(Next->Header.GetSize());
+		BlockMap Map = Mapping(Next->GetSize());
 		RemoveBlock(Next, Map);
 		return MergeBlocks(Block, Next);
 	}
 
-	CBlockFree* Prev = reinterpret_cast<CBlockFree*>(Block->Header.PrevPhysicalBlock);
-	if (Prev != nullptr && Prev->Header.IsFree())
+	BlockFreeHeader* Prev = reinterpret_cast<BlockFreeHeader*>(Block->PrevPhysicalBlock);
+	if (Prev != nullptr && Prev->IsFree())
 	{
-		CBlockMap Map = Mapping(Prev->Header.GetSize());
+		BlockMap Map = Mapping(Prev->GetSize());
 		RemoveBlock(Prev, Map);
 		return MergeBlocks(Prev, Block);
 	}
@@ -238,14 +254,14 @@ bit::CTLSFAllocator::CBlockFree* bit::CTLSFAllocator::Merge(CBlockFree* Block)
 	return Block;
 }
 
-bit::CTLSFAllocator::CBlockFree* bit::CTLSFAllocator::FindSuitableBlock(size_t Size, CBlockMap& Map)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::FindSuitableBlock(size_t Size, BlockMap& Map)
 {
-	uint64_t FL = Map.FL;
-	uint64_t SL = Map.SL;
-	uint64_t SLMapping = SLBitmap[FL] & (~0 << SL);
+	TLSFSizeType_t FL = Map.FL;
+	TLSFSizeType_t SL = Map.SL;
+	TLSFSizeType_t SLMapping = SLBitmap[FL] & (~0 << SL);
 	if (SLMapping == 0)
 	{
-		uint64_t FLMapping = FLBitmap & (~0 << (FL + 1));
+		TLSFSizeType_t FLMapping = FLBitmap & (~0 << (FL + 1));
 		if (FLMapping == 0)
 		{
 			// OOM - We need to allocate a new pool
@@ -255,18 +271,18 @@ bit::CTLSFAllocator::CBlockFree* bit::CTLSFAllocator::FindSuitableBlock(size_t S
 		SLMapping = SLBitmap[FL];
 	}
 	SL = bit::BitScanForward(SLMapping);
-	CBlockFree* Block = FreeBlocks[FL][SL];
+	BlockFreeHeader* Block = FreeBlocks[FL][SL];
 	Map.FL = FL;
 	Map.SL = SL;
 	BIT_ASSERT(Block != nullptr);
 	return Block;
 }
 
-void bit::CTLSFAllocator::RemoveBlock(CBlockFree* Block, CBlockMap Map)
+void bit::TLSFAllocator::RemoveBlock(BlockFreeHeader* Block, BlockMap Map)
 {
-	Block->Header.SetUsed();
-	CBlockFree* Prev = Block->PrevFree;
-	CBlockFree* Next = Block->NextFree;
+	Block->SetUsed();
+	BlockFreeHeader* Prev = Block->PrevFree;
+	BlockFreeHeader* Next = Block->NextFree;
 	if (Prev != nullptr) Prev->NextFree = Next;
 	if (Next != nullptr) Next->PrevFree = Prev;
 	Block->PrevFree = nullptr;
@@ -277,60 +293,68 @@ void bit::CTLSFAllocator::RemoveBlock(CBlockFree* Block, CBlockMap Map)
 		FreeBlocks[Map.FL][Map.SL] = Next;
 		if (Next == nullptr)
 		{
-			SLBitmap[Map.FL] &= ~(1 << Map.SL);
+			SLBitmap[Map.FL] &= ~Pow2(Map.SL);
 			if (SLBitmap[Map.FL] == 0)
 			{
-				FLBitmap &= ~(1 << Map.FL);
+				FLBitmap &= ~Pow2(Map.FL);
 			}
 		}
 	}
 }
 
-bit::CTLSFAllocator::CBlockFree* bit::CTLSFAllocator::Split(CBlockFree* Block, uint32_t Size)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::Split(BlockFreeHeader* Block, TLSFSizeType_t Size)
 {
-	uint32_t BlockSize = Block->Header.GetSize();
-	if (Size > sizeof(CBlockHeader) && BlockSize - Size > sizeof(CBlockHeader))
+	TLSFSizeType_t BlockSize = Block->GetSize();
+	TLSFSizeType_t FullBlockSize = Block->GetFullSize();
+	TLSFSizeType_t SizeWithHeader = Size + sizeof(BlockHeader);
+	if (Size >= MIN_ALLOC_SIZE && BlockSize - SizeWithHeader >= MIN_ALLOC_SIZE)
 	{
-		CBlockFree* RemainingBlock = bit::OffsetPtr<CBlockFree>(Block, Size + sizeof(CBlockHeader));
-		RemainingBlock->Header.Reset(BlockSize - Size - sizeof(CBlockHeader));
-		RemainingBlock->Header.SetUsed();
-		RemainingBlock->Header.PrevPhysicalBlock = reinterpret_cast<CBlockHeader*>(Block);
-		CBlockFree* NextBlock = GetNextBlock(RemainingBlock);
-		NextBlock->Header.PrevPhysicalBlock = reinterpret_cast<CBlockHeader*>(RemainingBlock);
-		Block->Header.SetSize(Size);
-		BIT_ASSERT(BlockSize + sizeof(CBlockHeader) == Block->Header.GetFullSize() + RemainingBlock->Header.GetFullSize());
+		BlockFreeHeader* RemainingBlock = bit::OffsetPtr<BlockFreeHeader>(Block, SizeWithHeader);
+		RemainingBlock->Reset(BlockSize - SizeWithHeader);
+		RemainingBlock->SetUsed();
+		RemainingBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(Block);
+		BlockFreeHeader* NextBlock = GetNextBlock(RemainingBlock);
+		NextBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(RemainingBlock);
+		Block->SetSize(Size);
+		BIT_ASSERT(FullBlockSize == Block->GetFullSize() + RemainingBlock->GetFullSize());
 		return RemainingBlock;
 	}
 	return Block;
 }
 
-void bit::CTLSFAllocator::InsertBlock(CBlockFree* Block, CBlockMap Map)
+void bit::TLSFAllocator::InsertBlock(BlockFreeHeader* Block, BlockMap Map)
 {
-	CBlockFree* Head = FreeBlocks[Map.FL][Map.SL];
+	BlockFreeHeader* Head = FreeBlocks[Map.FL][Map.SL];
 	Block->NextFree = Head;
 	Block->PrevFree = nullptr;
-	Block->Header.SetFree();
+	Block->SetFree();
 	if (Head != nullptr) Head->PrevFree = Block;
 	FreeBlocks[Map.FL][Map.SL] = Block;
-	FLBitmap |= (1 << Map.FL);
-	SLBitmap[Map.FL] |= (1 << Map.SL);
+	FLBitmap |= Pow2(Map.FL);
+	SLBitmap[Map.FL] |= Pow2(Map.SL);
 }
 
-bit::CTLSFAllocator::CBlockFree* bit::CTLSFAllocator::MergeBlocks(CBlockFree* Left, CBlockFree* Right)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::MergeBlocks(BlockFreeHeader* Left, BlockFreeHeader* Right)
 {
-	Left->Header.SetSize(Left->Header.GetSize() + Right->Header.GetFullSize());
-	CBlockFree* NextBlock = GetNextBlock(Left);
-	NextBlock->Header.PrevPhysicalBlock = reinterpret_cast<CBlockHeader*>(Left);
-	Right->Header.Reset(0);
+	Left->SetSize(Left->GetSize() + Right->GetFullSize());
+	BlockFreeHeader* NextBlock = GetNextBlock(Left);
+	NextBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(Left);
+	Right->Reset(0);
 	return Left;
 }
 
-bit::CTLSFAllocator::CBlockFree* bit::CTLSFAllocator::GetNextBlock(CBlockFree* Block) const
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::GetNextBlock(BlockFreeHeader* Block) const
 {
-	return bit::OffsetPtr<CBlockFree>(Block, Block->Header.GetSize() + sizeof(CBlockHeader));
+	return bit::OffsetPtr<BlockFreeHeader>(Block, Block->GetSize() + sizeof(BlockHeader));
 }
 
-size_t bit::CTLSFAllocator::AdjustSize(size_t Size)
+size_t bit::TLSFAllocator::AdjustSize(size_t Size)
 {
-	return sizeof(CBlockHeader) + Size;
+	return sizeof(BlockHeader) + Size;
+}
+
+void bit::TLSFAllocator::FillBlock(BlockHeader* Block, uint8_t Value) const
+{
+	/* For debugging purpose */
+	bit::Memset(GetPointerFromBlockHeader(Block), Value, Block->GetSize());
 }

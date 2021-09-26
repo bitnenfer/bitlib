@@ -12,7 +12,7 @@ namespace bit
 	BITLIB_API size_t MurmurHash(const void* Key, size_t Len, size_t Seed);
 
 	template<typename T>
-	struct TMurmurHash
+	struct MurmurHasher
 	{
 		size_t operator()(const T& Value) const
 		{

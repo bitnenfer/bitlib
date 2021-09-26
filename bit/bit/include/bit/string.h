@@ -3,66 +3,65 @@
 #include <bit/array.h>
 #include <bit/hash.h>
 
-#define BIT_TXT(str) (str)
-#define BIT_SMALL_OPT_STRING_INLINE_SIZE 8
+#define BIT_SMALL_OPT_STRING_INLINE_SIZE 16
 
 namespace bit
 {
 	typedef char CharType_t;
 
-	BITLIB_API_TEMPLATE_STRUCT bit::TInlineBlockAllocator<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>;
-	BITLIB_API_TEMPLATE_STRUCT bit::TArray<CharType_t, bit::TInlineBlockAllocator<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>>;
+	BITLIB_API_TEMPLATE_STRUCT bit::SmallBufferBlockAllocator<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>;
+	BITLIB_API_TEMPLATE_STRUCT bit::Array<CharType_t, bit::SmallBufferBlockAllocator<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>>;
 
-	typedef bit::TArray<
+	typedef bit::Array<
 		CharType_t,
-		bit::TInlineBlockAllocator<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>
+		bit::SmallBufferBlockAllocator<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>
 	> StringStorage_t;
 
 	/* ASCII String. Maybe at some point use unicode (utf-8 encoding) */
-	struct BITLIB_API CString
+	struct BITLIB_API String
 	{
-		CString();
-		CString(const CharType_t* RawStr);
-		CString(const CharType_t* RawStr, SizeType_t Len);
-		CString(const CString& Other);
-		CString(CString&& Other) noexcept;
-		CString& operator=(const CharType_t* RawStr);
-		CString& operator=(const CString& Other);
-		CString& operator=(CString&& Other) noexcept;
-		CString& operator+=(const CharType_t* RawStr);
-		CString& operator+=(const CString& Other);
+		String();
+		String(const CharType_t* RawStr);
+		String(const CharType_t* RawStr, SizeType_t Len);
+		String(const String& Other);
+		String(String&& Other) noexcept;
+		String& operator=(const CharType_t* RawStr);
+		String& operator=(const String& Other);
+		String& operator=(String&& Other) noexcept;
+		String& operator+=(const CharType_t* RawStr);
+		String& operator+=(const String& Other);
 		const CharType_t* operator*() const;
 		SizeType_t GetLength() const;
 		void Copy(const CharType_t* RawStr, SizeType_t Len);
-		void Copy(const CString& Other);
+		void Copy(const String& Other);
 		void Append(const CharType_t* RawStr, SizeType_t Len);
-		void Append(const CString& Other);
+		void Append(const String& Other);
 		StringStorage_t& GetStorage();
 
-		BITLIB_API friend CString operator+(const CString& LHS, const CString& RHS) { return (bit::CString(LHS) += RHS); }
-		BITLIB_API friend CString operator+(const CString& LHS, const CharType_t* RHS) { return (bit::CString(LHS) += RHS); }
-		BITLIB_API friend CString operator+(const CharType_t* LHS, const CString& RHS) { return (bit::CString(LHS) += RHS); }
-		BITLIB_API friend bool operator==(const CString& LHS, const CString& RHS);
-		BITLIB_API friend bool operator!=(const CString& LHS, const CString& RHS);
+		BITLIB_API friend String operator+(const String& LHS, const String& RHS) { return (bit::String(LHS) += RHS); }
+		BITLIB_API friend String operator+(const String& LHS, const CharType_t* RHS) { return (bit::String(LHS) += RHS); }
+		BITLIB_API friend String operator+(const CharType_t* LHS, const String& RHS) { return (bit::String(LHS) += RHS); }
+		BITLIB_API friend bool operator==(const String& LHS, const String& RHS);
+		BITLIB_API friend bool operator!=(const String& LHS, const String& RHS);
 
-		static CString Format(const CharType_t* Fmt, ...);
+		static String Format(const CharType_t* Fmt, ...);
 
 	private:
 		StringStorage_t Storage;
 	};
 
 	template<>
-	struct BITLIB_API THash<CString>
+	struct BITLIB_API Hash<String>
 	{
 		typedef size_t HashType_t;
-		HashType_t operator()(const CString& String) const
+		HashType_t operator()(const String& String) const
 		{
 			return bit::MurmurHash(*String, String.GetLength(), bit::DEFAULT_HASH_SEED);
 		}
 	};
 
 	template<>
-	struct BITLIB_API THash<const char*>
+	struct BITLIB_API Hash<const char*>
 	{
 		typedef size_t HashType_t;
 		HashType_t operator()(const char* Str) const

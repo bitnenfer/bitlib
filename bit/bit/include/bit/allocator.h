@@ -7,27 +7,27 @@
 namespace bit
 {
 	static constexpr size_t ALLOCATOR_MAX_NAME_LEN = 128;
-	struct BITLIB_API CMemoryUsageInfo
+	struct BITLIB_API MemoryUsageInfo
 	{
 		size_t AllocatedBytes;
 		size_t CommittedBytes;
 		size_t ReservedBytes;
 	};
 
-	struct IAllocator;
+	struct Allocator;
 
-	struct BITLIB_API CMemoryArena
+	struct BITLIB_API MemoryArena
 	{
-		typedef TAtomicRefCounter<int64_t> RefCounter_t;
+		typedef AtomicRefCounter<int64_t> RefCounter_t;
 
-		CMemoryArena() : 
+		MemoryArena() : 
 			RefCounter(nullptr),
 			Allocator(nullptr),
 			BaseAddress(nullptr), 
 			SizeInBytes(0) 
 		{}
 		
-		CMemoryArena(RefCounter_t* RefCounter, IAllocator* Allocator, void* BaseAddress, size_t SizeInBytes) :
+		MemoryArena(RefCounter_t* RefCounter, Allocator* Allocator, void* BaseAddress, size_t SizeInBytes) :
 			RefCounter(RefCounter),
 			Allocator(Allocator),
 			BaseAddress(BaseAddress), 
@@ -35,7 +35,7 @@ namespace bit
 		{
 		}
 
-		CMemoryArena(void* BaseAddress, size_t SizeInBytes) :
+		MemoryArena(void* BaseAddress, size_t SizeInBytes) :
 			RefCounter(nullptr),
 			Allocator(nullptr),
 			BaseAddress(BaseAddress),
@@ -43,7 +43,7 @@ namespace bit
 		{
 		}
 
-		CMemoryArena(const CMemoryArena& Copy)
+		MemoryArena(const MemoryArena& Copy)
 		{
 			RefCounter = Copy.RefCounter;
 			Allocator = Copy.Allocator;
@@ -52,7 +52,7 @@ namespace bit
 			if (RefCounter != nullptr) RefCounter->Increment();
 		}
 
-		CMemoryArena& operator=(const CMemoryArena& Copy)
+		MemoryArena& operator=(const MemoryArena& Copy)
 		{
 			RefCounter = Copy.RefCounter;
 			Allocator = Copy.Allocator;
@@ -62,7 +62,7 @@ namespace bit
 			return *this;
 		}
 
-		CMemoryArena(CMemoryArena&& Move)
+		MemoryArena(MemoryArena&& Move)
 		{
 			RefCounter = Move.RefCounter;
 			Allocator = Move.Allocator;
@@ -74,7 +74,7 @@ namespace bit
 			Move.SizeInBytes = 0;
 		}
 
-		CMemoryArena& operator=(CMemoryArena&& Move)
+		MemoryArena& operator=(MemoryArena&& Move)
 		{
 			RefCounter = Move.RefCounter;
 			Allocator = Move.Allocator;
@@ -87,38 +87,38 @@ namespace bit
 			return *this;
 		}
 
-		~CMemoryArena();
+		~MemoryArena();
 		
 		void* GetBaseAddress() const { return BaseAddress; }
 		size_t GetSizeInBytes() const { return SizeInBytes; }
 
 	private:
 		RefCounter_t* RefCounter;
-		IAllocator* Allocator;
+		Allocator* Allocator;
 		void* BaseAddress;
 		size_t SizeInBytes;
 	};
 
 	template<size_t CapacityInBytes>
-	struct TFixedMemoryArena : public CMemoryArena
+	struct FixedMemoryArena : public MemoryArena
 	{
-		TFixedMemoryArena() :
-			CMemoryArena(&Data[0], CapacityInBytes)
+		FixedMemoryArena() :
+			MemoryArena(&Data[0], CapacityInBytes)
 		{}
 
 		uint8_t Data[CapacityInBytes];
 	};
 
 	/* Polymorphic Allocator. Useful for custom types of allocations and Polymorphic containers. */
-	struct BITLIB_API IAllocator
+	struct BITLIB_API Allocator
 	{
-		IAllocator(const char* Name);
+		Allocator(const char* Name);
 
 		virtual void* Allocate(size_t Size, size_t Alignment) = 0;
 		virtual void* Reallocate(void* Pointer, size_t Size, size_t Alignment) = 0;
 		virtual void Free(void* Pointer) = 0;
 		virtual size_t GetSize(void* Pointer) = 0;
-		virtual CMemoryUsageInfo GetMemoryUsageInfo() = 0;
+		virtual MemoryUsageInfo GetMemoryUsageInfo() = 0;
 		const char* GetName() const { return Name; }
 
 		template<typename T>
@@ -146,9 +146,9 @@ namespace bit
 			Free(Ptr);
 		}
 
-		CMemoryArena AllocateArena(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
+		MemoryArena AllocateArena(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
 		{
-			return CMemoryArena(New<CMemoryArena::RefCounter_t>(1), this, Allocate(Size, Alignment), Size);
+			return MemoryArena(New<MemoryArena::RefCounter_t>(1), this, Allocate(Size, Alignment), Size);
 		}
 
 	private:
@@ -158,22 +158,22 @@ namespace bit
 
 /* I recommend just using allocator's New, Delete, NewArray and DeleteArray instead */
 
-BIT_FORCEINLINE void* operator new(size_t Size, bit::IAllocator& Allocator)
+BIT_FORCEINLINE void* operator new(size_t Size, bit::Allocator& Allocator)
 {
 	return Allocator.Allocate(Size, 0);
 }
 
-BIT_FORCEINLINE void operator delete(void* Ptr, bit::IAllocator& Allocator)
+BIT_FORCEINLINE void operator delete(void* Ptr, bit::Allocator& Allocator)
 {
 	Allocator.Free(Ptr);
 }
 
-BIT_FORCEINLINE void* operator new[](size_t Size, bit::IAllocator& Allocator)
+BIT_FORCEINLINE void* operator new[](size_t Size, bit::Allocator& Allocator)
 {
 	return Allocator.Allocate(Size, 0);
 }
 
-BIT_FORCEINLINE void operator delete[](void* Ptr, size_t Size, bit::IAllocator& Allocator)
+BIT_FORCEINLINE void operator delete[](void* Ptr, size_t Size, bit::Allocator& Allocator)
 {
 	Allocator.Free(Ptr);
 }

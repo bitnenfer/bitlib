@@ -2,7 +2,7 @@
 
 #define BIT_STRLEN(Str, Len) while (Str[Len++] != 0); Len--;
 
-bit::CCommandArgs::CCommandArgs(const char* Args[], uint32_t ArgCount, IAllocator& InAllocator) :
+bit::CommandArgs::CommandArgs(const char* Args[], uint32_t ArgCount, Allocator& InAllocator) :
 	Entries(ArgCount)
 {
 	for (uint32_t Index = 1; Index < ArgCount; ++Index)
@@ -19,7 +19,7 @@ bit::CCommandArgs::CCommandArgs(const char* Args[], uint32_t ArgCount, IAllocato
 			{
 				if (*(CurrArg++) == '=')
 				{
-					CCommandArgEntry Entry = {};
+					CommandArgEntry Entry = {};
 					Entry.Name = &Arg[StartIndex];
 					Entry.NameLen = EndIndex - StartIndex + 1;
 					StartIndex = EndIndex + 2;
@@ -34,7 +34,7 @@ bit::CCommandArgs::CCommandArgs(const char* Args[], uint32_t ArgCount, IAllocato
 				}
 				EndIndex += 1;
 			}
-			CCommandArgEntry Entry = {};
+			CommandArgEntry Entry = {};
 			Entry.Name = &Arg[StartIndex];
 			Entry.NameLen = EndIndex - StartIndex + 1;
 			Entry.Value = "";
@@ -46,35 +46,35 @@ bit::CCommandArgs::CCommandArgs(const char* Args[], uint32_t ArgCount, IAllocato
 	}
 }
 
-bool bit::CCommandArgs::Contains(const char* Arg)
+bool bit::CommandArgs::Contains(const char* Arg)
 {
 	size_t Len = 0;
 	BIT_STRLEN(Arg, Len);
-	CCommandArgEntry Output;
-	return Entries.FindFirst([&](const CCommandArgEntry& Entry)->bool 
+	CommandArgEntry Output;
+	return Entries.FindFirst([&](const CommandArgEntry& Entry)->bool 
 	{
 		return Entry.NameLen == Len && bit::Memcmp(Arg, Entry.Name, Len) == 0;
 	}, Output);
 }
 
-const char* bit::CCommandArgs::GetValue(const char* Arg)
+const char* bit::CommandArgs::GetValue(const char* Arg)
 {
 	size_t Len = 0;
 	BIT_STRLEN(Arg, Len);
-	CCommandArgEntry Output;
-	Entries.FindFirst([&](const CCommandArgEntry& Entry)->bool
+	CommandArgEntry Output;
+	Entries.FindFirst([&](const CommandArgEntry& Entry)->bool
 	{
 		return Entry.NameLen == Len && bit::Memcmp(Arg, Entry.Name, Len) == 0;
 	}, Output);
 	return Output.Value;
 }
 
-int64_t bit::CCommandArgs::GetArgCount()
+int64_t bit::CommandArgs::GetArgCount()
 {
 	return Entries.GetCount();
 }
 
-bool bit::operator==(const CCommandArgEntry& LHS, const CCommandArgEntry& RHS)
+bool bit::operator==(const CommandArgEntry& LHS, const CommandArgEntry& RHS)
 {
-	return bit::Memcmp(&LHS, &RHS, sizeof(CCommandArgEntry));
+	return bit::Memcmp(&LHS, &RHS, sizeof(CommandArgEntry));
 }

@@ -1,41 +1,41 @@
 #include <bit/rw_lock.h>
 #include "windows_common.h"
 
-bit::CRWLock::CRWLock()
+bit::RWLock::RWLock()
 {
 	Handle = nullptr;
 	InitializeSRWLock((PSRWLOCK)&Handle);
 }
 
-bit::CRWLock::~CRWLock()
+bit::RWLock::~RWLock()
 {}
 
-void bit::CRWLock::LockShared()
+void bit::RWLock::LockRead()
 {
 	AcquireSRWLockShared((PSRWLOCK)&Handle);
 }
 
-void bit::CRWLock::UnlockShared()
+void bit::RWLock::UnlockRead()
 {
 	ReleaseSRWLockShared((PSRWLOCK)&Handle);
 }
 
-void bit::CRWLock::LockExclusive()
+void bit::RWLock::LockWrite()
 {
 	AcquireSRWLockExclusive((PSRWLOCK)&Handle);
 }
 
-void bit::CRWLock::UnlockExclusive()
+void bit::RWLock::UnlockWrite()
 {
 	ReleaseSRWLockExclusive((PSRWLOCK)&Handle);
 }
 
-bool bit::CRWLock::TryLockShared()
+bool bit::RWLock::TryLockRead()
 {
 	return TryAcquireSRWLockShared((PSRWLOCK)&Handle) == TRUE;
 }
 
-bool bit::CRWLock::TryLockExclusive()
+bool bit::RWLock::TryLockWrite()
 {
 	return TryAcquireSRWLockExclusive((PSRWLOCK)&Handle) == TRUE;
 }

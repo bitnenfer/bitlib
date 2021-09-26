@@ -2,16 +2,16 @@
 #include <bit/memory.h>
 #include <bit/os.h>
 
-bit::CPageAllocator::CPageAllocator(const char* Name, void* StartAddress, size_t RegionSize, size_t AllocationGranularity) :
-	IAllocator(Name),
+bit::PageAllocator::PageAllocator(const char* Name, void* StartAddress, size_t RegionSize, size_t AllocationGranularity) :
+	Allocator(Name),
 	BitArray(nullptr),
 	PageGranularity(AllocationGranularity)
 {
-	BIT_ASSERT(bit::VirtualReserveSpace(StartAddress, RegionSize, VirtualAddressSpace));
-	BIT_ASSERT(VirtualAddressSpace.GetRegionSize() > 0); // Can't be 0
-	BIT_ASSERT(VirtualAddressSpace.IsValid());
-	BIT_ASSERT(bit::IsPow2(VirtualAddressSpace.GetRegionSize())); // ***  TotalSize is not a power of 2 value. TotalSize MUST be power of 2. *** 
-	LevelCount = bit::BitScanReverse64(VirtualAddressSpace.GetRegionSize() / PageGranularity) + 1;
+	BIT_ASSERT(bit::VirtualReserveSpace(StartAddress, RegionSize, VirtualAddress));
+	BIT_ASSERT(VirtualAddress.GetRegionSize() > 0); // Can't be 0
+	BIT_ASSERT(VirtualAddress.IsValid());
+	BIT_ASSERT(bit::IsPow2(VirtualAddress.GetRegionSize())); // ***  TotalSize is not a power of 2 value. TotalSize MUST be power of 2. *** 
+	LevelCount = bit::BitScanReverse(VirtualAddress.GetRegionSize() / PageGranularity) + 1;
 	PageCount = bit::Pow2(LevelCount) - 1; // We subtract 1 because we can't have a block at the end of memory.
 	size_t PageBitCount = PageCount * BITS_PER_PAGE;
 	size_t PageByteCount = PageBitCount / 8;
@@ -21,46 +21,46 @@ bit::CPageAllocator::CPageAllocator(const char* Name, void* StartAddress, size_t
 	BitArray = (uint8_t*)bit::Malloc(PageByteCount);
 	bit::Memset(BitArray, 0, PageByteCount);
 #if BIT_BUILD_DEBUG
-	BIT_LOG("Page Allocator Setup Usage: %.2f KiB", (float)(sizeof(bit::CPageAllocator) + PageByteCount) / 1024.0f);
+	BIT_LOG("Page Allocator Setup Usage: %.2f KiB", (float)(sizeof(bit::PageAllocator) + PageByteCount) / 1024.0f);
 #endif
 }
 
-bit::CPageAllocator::~CPageAllocator()
+bit::PageAllocator::~PageAllocator()
 {
-	bit::VirtualReleaseSpace(VirtualAddressSpace);
+	bit::VirtualReleaseSpace(VirtualAddress);
 	bit::Free(BitArray);
 }
 
-void* bit::CPageAllocator::CommitPage(void* Address, size_t Size)
+void* bit::PageAllocator::CommitPage(void* Address, size_t Size)
 {
-	return VirtualAddressSpace.CommitPagesByAddress(Address, Size);
+	return VirtualAddress.CommitPagesByAddress(Address, Size);
 }
 
-void bit::CPageAllocator::DecommitPage(void* Address, size_t Size)
+void bit::PageAllocator::DecommitPage(void* Address, size_t Size)
 {
-	VirtualAddressSpace.DecommitPagesByAddress(Address, Size);
+	VirtualAddress.DecommitPagesByAddress(Address, Size);
 }
 
-bool bit::CPageAllocator::SetProtectionPage(void* Address, size_t Size, EPageProtectionType ProtectionType)
+bool bit::PageAllocator::SetProtectionPage(void* Address, size_t Size, PageProtectionType ProtectionType)
 {
-	return VirtualAddressSpace.ProtectPagesByAddress(Address, Size, ProtectionType);
+	return VirtualAddress.ProtectPagesByAddress(Address, Size, ProtectionType);
 }
 
-const char* bit::CPageAllocator::GetStateName(EPageState State)
+const char* bit::PageAllocator::GetStateName(PageState State)
 {
 	switch (State)
 	{
-	case bit::CPageAllocator::PAGE_STATE_FREE:
+	case bit::PageAllocator::PAGE_STATE_FREE:
 		return "BUDDY_PAGE_STATE_FREE";
-	case bit::CPageAllocator::PAGE_STATE_SPLIT:
+	case bit::PageAllocator::PAGE_STATE_SPLIT:
 		return "BUDDY_PAGE_STATE_SPLIT";
-	case bit::CPageAllocator::PAGE_STATE_USED:
+	case bit::PageAllocator::PAGE_STATE_USED:
 		return "BUDDY_PAGE_STATE_USED";
 	}
 	return "BUDDY_PAGE_STATE_INVALID";
 }
 
-void bit::CPageAllocator::DebugPrintState(size_t PageIndex, size_t Depth)
+void bit::PageAllocator::DebugPrintState(size_t PageIndex, size_t Depth)
 {
 	if (PageIndex < PageCount)
 	{
@@ -74,80 +74,80 @@ void bit::CPageAllocator::DebugPrintState(size_t PageIndex, size_t Depth)
 	}
 }
 
-void bit::CPageAllocator::SetPageState(size_t PageIndex, EPageState State)
+void bit::PageAllocator::SetPageState(size_t PageIndex, PageState State)
 {
 	BIT_ASSERT(PageIndex < PageCount);
 	uint8_t BitPos = (PageIndex % 4) * 2;
 	(BitArray[PageIndex / 4] &= ~(3 << BitPos)) |= (((uint8_t)State & 3) << BitPos);
 }
 
-bit::CPageAllocator::EPageState bit::CPageAllocator::GetPageState(size_t PageIndex)
+bit::PageAllocator::PageState bit::PageAllocator::GetPageState(size_t PageIndex)
 {
 	BIT_ASSERT(PageIndex < PageCount);
-	return (EPageState)((BitArray[PageIndex / 4] >> ((PageIndex % 4) * 2)) & 3);
+	return (PageState)((BitArray[PageIndex / 4] >> ((PageIndex % 4) * 2)) & 3);
 }
 
-size_t bit::CPageAllocator::GetPageLevel(size_t PageIndex)
+size_t bit::PageAllocator::GetPageLevel(size_t PageIndex)
 {
 	return bit::Clamp(bit::BitScanReverse(PageIndex + 1), (size_t)0, (size_t)LevelCount - 1);
 }
 
-size_t bit::CPageAllocator::GetPageSize(size_t PageIndex)
+size_t bit::PageAllocator::GetPageSize(size_t PageIndex)
 {
-	return bit::Clamp(VirtualAddressSpace.GetRegionSize() >> GetPageLevel(PageIndex), PageGranularity, VirtualAddressSpace.GetRegionSize());
+	return bit::Clamp(VirtualAddress.GetRegionSize() >> GetPageLevel(PageIndex), PageGranularity, VirtualAddress.GetRegionSize());
 }
 
-size_t bit::CPageAllocator::GetPageIndex(size_t Level, size_t Slot)
+size_t bit::PageAllocator::GetPageIndex(size_t Level, size_t Slot)
 {
 	return (bit::Pow2(Level) - 1) + Slot;
 }
 
-size_t bit::CPageAllocator::GetPageSlot(size_t Level, size_t PageIndex)
+size_t bit::PageAllocator::GetPageSlot(size_t Level, size_t PageIndex)
 {
 	return PageIndex - (bit::Pow2(Level) - 1);
 }
 
-size_t bit::CPageAllocator::GetPageLeftChildIdx(size_t PageIndex)
+size_t bit::PageAllocator::GetPageLeftChildIdx(size_t PageIndex)
 {
 	return (2 * PageIndex) + 1;
 }
 
-size_t bit::CPageAllocator::GetPageRightChildIdx(size_t PageIndex)
+size_t bit::PageAllocator::GetPageRightChildIdx(size_t PageIndex)
 {
 	return (2 * PageIndex) + 2;
 }
 
-size_t bit::CPageAllocator::GetPageParentIdx(size_t PageIndex)
+size_t bit::PageAllocator::GetPageParentIdx(size_t PageIndex)
 {
 	return (PageIndex - 1) / 2;
 }
 
-size_t bit::CPageAllocator::GetLevelForPageCountRecursive(size_t PageTotalSize, size_t CurrentLevel)
+size_t bit::PageAllocator::GetLevelForPageCountRecursive(size_t PageTotalSize, size_t CurrentLevel)
 {
-	size_t LevelSize = VirtualAddressSpace.GetRegionSize() / bit::Pow2(CurrentLevel);
+	size_t LevelSize = VirtualAddress.GetRegionSize() / bit::Pow2(CurrentLevel);
 	if (LevelSize > PageTotalSize) return GetLevelForPageCountRecursive(PageTotalSize, CurrentLevel + 1);
 	else if (LevelSize < PageTotalSize) return CurrentLevel - 1;
 	else return CurrentLevel;
 }
 
-size_t bit::CPageAllocator::GetLevelForSize(size_t Size)
+size_t bit::PageAllocator::GetLevelForSize(size_t Size)
 {
-	if (Size == 0 || Size > VirtualAddressSpace.GetRegionSize()) return INVALID_LEVEL;
-	return bit::BitScanReverse(VirtualAddressSpace.GetRegionSize() / RoundToPageGranularity(Size));
+	if (Size == 0 || Size > VirtualAddress.GetRegionSize()) return INVALID_LEVEL;
+	return bit::BitScanReverse(VirtualAddress.GetRegionSize() / RoundToPageGranularity(Size));
 }
 
-void* bit::CPageAllocator::GetPageAddress(size_t PageIndex)
+void* bit::PageAllocator::GetPageAddress(size_t PageIndex)
 {
 	const size_t PageLevel = GetPageLevel(PageIndex);
 	const size_t SlotIndex = GetPageSlot(PageLevel, PageIndex);
-	const size_t PageSize = VirtualAddressSpace.GetRegionSize() >> PageLevel;
-	return bit::OffsetPtr(VirtualAddressSpace.GetBaseAddress(), SlotIndex * PageSize);
+	const size_t PageSize = VirtualAddress.GetRegionSize() >> PageLevel;
+	return bit::OffsetPtr(VirtualAddress.GetBaseAddress(), SlotIndex * PageSize);
 }
 
-size_t bit::CPageAllocator::GetPageIndex(const void* Address)
+size_t bit::PageAllocator::GetPageIndex(const void* Address)
 {
 	uintptr_t Ptr = (uintptr_t)Address;
-	uintptr_t Start = (uintptr_t)VirtualAddressSpace.GetBaseAddress();
+	uintptr_t Start = (uintptr_t)VirtualAddress.GetBaseAddress();
 	uintptr_t Diff = Ptr - Start;
 	uintptr_t Slot = Diff / PageGranularity;
 	size_t PageIndex = GetPageIndex(LevelCount - 1, Slot);
@@ -167,10 +167,10 @@ size_t bit::CPageAllocator::GetPageIndex(const void* Address)
 	return PrevPageIndex;
 }
 
-void* bit::CPageAllocator::Allocate(size_t Size, size_t Alignment)
+void* bit::PageAllocator::Allocate(size_t Size, size_t Alignment)
 {
 	BIT_UNUSED_VAR(Alignment); // Alignment will be page size.
-	CReservePages Pages = Reserve(Size);
+	ReservedPages Pages = Reserve(Size);
 	if (Pages.Address != nullptr)
 	{
 		// To avoid over committing memory we'll just round up to the page granularity
@@ -181,7 +181,7 @@ void* bit::CPageAllocator::Allocate(size_t Size, size_t Alignment)
 	return nullptr;
 }
 
-void* bit::CPageAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
+void* bit::PageAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
 {
 	BIT_UNUSED_VAR(Alignment); // Alignment will be page size.
 	if (Pointer != nullptr)
@@ -195,7 +195,7 @@ void* bit::CPageAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignme
 	return Allocate(Size, Alignment);
 }
 
-void bit::CPageAllocator::Free(void* Address)
+void bit::PageAllocator::Free(void* Address)
 {
 	size_t PageIndex = GetPageIndex(Address);
 	if (PageIndex != INVALID_PAGE)
@@ -205,9 +205,9 @@ void bit::CPageAllocator::Free(void* Address)
 	}
 }
 
-bit::CPageAllocator::CReservePages bit::CPageAllocator::Reserve(size_t Size)
+bit::PageAllocator::ReservedPages bit::PageAllocator::Reserve(size_t Size)
 {
-	CReservePages Pages = {};
+	ReservedPages Pages = {};
 	size_t PageIndex = AllocPage(Size);
 	if (PageIndex != INVALID_PAGE)
 	{
@@ -219,44 +219,44 @@ bit::CPageAllocator::CReservePages bit::CPageAllocator::Reserve(size_t Size)
 	return Pages;
 }
 
-void* bit::CPageAllocator::Commit(void* Address, size_t Size)
+void* bit::PageAllocator::Commit(void* Address, size_t Size)
 {
 	return CommitPage(Address, Size);
 }
 
-void bit::CPageAllocator::Decommit(void* Address, size_t Size)
+void bit::PageAllocator::Decommit(void* Address, size_t Size)
 {
 	DecommitPage(Address, Size);
 }
 
-bool bit::CPageAllocator::SetProtection(void* Address, size_t Size, EPageProtectionType ProtectionType)
+bool bit::PageAllocator::SetProtection(void* Address, size_t Size, PageProtectionType ProtectionType)
 {
 	return SetProtectionPage(Address, Size, ProtectionType);
 }
 
-size_t bit::CPageAllocator::GetSize(void* Address)
+size_t bit::PageAllocator::GetSize(void* Address)
 {
 	return GetPageSize(GetPageIndex(Address));
 }
 
-bit::CMemoryUsageInfo bit::CPageAllocator::GetMemoryUsageInfo()
+bit::MemoryUsageInfo bit::PageAllocator::GetMemoryUsageInfo()
 {
-	CMemoryUsageInfo MemInfo = {};
-	MemInfo.ReservedBytes = VirtualAddressSpace.GetRegionSize();
-	MemInfo.CommittedBytes = VirtualAddressSpace.GetCommittedSize();
-	MemInfo.AllocatedBytes = VirtualAddressSpace.GetCommittedSize();
+	MemoryUsageInfo MemInfo = {};
+	MemInfo.ReservedBytes = VirtualAddress.GetRegionSize();
+	MemInfo.CommittedBytes = VirtualAddress.GetCommittedSize();
+	MemInfo.AllocatedBytes = VirtualAddress.GetCommittedSize();
 	return MemInfo;
 }
 
-size_t bit::CPageAllocator::GetPageGranularity()
+size_t bit::PageAllocator::GetPageGranularity()
 {
 	return PageGranularity;
 }
 
-size_t bit::CPageAllocator::FindPageRecursive(size_t PageIndex, size_t MinSize)
+size_t bit::PageAllocator::FindPageRecursive(size_t PageIndex, size_t MinSize)
 {
 	size_t PageSize = GetPageSize(PageIndex);
-	EPageState State = GetPageState(PageIndex);
+	PageState State = GetPageState(PageIndex);
 
 	if (State != PAGE_STATE_USED && PageSize >= MinSize)
 	{
@@ -287,12 +287,12 @@ size_t bit::CPageAllocator::FindPageRecursive(size_t PageIndex, size_t MinSize)
 	return INVALID_PAGE;
 }
 
-size_t bit::CPageAllocator::AllocPage(size_t Size)
+size_t bit::PageAllocator::AllocPage(size_t Size)
 {
 	size_t PageSize = RoundToPageGranularity(Size);
 	size_t Level = GetLevelForSize(Size);
 	size_t PageIndex = GetPageIndex(Level, 0);
-	size_t PageCount = VirtualAddressSpace.GetRegionSize() / PageSize;
+	size_t PageCount = VirtualAddress.GetRegionSize() / PageSize;
 	for (size_t Index = 0; Index < PageCount; ++Index)
 	{
 		if (GetPageState(PageIndex + Index) == PAGE_STATE_FREE)
@@ -312,7 +312,7 @@ size_t bit::CPageAllocator::AllocPage(size_t Size)
 	return INVALID_PAGE;
 }
 
-void bit::CPageAllocator::CoalescePagesRecursive(size_t PageIndex)
+void bit::PageAllocator::CoalescePagesRecursive(size_t PageIndex)
 {
 	size_t ParentPage = GetPageParentIdx(PageIndex);
 	if (ParentPage < PageCount - 1 && GetPageState(ParentPage) == PAGE_STATE_SPLIT)
@@ -327,14 +327,14 @@ void bit::CPageAllocator::CoalescePagesRecursive(size_t PageIndex)
 	}
 }
 
-void bit::CPageAllocator::FreePage(size_t PageIndex)
+void bit::PageAllocator::FreePage(size_t PageIndex)
 {
 	SetPageState(PageIndex, PAGE_STATE_FREE);
 	MarkChildPagesRecursive(PageIndex, PAGE_STATE_FREE);
 	CoalescePagesRecursive(PageIndex);
 }
 
-void bit::CPageAllocator::MarkChildPagesRecursive(size_t PageIndex, EPageState State)
+void bit::PageAllocator::MarkChildPagesRecursive(size_t PageIndex, PageState State)
 {
 	size_t LeftChildIndex = GetPageLeftChildIdx(PageIndex);
 	size_t RightChildIndex = GetPageRightChildIdx(PageIndex);
@@ -349,7 +349,7 @@ void bit::CPageAllocator::MarkChildPagesRecursive(size_t PageIndex, EPageState S
 	}
 }
 
-void bit::CPageAllocator::MarkParentPagesRecursive(size_t PageIndex, EPageState State)
+void bit::PageAllocator::MarkParentPagesRecursive(size_t PageIndex, PageState State)
 {
 	size_t ParentIndex = GetPageParentIdx(PageIndex);
 	SetPageState(ParentIndex, State);
@@ -359,7 +359,7 @@ void bit::CPageAllocator::MarkParentPagesRecursive(size_t PageIndex, EPageState 
 	}
 }
 
-size_t bit::CPageAllocator::RoundToPageGranularity(size_t Size)
+size_t bit::PageAllocator::RoundToPageGranularity(size_t Size)
 {
 	if (Size <= PageGranularity) return PageGranularity;
 	size_t NewSize = (Size / PageGranularity + 1) * PageGranularity;

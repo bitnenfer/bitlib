@@ -5,7 +5,7 @@
 namespace bit
 {
 	template<typename T>
-	struct THash
+	struct Hash
 	{
 		typedef size_t HashType_t;
 		HashType_t operator()(const T& Value) const

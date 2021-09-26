@@ -7,7 +7,7 @@
 namespace bit
 {
 	template<typename T>
-	struct TDefaultDeleter
+	struct DefaultDeleter
 	{
 		void operator()(T* const Ptr)
 		{
@@ -16,13 +16,13 @@ namespace bit
 	};
 
 	template<typename T>
-	struct TAllocatorDeleter
+	struct AllocatorDeleter
 	{
-		TAllocatorDeleter() :
+		AllocatorDeleter() :
 			Allocator(nullptr)
 		{}
 
-		TAllocatorDeleter(bit::IAllocator& Allocator) :
+		AllocatorDeleter(bit::Allocator& Allocator) :
 			Allocator(&Allocator)
 		{}
 
@@ -34,10 +34,10 @@ namespace bit
 			}
 		}
 
-		bit::IAllocator* Allocator;
+		bit::Allocator* Allocator;
 	};
 
-	struct CNonAtomicAssignPtrPolicy
+	struct NonAtomicAssignPtrPolicy
 	{
 		template<typename T>
 		static T* Assign(T** Target, T* Source)
@@ -49,7 +49,7 @@ namespace bit
 	};
 
 	template<typename TAtomicValue>
-	struct TAtomicAssignPtrPolicy
+	struct AtomicAssignPtrPolicy
 	{
 		template<typename T>
 		static T* Assign(T** Target, T* Source)
@@ -58,10 +58,10 @@ namespace bit
 		}
 	};
 
-	template<typename T, typename TRefCounter>
-	struct TControlBlockBase
+	template<typename T, typename RefCounter>
+	struct ControlBlockBase
 	{
-		TControlBlockBase(T* Ptr) :
+		ControlBlockBase(T* Ptr) :
 			Ptr(Ptr),
 			StrongRefCounter(1),
 			WeakRefCounter(0)
@@ -71,8 +71,8 @@ namespace bit
 		void IncWeakRef() { WeakRefCounter.Increment(); }
 		bool DecStrongRef() { return StrongRefCounter.Decrement(); }
 		bool DecWeakRef() { return WeakRefCounter.Decrement(); }
-		typename TRefCounter::CounterType_t GetStrongRefCount() const { return StrongRefCounter.GetCount(); }
-		typename TRefCounter::CounterType_t GetWeakRefCount() const { return WeakRefCounter.GetCount(); }
+		typename RefCounter::CounterType_t GetStrongRefCount() const { return StrongRefCounter.GetCount(); }
+		typename RefCounter::CounterType_t GetWeakRefCount() const { return WeakRefCounter.GetCount(); }
 
 		virtual void DeletePtr() = 0;
 
@@ -82,21 +82,21 @@ namespace bit
 			WeakRefCounter.Reset();
 		}
 
-		TRefCounter StrongRefCounter;
-		TRefCounter WeakRefCounter;
+		RefCounter StrongRefCounter;
+		RefCounter WeakRefCounter;
 		T* Ptr;
 	};
 	
 	template<
 		typename T, 
-		typename TRefCounter,
+		typename RefCounter,
 		typename TCustomDeleter
 	>
-	struct TControlBlock : public TControlBlockBase<T, TRefCounter>
+	struct ControlBlock : public ControlBlockBase<T, RefCounter>
 	{
-		using Base = TControlBlockBase<T, TRefCounter>;
+		using Base = ControlBlockBase<T, RefCounter>;
 
-		TControlBlock(T* Ptr, const TCustomDeleter& CustomDeleter) :
+		ControlBlock(T* Ptr, const TCustomDeleter& CustomDeleter) :
 			Base(Ptr),
 			CustomDeleter(CustomDeleter)
 		{}
@@ -106,74 +106,74 @@ namespace bit
 		TCustomDeleter CustomDeleter;
 	};
 
-	using TAssignPtr = TAtomicAssignPtrPolicy<int64_t>;
-	using TRefCounter = TAtomicRefCounter<int64_t>;
+	using AssignPtr = AtomicAssignPtrPolicy<int64_t>;
+	using RefCounter = AtomicRefCounter<int64_t>;
 
 	template<
 		typename T, 
-		typename TDeleter = TDefaultDeleter<T>
+		typename TDeleter = DefaultDeleter<T>
 	>
-	struct TUniquePtr : public CNonCopyable
+	struct UniquePtr : public NonCopyable
 	{
-		using SelfType = TUniquePtr<T, TDeleter>;
+		using SelfType = UniquePtr<T, TDeleter>;
 
-		TUniquePtr() :
+		UniquePtr() :
 			Ptr(nullptr)
 		{}
 
-		TUniquePtr(T* InPtr) :
+		UniquePtr(T* InPtr) :
 			Ptr(InPtr)
 		{}
 
-		TUniquePtr(T* InPtr, const TDeleter& Deleter) :
+		UniquePtr(T* InPtr, const TDeleter& Deleter) :
 			Ptr(InPtr),
 			Deleter(Deleter)
 		{}
 
-		TUniquePtr(SelfType&& Move)
+		UniquePtr(SelfType&& Move)
 		{
-			TAssignPtr::Assign<T>(&Ptr, Move.Release());
+			AssignPtr::Assign<T>(&Ptr, Move.Release());
 			Deleter = bit::Move(Move.Deleter);
 		}
 		SelfType& operator=(SelfType&& Move)
 		{
 			Reset();
-			TAssignPtr::Assign<T>(&Ptr, Move.Release());
+			AssignPtr::Assign<T>(&Ptr, Move.Release());
 			Deleter = bit::Move(Move.Deleter);
 			return *this;
 		}
-		~TUniquePtr()
+		~UniquePtr()
 		{
 			Reset();
 		}
 
 		T* Release()
 		{
-			return (T*)TAssignPtr::Assign<T>(&Ptr, nullptr);
+			return (T*)AssignPtr::Assign<T>(&Ptr, nullptr);
 		}
 		
 		void Reset(T* NewPtr)
 		{
-			T* OldPtr = (T*)TAssignPtr::Assign<T>(&Ptr, NewPtr);
+			T* OldPtr = (T*)AssignPtr::Assign<T>(&Ptr, NewPtr);
 			if (OldPtr != nullptr) Deleter(OldPtr);
 		}
 
 		void Reset(T* NewPtr, const TDeleter& InDeleter)
 		{
-			T* OldPtr = (T*)TAssignPtr::Assign<T>(&Ptr, NewPtr);
+			T* OldPtr = (T*)AssignPtr::Assign<T>(&Ptr, NewPtr);
 			if (OldPtr != nullptr) Deleter(OldPtr);
 			Deleter = InDeleter;
 		}
 
 		void Reset()
 		{
-			T* OldPtr = (T*)TAssignPtr::Assign<T>(&Ptr, nullptr);
+			T* OldPtr = (T*)AssignPtr::Assign<T>(&Ptr, nullptr);
 			if (OldPtr != nullptr) Deleter(OldPtr);;
 		}
 
 		void Swap(SelfType& Other)
 		{
-			TAssignPtr::Assign<T>(&Other.Ptr, TAssignPtr::Assign<T>(&Ptr, Other.Ptr));
+			AssignPtr::Assign<T>(&Other.Ptr, AssignPtr::Assign<T>(&Ptr, Other.Ptr));
 			TDeleter OldDeleter = Deleter;
 			Deleter = Other.Deleter;
 			Other.Deleter = OldDeleter;
@@ -185,8 +185,8 @@ namespace bit
 		T* Get() { return Ptr; }
 
 	private:
-		TUniquePtr(const SelfType&) = delete;
-		TUniquePtr operator=(const SelfType&) = delete;
+		UniquePtr(const SelfType&) = delete;
+		UniquePtr operator=(const SelfType&) = delete;
 
 		template<typename T>
 		friend struct TSharedPtr;
@@ -201,57 +201,57 @@ namespace bit
 	template<typename T>
 	struct TSharedPtr
 	{
-		typedef TControlBlockBase<T, TRefCounter> ControlBlockBaseType_t;
+		typedef ControlBlockBase<T, RefCounter> ControlBlockBaseType_t;
 
 		TSharedPtr() :
-			ControlBlock(nullptr)
+			CtrlBlock(nullptr)
 		{}
 
 		TSharedPtr(T* InPtr) :
-			ControlBlock(Construct(InPtr))
+			CtrlBlock(Construct(InPtr))
 		{}
 
 		template<typename TDeleter>
 		TSharedPtr(T* InPtr, const TDeleter& Deleter) :
-			ControlBlock(Construct(InPtr, Deleter))
+			CtrlBlock(Construct(InPtr, Deleter))
 		{}
 
 		~TSharedPtr()
 		{
-			if (IsValid() && ControlBlock->DecStrongRef())
+			if (IsValid() && CtrlBlock->DecStrongRef())
 			{
-				ControlBlock->DeletePtr();
-				if (ControlBlock->GetWeakRefCount() == 0)
+				CtrlBlock->DeletePtr();
+				if (CtrlBlock->GetWeakRefCount() == 0)
 				{
-					bit::Delete(ControlBlock);
+					bit::Delete(CtrlBlock);
 				}
 			}
 		}
 
 		TSharedPtr(const TSharedPtr<T>& Copy) 
 		{
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, Copy.ControlBlock);
-			if (IsValid()) ControlBlock->IncStrongRef();
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, Copy.CtrlBlock);
+			if (IsValid()) CtrlBlock->IncStrongRef();
 		}
 
 		TSharedPtr<T>& operator=(const TSharedPtr<T>& Copy)
 		{
 			Reset();
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, Copy.ControlBlock);
-			if (IsValid()) ControlBlock->IncStrongRef();
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, Copy.CtrlBlock);
+			if (IsValid()) CtrlBlock->IncStrongRef();
 			return *this;
 		}
 
 		TSharedPtr<T>& operator=(TSharedPtr<T>&& Move)
 		{
 			Reset();
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, Move.ControlBlock);
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&Move.ControlBlock, nullptr);
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, Move.CtrlBlock);
+			AssignPtr::Assign<ControlBlockBaseType_t>(&Move.CtrlBlock, nullptr);
 			return *this;
 		}
 
 		template<typename TDeleter>
-		TSharedPtr<T>& operator=(TUniquePtr<T, TDeleter>&& Move)
+		TSharedPtr<T>& operator=(UniquePtr<T, TDeleter>&& Move)
 		{
 			Reset(Move.Release(), Move.Deleter);
 			return *this;
@@ -263,7 +263,7 @@ namespace bit
 
 			if (NewPtr != nullptr)
 			{
-				ControlBlock = Construct(NewPtr);
+				CtrlBlock = Construct(NewPtr);
 			}
 		}
 
@@ -274,7 +274,7 @@ namespace bit
 
 			if (NewPtr != nullptr)
 			{
-				ControlBlock = Construct(NewPtr, Deleter);
+				CtrlBlock = Construct(NewPtr, Deleter);
 			}
 		}
 
@@ -283,14 +283,14 @@ namespace bit
 			if (IsValid()) DestroyIfPossible();
 		}
 
-		BIT_FORCEINLINE int64_t GetUseCount() const { return ControlBlock ? ControlBlock->GetStrongRefCount() : 0; }
-		BIT_FORCEINLINE int64_t GetWeakCount() const { return ControlBlock ? ControlBlock->GetWeakRefCount() : 0; }
+		BIT_FORCEINLINE int64_t GetUseCount() const { return CtrlBlock ? CtrlBlock->GetStrongRefCount() : 0; }
+		BIT_FORCEINLINE int64_t GetWeakCount() const { return CtrlBlock ? CtrlBlock->GetWeakRefCount() : 0; }
 		BIT_FORCEINLINE bool IsUnique() const { return GetUseCount() == 1; }
-		BIT_FORCEINLINE bool IsValid() const { return ControlBlock != nullptr; }
-		BIT_FORCEINLINE bool IsAlive() const { return ControlBlock != nullptr && ControlBlock->Ptr != nullptr; }
-		BIT_FORCEINLINE T* operator->() { IsValid() ? ControlBlock->Ptr : nullptr; }
-		BIT_FORCEINLINE T& operator*() { return IsValid() ? *(ControlBlock->Ptr) : nullptr; }
-		BIT_FORCEINLINE T* Get() { return IsValid() ? ControlBlock->Ptr : nullptr; }
+		BIT_FORCEINLINE bool IsValid() const { return CtrlBlock != nullptr; }
+		BIT_FORCEINLINE bool IsAlive() const { return CtrlBlock != nullptr && CtrlBlock->Ptr != nullptr; }
+		BIT_FORCEINLINE T* operator->() { IsValid() ? CtrlBlock->Ptr : nullptr; }
+		BIT_FORCEINLINE T& operator*() { return IsValid() ? *(CtrlBlock->Ptr) : nullptr; }
+		BIT_FORCEINLINE T* Get() { return IsValid() ? CtrlBlock->Ptr : nullptr; }
 
 	private:
 		template<typename T>
@@ -298,67 +298,67 @@ namespace bit
 
 		TSharedPtr(ControlBlockBaseType_t* OtherControlBlock)
 		{
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, OtherControlBlock);
-			if (IsValid()) ControlBlock->IncStrongRef();
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, OtherControlBlock);
+			if (IsValid()) CtrlBlock->IncStrongRef();
 		}
 
 		TSharedPtr<T>& operator=(ControlBlockBaseType_t* OtherControlBlock)
 		{
 			Reset();
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, OtherControlBlock);
-			if (IsValid()) ControlBlock->IncStrongRef();
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, OtherControlBlock);
+			if (IsValid()) CtrlBlock->IncStrongRef();
 			return this;
 		}
 
 		bool DestroyIfPossible()
 		{
-			ControlBlockBaseType_t* TempControlBlock = ControlBlock;
-			ControlBlock = nullptr;
-			if (TempControlBlock->DecStrongRef())
+			ControlBlockBaseType_t* TempCtrlBlock = CtrlBlock;
+			CtrlBlock = nullptr;
+			if (TempCtrlBlock->DecStrongRef())
 			{
-				TempControlBlock->DeletePtr();
-				if (TempControlBlock->GetWeakRefCount() == 0)
+				TempCtrlBlock->DeletePtr();
+				if (TempCtrlBlock->GetWeakRefCount() == 0)
 				{
-					bit::Delete(TempControlBlock);
+					bit::Delete(TempCtrlBlock);
 					return true;
 				}
 			}
 			return false;
 		}
 
-		ControlBlockBaseType_t* Construct(T* Ptr) const { return bit::New<TControlBlock<T, TRefCounter, TDefaultDeleter<T>>>(Ptr, TDefaultDeleter<T>()); }
+		ControlBlockBaseType_t* Construct(T* Ptr) const { return bit::New<ControlBlock<T, RefCounter, DefaultDeleter<T>>>(Ptr, DefaultDeleter<T>()); }
 
 		template<typename TDeleter>
-		ControlBlockBaseType_t* Construct(T* Ptr, const TDeleter& Deleter) const { return bit::New<TControlBlock<T, TRefCounter, TDeleter>>(Ptr, Deleter); }
+		ControlBlockBaseType_t* Construct(T* Ptr, const TDeleter& Deleter) const { return bit::New<ControlBlock<T, RefCounter, TDeleter>>(Ptr, Deleter); }
 
-		ControlBlockBaseType_t* ControlBlock;
+		ControlBlockBaseType_t* CtrlBlock;
 	};
 
 	template<typename T>
 	struct TWeakPtr
 	{
-		typedef TControlBlockBase<T, TRefCounter> ControlBlockBaseType_t;
+		typedef ControlBlockBase<T, RefCounter> ControlBlockBaseType_t;
 
 		TWeakPtr() :
-			ControlBlock(nullptr)
+			CtrlBlock(nullptr)
 		{}
 
 		TWeakPtr(const TSharedPtr<T>& SharedPtr)
 		{
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, SharedPtr.ControlBlock);
-			if (ControlBlock != nullptr) ControlBlock->IncWeakRef();
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, SharedPtr.CtrlBlock);
+			if (CtrlBlock != nullptr) CtrlBlock->IncWeakRef();
 		}
 
 		TWeakPtr(const TWeakPtr<T>& WeakPtr)
 		{
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, WeakPtr.ControlBlock);
-			if (ControlBlock != nullptr) ControlBlock->IncWeakRef();
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, WeakPtr.CtrlBlock);
+			if (CtrlBlock != nullptr) CtrlBlock->IncWeakRef();
 		}
 
 		TWeakPtr(TWeakPtr<T>&& WeakPtr)
 		{
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, WeakPtr.ControlBlock);
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&WeakPtr.ControlBlock, nullptr);
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, WeakPtr.CtrlBlock);
+			AssignPtr::Assign<ControlBlockBaseType_t>(&WeakPtr.CtrlBlock, nullptr);
 		}
 
 		~TWeakPtr()
@@ -369,74 +369,74 @@ namespace bit
 		TWeakPtr<T>& operator=(const TSharedPtr<T>& SharedPtr)
 		{
 			Reset();
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, SharedPtr.ControlBlock);
-			if (ControlBlock != nullptr) ControlBlock->IncWeakRef();
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, SharedPtr.CtrlBlock);
+			if (CtrlBlock != nullptr) CtrlBlock->IncWeakRef();
 			return *this;
 		}
 
 		TWeakPtr<T>& operator=(const TWeakPtr<T>& WeakPtr)
 		{
 			Reset();
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, WeakPtr.ControlBlock);
-			if (ControlBlock != nullptr) ControlBlock->IncWeakRef();
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, WeakPtr.CtrlBlock);
+			if (CtrlBlock != nullptr) CtrlBlock->IncWeakRef();
 			return *this;
 		}
 
 		TWeakPtr<T>&& operator=(TWeakPtr<T>&& WeakPtr)
 		{
 			Reset();
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&ControlBlock, WeakPtr.ControlBlock);
-			TAssignPtr::Assign<ControlBlockBaseType_t>(&WeakPtr.ControlBlock, nullptr);
+			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, WeakPtr.CtrlBlock);
+			AssignPtr::Assign<ControlBlockBaseType_t>(&WeakPtr.CtrlBlock, nullptr);
 			return *this;
 		}
 
 		void Reset()
 		{
-			if (ControlBlock != nullptr && 
-				ControlBlock->DecWeakRef() &&
-				ControlBlock->GetStrongRefCount() <= 0)
+			if (CtrlBlock != nullptr &&
+				CtrlBlock->DecWeakRef() &&
+				CtrlBlock->GetStrongRefCount() <= 0)
 			{
-				bit::Delete(ControlBlock);
-				ControlBlock = nullptr;
+				bit::Delete(CtrlBlock);
+				CtrlBlock = nullptr;
 			}
 		}
 
 		TSharedPtr<T> Lock()
 		{
 			if (!HasExpired())
-				return TSharedPtr<T>(ControlBlock);
+				return TSharedPtr<T>(CtrlBlock);
 			return TSharedPtr<T>();
 		}
 
-		BIT_FORCEINLINE int64_t GetUseCount() const { return ControlBlock ? ControlBlock->GetStrongRefCount() : 0; }
+		BIT_FORCEINLINE int64_t GetUseCount() const { return CtrlBlock ? CtrlBlock->GetStrongRefCount() : 0; }
 		BIT_FORCEINLINE bool HasExpired() const { return GetUseCount() <= 0; }
 		
 	private:
-		ControlBlockBaseType_t* ControlBlock;
+		ControlBlockBaseType_t* CtrlBlock;
 	};
 
 	template<typename T, typename... TArgs>
-	TUniquePtr<T> MakeUnique(TArgs&& ... ConstructorArgs)
+	UniquePtr<T> MakeUnique(TArgs&& ... ConstructorArgs)
 	{
-		return bit::TUniquePtr<T>(bit::New<T>(bit::Forward<TArgs>(ConstructorArgs)...), TDefaultDeleter<T>());
+		return bit::UniquePtr<T>(bit::New<T>(bit::Forward<TArgs>(ConstructorArgs)...), DefaultDeleter<T>());
 	}
 
 	template<typename T, typename TDeleter, typename... TArgs>
-	TUniquePtr<T, TDeleter> MakeUnique(const TDeleter& Deleter, TArgs&& ... ConstructorArgs)
+	UniquePtr<T, TDeleter> MakeUnique(const TDeleter& Deleter, TArgs&& ... ConstructorArgs)
 	{
-		return bit::TUniquePtr<T, TDeleter>(bit::New<T>(bit::Forward<TArgs>(ConstructorArgs)...), Deleter);
+		return bit::UniquePtr<T, TDeleter>(bit::New<T>(bit::Forward<TArgs>(ConstructorArgs)...), Deleter);
 	}
 
 	template<typename T, typename... TArgs>
-	TUniquePtr<T, TAllocatorDeleter<T>> MakeUniqueWithAllocator(bit::IAllocator& Allocator, TArgs&& ... ConstructorArgs)
+	UniquePtr<T, AllocatorDeleter<T>> MakeUniqueWithAllocator(bit::Allocator& Allocator, TArgs&& ... ConstructorArgs)
 	{
-		return bit::TUniquePtr<T, TAllocatorDeleter<T>>(Allocator.New<T>(bit::Forward<TArgs>(ConstructorArgs)...), TAllocatorDeleter<T>(Allocator));
+		return bit::UniquePtr<T, AllocatorDeleter<T>>(Allocator.New<T>(bit::Forward<TArgs>(ConstructorArgs)...), AllocatorDeleter<T>(Allocator));
 	}
 
 	template<typename T, typename TDeleter, typename... TArgs>
-	TUniquePtr<T, TDeleter> MakeUniqueWithAllocator(const TDeleter& Deleter, bit::IAllocator& Allocator, TArgs&& ... ConstructorArgs)
+	UniquePtr<T, TDeleter> MakeUniqueWithAllocator(const TDeleter& Deleter, bit::Allocator& Allocator, TArgs&& ... ConstructorArgs)
 	{
-		return bit::TUniquePtr<T, TDeleter>(Allocator.New<T>(bit::Forward<TArgs>(ConstructorArgs)...), Deleter);
+		return bit::UniquePtr<T, TDeleter>(Allocator.New<T>(bit::Forward<TArgs>(ConstructorArgs)...), Deleter);
 	}
 
 	template<typename T, typename... TArgs>
@@ -446,8 +446,8 @@ namespace bit
 	}
 
 	template<typename T, typename... TArgs>
-	TSharedPtr<T> MakeSharedWithAllocator(bit::IAllocator& Allocator, TArgs&& ...Args)
+	TSharedPtr<T> MakeSharedWithAllocator(bit::Allocator& Allocator, TArgs&& ...Args)
 	{
-		return TSharedPtr<T>(Allocator.New<T>(bit::Forward<TArgs>(Args)...), TAllocatorDeleter<T>(Allocator));
+		return TSharedPtr<T>(Allocator.New<T>(bit::Forward<TArgs>(Args)...), AllocatorDeleter<T>(Allocator));
 	}
 }

@@ -7,6 +7,23 @@ template<> uint32_t bit::BitScanReverse<uint32_t>(uint32_t Value) { return BitSc
 template<> uint64_t bit::BitScanForward<uint64_t>(uint64_t Value) { return BitScanForward64(Value); }
 template<> uint32_t bit::BitScanForward<uint32_t>(uint32_t Value) { return BitScanForward32(Value); }
 
+template<>
+uint32_t bit::Pow2<uint32_t>(uint32_t Exp)
+{
+	return 1 << Exp;
+}
+
+template<>
+uint64_t bit::Pow2<uint64_t>(uint64_t Exp)
+{
+	return 1LL << Exp;
+}
+
+template<> int64_t bit::BitScanReverse<int64_t>(int64_t Value) { return BitScanReverse64((int64_t)Value); }
+template<> int32_t bit::BitScanReverse<int32_t>(int32_t Value) { return BitScanReverse32((int32_t)Value); }
+template<> int64_t bit::BitScanForward<int64_t>(int64_t Value) { return BitScanForward64((int64_t)Value); }
+template<> int32_t bit::BitScanForward<int32_t>(int32_t Value) { return BitScanForward32((int32_t)Value); }
+
 uint64_t bit::BitScanReverse64(uint64_t Value)
 {
 #if BIT_PLATFORM_X64

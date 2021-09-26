@@ -5,34 +5,52 @@
 
 namespace bit
 {
-	struct BITLIB_API CRWLock : CNonCopyable, CNonMovable
+	struct BITLIB_API RWLock : NonCopyable, NonMovable
 	{
-		CRWLock();
-		~CRWLock();
-		void LockShared();
-		void UnlockShared();
-		void LockExclusive();
-		void UnlockExclusive();
-		bool TryLockShared();
-		bool TryLockExclusive();
+		RWLock();
+		~RWLock();
+		void LockRead();
+		void UnlockRead();
+		void LockWrite();
+		void UnlockWrite();
+		bool TryLockRead();
+		bool TryLockWrite();
 
 	private:
 		Handle_t Handle;
 	};
 
-	enum class ERWLockType
+	enum class RWLockType
 	{
 		LOCK_READ_ONLY,
 		LOCK_READ_WRITE
 	};
 
-	struct BITLIB_API CScopedRWLock
+	struct BITLIB_API ScopedRWLock
 	{
-		CScopedRWLock(CRWLock* InLockable, ERWLockType InLockType);
-		~CScopedRWLock();
+		ScopedRWLock(RWLock* InLockable, RWLockType InLockType);
+		~ScopedRWLock();
 
 	private:
-		CRWLock* Lockable;
-		ERWLockType LockType;
+		RWLock* Lockable;
+		RWLockType LockType;
+	};
+
+	struct BITLIB_API ScopedReadLock
+	{
+		ScopedReadLock(RWLock* InLockable);
+		~ScopedReadLock();
+
+	private:
+		RWLock* Lockable;
+	};
+
+	struct BITLIB_API ScopedWriteLock
+	{
+		ScopedWriteLock(RWLock* InLockable);
+		~ScopedWriteLock();
+
+	private:
+		RWLock* Lockable;
 	};
 }

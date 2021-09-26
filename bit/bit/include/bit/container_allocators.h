@@ -6,9 +6,9 @@
 namespace bit
 {
 	typedef int32_t SizeType_t;
-	static_assert(bit::TIsSigned<SizeType_t>::Value, "Size type must be signed");
+	static_assert(bit::IsSigned<SizeType_t>::Value, "Size type must be signed");
 
-	struct BITLIB_API CDefaultHeapAllocator
+	struct BITLIB_API DefaultHeapAllocator
 	{
 		void* Allocate(void* Original, SizeType_t Size, SizeType_t Count)
 		{
@@ -21,16 +21,16 @@ namespace bit
 		}
 	};
 
-	struct BITLIB_API CDefaultBlockAllocator
+	struct BITLIB_API DefaultBlockAllocator
 	{
-		CDefaultBlockAllocator(CDefaultBlockAllocator&& Allocator) :
+		DefaultBlockAllocator(DefaultBlockAllocator&& Allocator) :
 			Block(Allocator.Block),
 			AllocationSize(Allocator.AllocationSize)
 		{
 			Allocator.Block = nullptr;
 			Allocator.AllocationSize = 0;
 		}
-		CDefaultBlockAllocator& operator=(CDefaultBlockAllocator&& Allocator)
+		DefaultBlockAllocator& operator=(DefaultBlockAllocator&& Allocator)
 		{
 			Block = Allocator.Block;
 			AllocationSize = Allocator.AllocationSize;
@@ -39,12 +39,12 @@ namespace bit
 			return *this; 
 		}
 
-		CDefaultBlockAllocator() :
+		DefaultBlockAllocator() :
 			Block(nullptr),
 			AllocationSize(0)
 		{}
 
-		~CDefaultBlockAllocator()
+		~DefaultBlockAllocator()
 		{
 			Free();
 		}
@@ -70,14 +70,14 @@ namespace bit
 		bool IsValid() const { return Block != nullptr; }
 
 	private:
-		CDefaultBlockAllocator(const CDefaultBlockAllocator&) = delete;
+		DefaultBlockAllocator(const DefaultBlockAllocator&) = delete;
 		void* Block;
 		SizeType_t AllocationSize;
-		CDefaultHeapAllocator HeapAllocator;
+		DefaultHeapAllocator HeapAllocator;
 	};
 
 	template<typename T, size_t Capacity>
-	struct TFixedBlockAllocator
+	struct FixedBlockAllocator
 	{
 		void Allocate(SizeType_t Size, SizeType_t Count)
 		{
@@ -93,14 +93,14 @@ namespace bit
 		T Block[Capacity];
 	};
 
-	template<typename T, size_t InlineCount, typename TFallbackAllocator = CDefaultBlockAllocator>
-	struct TInlineBlockAllocator
+	template<typename T, size_t InlineCount, typename TFallbackAllocator = DefaultBlockAllocator>
+	struct SmallBufferBlockAllocator
 	{
-		TInlineBlockAllocator() :
+		SmallBufferBlockAllocator() :
 			Block((void*)&InlineBlock[0]),
 			AllocationSize(InlineCount * sizeof(T))
 		{}
-		TInlineBlockAllocator(TInlineBlockAllocator&& Allocator) :
+		SmallBufferBlockAllocator(SmallBufferBlockAllocator&& Allocator) :
 			Block((void*)&InlineBlock[0]),
 			AllocationSize(InlineCount * sizeof(T))
 		{
@@ -116,7 +116,7 @@ namespace bit
 			Allocator.Block = nullptr;
 			Allocator.AllocationSize = 0;
 		}
-		TInlineBlockAllocator& operator=(TInlineBlockAllocator&& Allocator)
+		SmallBufferBlockAllocator& operator=(SmallBufferBlockAllocator&& Allocator)
 		{
 			if (Allocator.IsUsingInlineBlock())
 			{
@@ -167,7 +167,7 @@ namespace bit
 		bool IsValid() const { return Block != nullptr; }
 
 	private:
-		TInlineBlockAllocator(const TInlineBlockAllocator&) = delete;
+		SmallBufferBlockAllocator(const SmallBufferBlockAllocator&) = delete;
 
 		T InlineBlock[InlineCount];
 		TFallbackAllocator FallbackAllocator;
@@ -175,10 +175,10 @@ namespace bit
 		SizeType_t AllocationSize;
 	};
 
-	struct BITLIB_API CDefaultLinkedListAllocator
+	struct BITLIB_API DefaultLinkedListAllocator
 	{
 		template<typename TLinkType>
-		struct TLinkAllocator
+		struct LinkAllocator
 		{
 			TLinkType* AllocateLink(SizeType_t Count)
 			{
@@ -190,13 +190,13 @@ namespace bit
 				HeapAllocator.Free(Link);
 			}
 
-			CDefaultHeapAllocator HeapAllocator;
+			DefaultHeapAllocator HeapAllocator;
 		};
 	};
 
-	struct BITLIB_API CDefaultHashTableAllocator
+	struct BITLIB_API DefaultHashTableAllocator
 	{
-		typedef CDefaultLinkedListAllocator BucketEntryAllocatorType_t;
-		typedef CDefaultHeapAllocator BucketAllocatorType_t;
+		typedef DefaultLinkedListAllocator BucketEntryAllocatorType_t;
+		typedef DefaultHeapAllocator BucketAllocatorType_t;
 	};
 }

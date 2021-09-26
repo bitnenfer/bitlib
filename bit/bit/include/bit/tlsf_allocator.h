@@ -5,90 +5,94 @@
 
 namespace bit
 {
+	using TLSFSizeType_t = size_t;
+
 	/* Two-Level Segregated Fit Allocator */
 	/* Source: http://www.gii.upv.es/tlsf/files/ecrts04_tlsf.pdf */
-	struct BITLIB_API CTLSFAllocator : public bit::IAllocator
+	struct BITLIB_API TLSFAllocator : public bit::Allocator
 	{
 	private:
-		struct BITLIB_API CBlockHeader
+		struct BITLIB_API BlockHeader
 		{
-			BIT_FORCEINLINE void Reset(uint32_t NewSize) { Size = 0; PrevPhysicalBlock = nullptr; SetSize(NewSize); }
+			BIT_FORCEINLINE void Reset(TLSFSizeType_t NewSize) { Size = 0; PrevPhysicalBlock = nullptr; SetSize(NewSize); }
 			BIT_FORCEINLINE bool IsFree() const { return (Size & 0b01) > 0; }
 			BIT_FORCEINLINE bool IsLastPhysicalBlock() const { return (Size & 0b10) > 0; }
-			BIT_FORCEINLINE uint32_t GetSize() const { return Size & (~0b11); }
-			BIT_FORCEINLINE uint32_t SetSize(uint32_t NewSize) { return (Size = (NewSize & ~0b11) | Size & 0b11); }
+			BIT_FORCEINLINE TLSFSizeType_t GetSize() const { return Size & (~0b11); }
+			BIT_FORCEINLINE TLSFSizeType_t SetSize(TLSFSizeType_t NewSize) { return (Size = (NewSize & ~0b11) | Size & 0b11); }
 			BIT_FORCEINLINE void SetUsed() { Size &= ~0b1; }
 			BIT_FORCEINLINE void SetFree() { Size |= 0b1; }
 			BIT_FORCEINLINE void SetLastPhysicalBlock() { Size |= 0b10; }
 			BIT_FORCEINLINE void RemoveLastPhysicalBlock() { Size &= ~0b10; }
-			BIT_FORCEINLINE uint32_t GetFullSize() const { return GetSize() + sizeof(CBlockHeader); }
+			BIT_FORCEINLINE TLSFSizeType_t GetFullSize() const { return GetSize() + sizeof(BlockHeader); }
 
-			uint32_t Size;
-			CBlockHeader* PrevPhysicalBlock;
+			TLSFSizeType_t Size;
+			BlockHeader* PrevPhysicalBlock;
 		};
 
-		struct BITLIB_API CMemoryPool
+		struct BITLIB_API MemoryPool
 		{
-			bit::CVirtualAddressSpace VirtualMemory;
-			CMemoryPool* Next;
-			uint32_t UsableSize;
+			bit::VirtualAddressSpace VirtualMemory;
+			MemoryPool* Next;
+			TLSFSizeType_t UsableSize;
 			void* BaseAddress;
 		};
 
-		struct BITLIB_API CBlockFree
+		struct BITLIB_API BlockFreeHeader : public BlockHeader
 		{
-			CBlockHeader Header;
-			CBlockFree* NextFree;
-			CBlockFree* PrevFree;
+			BlockFreeHeader* NextFree;
+			BlockFreeHeader* PrevFree;
 		};
 
-		struct BITLIB_API CBlockMap
+		struct BITLIB_API BlockMap
 		{
-			uint64_t FL;
-			uint64_t SL;
+			TLSFSizeType_t FL;
+			TLSFSizeType_t SL;
 		};
 
 	public:
-		static constexpr uint64_t SLI = 4;
-		static constexpr uint64_t MAX_POOL_SIZE = 4 GiB;
-		static constexpr uint64_t FL_COUNT = bit::ConstBitScanReverse(MAX_POOL_SIZE);
-		static constexpr uint64_t SL_COUNT = 1 << SLI;
-		static constexpr uint64_t MIN_BLOCK_SIZE = sizeof(CBlockHeader);
-		static constexpr uint64_t NUM_LIST = (1 << SLI) * (FL_COUNT - bit::ConstBitScanReverse64(MIN_BLOCK_SIZE));
+		static constexpr TLSFSizeType_t SLI = 4; // How many bits we assign for second level index
+		static constexpr TLSFSizeType_t MAX_POOL_SIZE = ConstNextPow2(1 GiB);
+		static constexpr TLSFSizeType_t MIN_ALLOC_SIZE = 1 << SLI;
+		static constexpr TLSFSizeType_t COUNT_OFFSET = bit::ConstBitScanReverse(MIN_ALLOC_SIZE) + 1;
+		static constexpr TLSFSizeType_t FL_COUNT = bit::ConstBitScanReverse(MAX_POOL_SIZE) - COUNT_OFFSET + 1;
+		static constexpr TLSFSizeType_t SL_COUNT = 1 << SLI;
 
-		CTLSFAllocator(size_t InitialPoolSize, const char* Name = "TLSF Allocator");
-		CTLSFAllocator(const char* Name = "TLSF Allocator");
-		~CTLSFAllocator();
+		TLSFAllocator(size_t InitialPoolSize, const char* Name = "TLSF Allocator");
+		TLSFAllocator(const char* Name = "TLSF Allocator");
+		~TLSFAllocator();
 
 		void* Allocate(size_t Size, size_t Alignment) override;
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
-		CMemoryUsageInfo GetMemoryUsageInfo() override;
+		MemoryUsageInfo GetMemoryUsageInfo() override;
 		size_t TrimMemory();
 	
 	private:
-		bool IsPoolReleasable(CMemoryPool* Pool);
+		bool IsPoolReleasable(MemoryPool* Pool);
 		void CreateAndInsertMemoryPool(size_t PoolSize);
-		void InsertMemoryPool(CMemoryPool* NewMemoryPool);
-		CMemoryPool* CreateMemoryPool(size_t PoolSize);
-		CBlockMap Mapping(size_t Size) const;
-		CBlockFree* GetBlockHeaderFromPointer(void* Block) const;
-		void* GetPointerFromBlockHeader(CBlockFree* Block) const;
-		CBlockFree* Merge(CBlockFree* Block);
-		CBlockFree* FindSuitableBlock(size_t Size, CBlockMap& Map);
-		void RemoveBlock(CBlockFree* Block, CBlockMap Map);
-		CBlockFree* Split(CBlockFree* Block, uint32_t Size);
-		void InsertBlock(CBlockFree* Block, CBlockMap Map);
-		CBlockFree* MergeBlocks(CBlockFree* Left, CBlockFree* Right);
-		CBlockFree* GetNextBlock(CBlockFree* Block) const;
+		void InsertMemoryPool(MemoryPool* NewMemoryPool);
+		MemoryPool* CreateMemoryPool(size_t PoolSize);
+		BlockMap Mapping(size_t Size) const;
+		BlockFreeHeader* GetBlockHeaderFromPointer(void* Block) const;
+		void* GetPointerFromBlockHeader(BlockHeader* Block) const;
+		BlockFreeHeader* Merge(BlockFreeHeader* Block);
+		BlockFreeHeader* FindSuitableBlock(size_t Size, BlockMap& Map);
+		void RemoveBlock(BlockFreeHeader* Block, BlockMap Map);
+		BlockFreeHeader* Split(BlockFreeHeader* Block, TLSFSizeType_t Size);
+		void InsertBlock(BlockFreeHeader* Block, BlockMap Map);
+		BlockFreeHeader* MergeBlocks(BlockFreeHeader* Left, BlockFreeHeader* Right);
+		BlockFreeHeader* GetNextBlock(BlockFreeHeader* Block) const;
 		size_t AdjustSize(size_t Size);
+		void FillBlock(BlockHeader* Block, uint8_t Value) const;
 
-		uint32_t FLBitmap;
-		uint32_t SLBitmap[FL_COUNT];
-		CBlockFree* FreeBlocks[FL_COUNT][SL_COUNT];
-		CMemoryPool* MemoryPoolList;
-		size_t AllocatedAmount;
-		CMutex Mutex;
+		TLSFSizeType_t FLBitmap;
+		TLSFSizeType_t SLBitmap[FL_COUNT];
+		BlockFreeHeader* FreeBlocks[FL_COUNT][SL_COUNT];
+		MemoryPool* MemoryPoolList;
+		size_t MemoryPoolCount;
+		size_t UsedSpaceInBytes;
+		size_t AvailableSpaceInBytes;
+		Mutex AccessLock;
 	};
 }

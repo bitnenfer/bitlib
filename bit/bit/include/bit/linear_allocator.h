@@ -4,22 +4,22 @@
 
 namespace bit
 {
-	struct BITLIB_API CLinearAllocator : public IAllocator
+	struct BITLIB_API LinearAllocator : public Allocator
 	{
 		static size_t GetRequiredAlignment();
 
-		CLinearAllocator(const char* Name, const CMemoryArena& Arena);
-		~CLinearAllocator();
+		LinearAllocator(const char* Name, const MemoryArena& Arena);
+		~LinearAllocator();
 
 		void Reset();
 		void* Allocate(size_t Size, size_t Alignment) override;
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
-		CMemoryUsageInfo GetMemoryUsageInfo() override;
+		MemoryUsageInfo GetMemoryUsageInfo() override;
 
 	private:
-		CMemoryArena Arena;
+		MemoryArena Arena;
 		size_t BufferOffset;
 	};
 }

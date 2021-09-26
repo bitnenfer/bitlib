@@ -3,14 +3,14 @@
 namespace bit
 {
 	template<typename TLockable>
-	struct TScopedLock
+	struct ScopedLock
 	{
-		TScopedLock(TLockable* InLockable) : Lockable(InLockable)
+		ScopedLock(TLockable* InLockable) : Lockable(InLockable)
 		{
 			if (Lockable != nullptr) Lockable->Lock();
 		}
 
-		~TScopedLock()
+		~ScopedLock()
 		{
 			if (Lockable != nullptr) Lockable->Unlock();
 		}

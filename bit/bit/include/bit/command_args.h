@@ -4,27 +4,27 @@
 
 namespace bit
 {
-	struct BITLIB_API CCommandArgEntry
+	struct BITLIB_API CommandArgEntry
 	{
 		const char* Name;
 		const char* Value;
 		size_t NameLen;
 		size_t ValueLen;
 
-		friend bool operator==(const CCommandArgEntry& LHS, const CCommandArgEntry& RHS);
+		friend bool operator==(const CommandArgEntry& LHS, const CommandArgEntry& RHS);
 	};
 
-	BITLIB_API_TEMPLATE_STRUCT bit::TArray<bit::CCommandArgEntry>;
+	BITLIB_API_TEMPLATE_STRUCT bit::Array<bit::CommandArgEntry>;
 
-	struct BITLIB_API CCommandArgs
+	struct BITLIB_API CommandArgs
 	{
-		CCommandArgs(const char* Args[], uint32_t ArgCount, IAllocator& Allocator = bit::GetDefaultAllocator());
+		CommandArgs(const char* Args[], uint32_t ArgCount, Allocator& Allocator = bit::GetDefaultAllocator());
 		bool Contains(const char* Arg);
 		const char* GetValue(const char* Arg);
 		int64_t GetArgCount();
 
 	private:
-		TArray<CCommandArgEntry> Entries;
+		Array<CommandArgEntry> Entries;
 	};
 
 

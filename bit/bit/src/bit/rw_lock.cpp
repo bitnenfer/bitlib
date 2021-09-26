@@ -1,33 +1,67 @@
 #include <bit/rw_lock.h>
 
-bit::CScopedRWLock::CScopedRWLock(CRWLock* InLockable, ERWLockType InLockType) :
+bit::ScopedRWLock::ScopedRWLock(RWLock* InLockable, RWLockType InLockType) :
 	Lockable(InLockable),
 	LockType(InLockType)
 {
 	if (Lockable != nullptr)
 	{
-		if (LockType == ERWLockType::LOCK_READ_ONLY)
+		if (LockType == RWLockType::LOCK_READ_ONLY)
 		{
-			Lockable->LockShared();
+			Lockable->LockRead();
 		}
 		else
 		{
-			Lockable->LockExclusive();
+			Lockable->LockWrite();
 		}
 	}
 }
 
-bit::CScopedRWLock::~CScopedRWLock()
+bit::ScopedRWLock::~ScopedRWLock()
 {
 	if (Lockable != nullptr)
 	{
-		if (LockType == ERWLockType::LOCK_READ_ONLY)
+		if (LockType == RWLockType::LOCK_READ_ONLY)
 		{
-			Lockable->UnlockShared();
+			Lockable->UnlockRead();
 		}
 		else
 		{
-			Lockable->UnlockExclusive();
+			Lockable->UnlockWrite();
 		}
+	}
+}
+
+bit::ScopedReadLock::ScopedReadLock(RWLock* InLockable) :
+	Lockable(InLockable)
+{
+	if (Lockable != nullptr)
+	{
+		Lockable->LockRead();
+	}
+}
+
+bit::ScopedReadLock::~ScopedReadLock()
+{
+	if (Lockable != nullptr)
+	{
+		Lockable->UnlockRead();
+	}
+}
+
+bit::ScopedWriteLock::ScopedWriteLock(RWLock* InLockable) :
+	Lockable(InLockable)
+{
+	if (Lockable != nullptr)
+	{
+		Lockable->LockWrite();
+	}
+}
+
+bit::ScopedWriteLock::~ScopedWriteLock()
+{
+	if (Lockable != nullptr)
+	{
+		Lockable->UnlockWrite();
 	}
 }

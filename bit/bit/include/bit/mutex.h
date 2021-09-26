@@ -4,10 +4,10 @@
 
 namespace bit
 {
-	struct BITLIB_API CMutex : public CNonCopyable
+	struct BITLIB_API Mutex : public NonCopyable
 	{
-		CMutex();
-		~CMutex();
+		Mutex();
+		~Mutex();
 
 		void Lock();
 		void Unlock();

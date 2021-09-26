@@ -4,10 +4,10 @@
 
 namespace bit
 {
-	struct BITLIB_API CScopeTimer
+	struct BITLIB_API ScopeTimer
 	{
-		CScopeTimer(const char* TimerName);
-		~CScopeTimer();
+		ScopeTimer(const char* TimerName);
+		~ScopeTimer();
 
 	private:
 		const char* TimerName;

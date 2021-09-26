@@ -7,45 +7,45 @@
 namespace bit
 {
 
-	struct BITLIB_API CTLStorage
+	struct BITLIB_API ThreadLocalStorage
 	{
-		CTLStorage();
+		ThreadLocalStorage();
 		void SetData(void* Data);
 		void* GetData();
 		bool IsValid() const;
-		friend bool operator==(const CTLStorage& LHS, const CTLStorage& RHS);
+		friend bool operator==(const ThreadLocalStorage& LHS, const ThreadLocalStorage& RHS);
 
 	private:
-		CTLStorage(int32_t InTLSIndex, void* InitialData);
+		ThreadLocalStorage(int32_t InTLSIndex, void* InitialData);
 
-		friend struct CTLSAllocator;
+		friend struct ThreadLocalStorageAllocator;
 		int32_t Index;
 	};
 
-	struct BITLIB_API CTLSHandle
+	struct BITLIB_API ThreadLocalStorageHandle
 	{
-		CTLSHandle();
-		CTLStorage* operator->();
+		ThreadLocalStorageHandle();
+		ThreadLocalStorage* operator->();
 		operator bool();
 
 	private:
-		friend struct CTLSAllocator;
-		CTLSHandle(int32_t InIndex);
+		friend struct ThreadLocalStorageAllocator;
+		ThreadLocalStorageHandle(int32_t InIndex);
 		int32_t InternalIndex;
 	};
 
-	BITLIB_API_TEMPLATE_STRUCT bit::TArray<CTLStorage>;
+	BITLIB_API_TEMPLATE_STRUCT bit::Array<ThreadLocalStorage>;
 
-	struct BITLIB_API CTLSAllocator
+	struct BITLIB_API ThreadLocalStorageAllocator
 	{
-		static CTLSAllocator& Get();
+		static ThreadLocalStorageAllocator& Get();
 
-		CTLSHandle Allocate(void* InitialData = nullptr);
-		void Free(CTLSHandle Handle);
-		bit::TArray<CTLStorage>& GetAllTLSAllocs();
+		ThreadLocalStorageHandle Allocate(void* InitialData = nullptr);
+		void Free(ThreadLocalStorageHandle Handle);
+		bit::Array<ThreadLocalStorage>& GetAllTLSAllocs();
 
 	private:
-		bit::TArray<CTLStorage> AllStorage;
-		bit::CMutex StorageMutex;
+		bit::Array<ThreadLocalStorage> AllStorage;
+		bit::Mutex StorageMutex;
 	};
 }

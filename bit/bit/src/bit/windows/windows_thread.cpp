@@ -3,23 +3,13 @@
 #include <intrin.h>
 #include "windows_common.h"
 
-struct CThreadPayload
+struct ThreadPayload
 {
-	bit::CThread::ThreadFunc_t Func;
+	bit::Thread::ThreadFunc_t Func;
 	void* UserData;
 };
 
-static DWORD BitThreadProcess(LPVOID Data)
-{
-	CThreadPayload* Payload = (CThreadPayload*)Data;
-	if (Payload != nullptr && Payload->Func != nullptr)
-	{
-		return (DWORD)Payload->Func(Payload->UserData);
-	}
-	return 0;
-}
-
-bit::CThread::CThread(CThread&& MoveRef) :
+bit::Thread::Thread(Thread&& MoveRef) :
 	Handle(MoveRef.Handle),
 	UserPayload(MoveRef.UserPayload)
 {
@@ -27,13 +17,13 @@ bit::CThread::CThread(CThread&& MoveRef) :
 	MoveRef.UserPayload = nullptr;
 }
 
-bit::CThread::CThread() :
+bit::Thread::Thread() :
 	Handle(nullptr),
 	UserPayload(nullptr)
 {
 }
 
-bit::CThread::~CThread()
+bit::Thread::~Thread()
 {
 	if (Handle != nullptr)
 	{
@@ -47,36 +37,44 @@ bit::CThread::~CThread()
 	}
 }
 
-void bit::CThread::Start(ThreadFunc_t Func, size_t StackSize, void* UserData)
+void bit::Thread::Start(ThreadFunc_t Func, size_t StackSize, void* UserData)
 {
-	CThreadPayload* Payload = bit::Malloc<CThreadPayload>();
+	ThreadPayload* Payload = bit::Malloc<ThreadPayload>();
 	Payload->Func = Func;
 	Payload->UserData = UserData;
 	UserPayload = Payload;
-	Handle = (Handle_t)CreateThread(nullptr, StackSize, &BitThreadProcess, Payload, 0, nullptr);
+	Handle = (Handle_t)CreateThread(nullptr, StackSize, [](LPVOID Data) -> DWORD
+	{
+		ThreadPayload* Payload = (ThreadPayload*)Data;
+		if (Payload != nullptr && Payload->Func != nullptr)
+		{
+			return (DWORD)Payload->Func(Payload->UserData);
+		}
+		return 0;
+	}, Payload, 0, nullptr);
 }
 
-void bit::CThread::Join()
+void bit::Thread::Join()
 {
 	WaitForSingleObject((HANDLE)Handle, INFINITE);
 }
 
-int32_t bit::CThread::GetId()
+int32_t bit::Thread::GetId()
 {
 	return GetThreadId((HANDLE)Handle);
 }
 
-bool bit::CThread::IsValid()
+bool bit::Thread::IsValid()
 {
 	return Handle != nullptr;
 }
 
-bit::Handle_t bit::CThread::GetHandle()
+bit::Handle_t bit::Thread::GetHandle()
 {
 	return Handle;
 }
 
-bit::CThread& bit::CThread::operator=(CThread&& MoveRef)
+bit::Thread& bit::Thread::operator=(Thread&& MoveRef)
 {
 	Handle = MoveRef.Handle;
 	UserPayload = MoveRef.UserPayload;
@@ -85,17 +83,17 @@ bit::CThread& bit::CThread::operator=(CThread&& MoveRef)
 	return *this;
 }
 
-/*static*/ int32_t bit::CThread::GetCurrentThreadId()
+/*static*/ int32_t bit::Thread::GetCurrentThreadId()
 {
 	return ::GetCurrentThreadId();
 }
 
-/*static*/ void bit::CThread::YieldThread()
+/*static*/ void bit::Thread::YieldThread()
 {
 	_mm_pause();
 }
 
-void bit::CThread::SleepThread(uint32_t Milliseconds)
+void bit::Thread::SleepThread(uint32_t Milliseconds)
 {
 	Sleep((DWORD)Milliseconds);
 }
