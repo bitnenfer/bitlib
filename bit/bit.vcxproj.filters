@@ -15,103 +15,106 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="bit\include\bit\utils.h">
+    <ClInclude Include="bit\include\bit\utility\utility.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\types.h">
+    <ClInclude Include="bit\include\bit\core\types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\platform.h">
+    <ClInclude Include="bit\include\bit\core\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\murmur_hash.h">
+    <ClInclude Include="bit\include\bit\utility\murmur_hash.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\platform_windows.h">
+    <ClInclude Include="bit\include\bit\core\platform_windows.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\platform_null.h">
+    <ClInclude Include="bit\include\bit\core\platform_null.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\allocator.h">
+    <ClInclude Include="bit\include\bit\core\memory\allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\array.h">
+    <ClInclude Include="bit\include\bit\container\array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\memory.h">
+    <ClInclude Include="bit\include\bit\core\memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\os.h">
+    <ClInclude Include="bit\include\bit\core\os\os.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\command_args.h">
+    <ClInclude Include="bit\include\bit\utility\command_args.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\src\bit\windows\windows_common.h">
+    <ClInclude Include="bit\src\bit\platform\windows\windows_common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\atomics.h">
+    <ClInclude Include="bit\include\bit\core\os\atomics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\critical_section.h">
+    <ClInclude Include="bit\include\bit\core\os\critical_section.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\thread.h">
+    <ClInclude Include="bit\include\bit\core\os\thread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\scope_timer.h">
+    <ClInclude Include="bit\include\bit\utility\scope_timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\hash_table.h">
+    <ClInclude Include="bit\include\bit\container\hash_table.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\linked_list.h">
+    <ClInclude Include="bit\include\bit\container\linked_list.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\intrusive_linked_list.h">
+    <ClInclude Include="bit\include\bit\container\intrusive_linked_list.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\linear_allocator.h">
+    <ClInclude Include="bit\include\bit\core\memory\linear_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\container_allocators.h">
+    <ClInclude Include="bit\include\bit\container\container_allocators.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\virtual_memory.h">
+    <ClInclude Include="bit\include\bit\core\os\virtual_memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\page_allocator.h">
+    <ClInclude Include="bit\include\bit\core\memory\page_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\pointers.h">
+    <ClInclude Include="bit\include\bit\utility\pointers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\reference_counter.h">
+    <ClInclude Include="bit\include\bit\utility\reference_counter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\tlsf_allocator.h">
+    <ClInclude Include="bit\include\bit\core\memory\tlsf_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\string.h">
+    <ClInclude Include="bit\include\bit\container\string.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\mutex.h">
+    <ClInclude Include="bit\include\bit\core\os\mutex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\scope_lock.h">
+    <ClInclude Include="bit\include\bit\core\os\scope_lock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\rw_lock.h">
+    <ClInclude Include="bit\include\bit\core\os\rw_lock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\thread_local_storage.h">
+    <ClInclude Include="bit\include\bit\core\os\thread_local_storage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\hash.h">
+    <ClInclude Include="bit\include\bit\utility\hash.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\tuple.h">
+    <ClInclude Include="bit\include\bit\container\tuple.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\core\os\debug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -119,67 +122,67 @@
     <Natvis Include="bit.natvis" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="bit\src\bit\murmur_hash.cpp">
+    <ClCompile Include="bit\src\bit\utility\murmur_hash.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_memory.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\windows_memory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_os.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_os.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_utils.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\utility\windows_utility.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\command_args.cpp">
+    <ClCompile Include="bit\src\bit\utility\command_args.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\memory.cpp">
+    <ClCompile Include="bit\src\bit\core\memory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_atomics.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_atomics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_critical_section.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_critical_section.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_thread.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_thread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_entry_point.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_entry_point.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\scope_timer.cpp">
+    <ClCompile Include="bit\src\bit\utility\scope_timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\allocator.cpp">
+    <ClCompile Include="bit\src\bit\core\memory\allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\linear_allocator.cpp">
+    <ClCompile Include="bit\src\bit\core\memory\linear_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_virtual_memory.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_virtual_memory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\page_allocator.cpp">
+    <ClCompile Include="bit\src\bit\core\memory\page_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\tlsf_allocator.cpp">
+    <ClCompile Include="bit\src\bit\core\memory\tlsf_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\string.cpp">
+    <ClCompile Include="bit\src\bit\container\string.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_mutex.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_mutex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_rw_lock.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_rw_lock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\rw_lock.cpp">
+    <ClCompile Include="bit\src\bit\core\os\rw_lock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\windows\windows_thread_local_storage.cpp">
+    <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_thread_local_storage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
