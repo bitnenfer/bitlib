@@ -6,9 +6,7 @@ This a small library that compiles several useful code I've used in previous pro
 Convetions
 ---------
 
-- Class, Struct and Union names must start with C prefix and in PascalCase.
 - Abstract classes must start with an I prefix and written in PascalCase.
-- Templated classes must start with a T prefix and written in PascalCase.
 - Global functions are written in PascalCase.
 - Global variables must be prefixed with a G and written in PascalCase.
 - Constant variables must be written in upper case SNAKE_CASE. If possible set as constexpr (constexpr).
