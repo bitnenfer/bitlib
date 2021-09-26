@@ -229,7 +229,7 @@ namespace bit
 	template<
 		typename TKey,
 		typename TValue,
-		typename TAllocator = DefaultHashTableAllocator
+		typename TAllocator = HashTableStorage
 	>
 	struct HashTable
 	{

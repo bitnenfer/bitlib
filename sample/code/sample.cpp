@@ -106,8 +106,8 @@ int main(int32_t Argc, const char* Argv[])
 
 		}
 		{
-			bit::pmr::Array<int32_t> MyArray{ LinearAllocator };
-			bit::pmr::Array<int32_t> CopyArray{ FixedAllocator };
+			bit::Array<int32_t> MyArray{ LinearAllocator };
+			bit::Array<int32_t> CopyArray{ FixedAllocator };
 			bit::HashTable<int32_t, int32_t> Table{};
 			bit::LinkedList<int32_t> List{};
 			MyValue MyRoot{ 0 };
@@ -176,7 +176,7 @@ int main(int32_t Argc, const char* Argv[])
 				int32_t Value;
 			};
 
-			bit::Array<Payload> PayloadData;
+			bit::Array<Payload, bit::FixedBlockStorage<Payload, 1025>> PayloadData{};
 
 			for (int32_t Value : MyArray)
 			{
@@ -184,6 +184,10 @@ int main(int32_t Argc, const char* Argv[])
 				PayloadData.Add({ &Table, &RWLock, Value });
 				List.Insert(Value);
 			}
+
+			bit::Array<int32_t> SimpleCopy = MyArray;
+
+			BIT_ASSERT(SimpleCopy[123] == MyArray[123]);
 
 			int32_t Value100 = List[100];
 

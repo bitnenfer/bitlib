@@ -2,7 +2,7 @@
 
 #include <bit/core/types.h>
 #include <bit/core/os/os.h>
-#include <bit/container/container_allocators.h>
+#include <bit/container/storage.h>
 
 namespace bit
 {
@@ -123,7 +123,7 @@ namespace bit
 				}
 			}
 			T* Invalid = (T*)BIT_INVALID_ADDRESS;
-			BIT_ALWAYS_PANIC("Linked list index out of bounds");
+			BIT_ALWAYS_PANIC_MSG("Linked list index out of bounds");
 			return *Invalid;
 		}
 

@@ -83,7 +83,7 @@ namespace bit
 		Mutex AccessLock;
 	};
 	static uint8_t HeapInitialBuffer[sizeof(WindowsHeapAllocator)];
-	Allocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) WindowsHeapAllocator(); }
+	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) WindowsHeapAllocator(); }
 #else
 	static uint8_t HeapInitialBuffer[sizeof(TLSFAllocator)];
 	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) TLSFAllocator("MainAllocator"); }

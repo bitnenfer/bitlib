@@ -75,7 +75,7 @@
     <ClInclude Include="bit\include\bit\core\memory\linear_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\container\container_allocators.h">
+    <ClInclude Include="bit\include\bit\container\storage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bit\include\bit\core\os\virtual_memory.h">

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bit/container/container_allocators.h>
+#include <bit/container/storage.h>
 #include <bit/core/memory/allocator.h>
 #include <bit/core/types.h>
 #include <bit/core/os/os.h>
@@ -104,7 +104,7 @@ namespace bit
 
 	template<
 		typename T, 
-		typename TAllocator = DefaultLinkedListAllocator
+		typename TAllocator = LinkedListStorage
 	>
 	struct LinkedList
 	{
@@ -221,7 +221,7 @@ namespace bit
 				}
 			}
 			T* Invalid = (T*)BIT_INVALID_ADDRESS;
-			BIT_ALWAYS_PANIC("Linked list index out of bounds");
+			BIT_ALWAYS_PANIC_MSG("Linked list index out of bounds");
 			return *Invalid;
 		}
 
@@ -440,7 +440,7 @@ namespace bit
 					}
 				}
 				T* Invalid = (T*)BIT_INVALID_ADDRESS;
-				BIT_ALWAYS_PANIC("Linked list index out of bounds");
+				BIT_ALWAYS_PANIC_MSG("Linked list index out of bounds");
 				return *Invalid;
 			}
 
