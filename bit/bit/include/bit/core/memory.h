@@ -3,16 +3,21 @@
 #include <bit/core/memory/allocator.h>
 #include <bit/core/types.h>
 
-#define KiB * (1024ULL)
-#define MiB * (1024ULL KiB)
-#define GiB * (1024ULL MiB)
-#define TiB * (1024ULL MiB)
-
 namespace bit
 {
 	struct IAllocator;
 
+	/* Allocation Functions */
 	BITLIB_API IAllocator& GetDefaultAllocator();
+	BITLIB_API void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
+	BITLIB_API void* Realloc(void* Pointer, size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
+	BITLIB_API void Free(void* Pointer);
+	BITLIB_API size_t CompactMemory();
+	template<typename T> T* Malloc(size_t Count = 1) { return (T*)Malloc(Count * sizeof(T), alignof(T)); }
+	template<typename T, typename... TArgs> T* New(TArgs&& ... ConstructorArgs) { return BitPlacementNew((T*)bit::Malloc(sizeof(T), alignof(T))) T(bit::Forward<TArgs>(ConstructorArgs)...); }
+	template<typename T> void Delete(T* Ptr) { Ptr->~T(); bit::Free(Ptr); }
+
+	/* Memory Operation Functions */
 	BITLIB_API void* Memcpy(void* Dst, const void* Src, size_t Num);
 	BITLIB_API void* Memset(void* Ptr, int32_t Value, size_t Num);
 	BITLIB_API bool Memcmp(const void* A, const void* B, size_t Num);
@@ -21,33 +26,18 @@ namespace bit
 	BITLIB_API bool Strcmp(const char* A, const char* B);
 	BITLIB_API size_t Fmt(char* Buffer, size_t BufferSize, const char* Fmt, ...);
 	BITLIB_API const char* TempFmtString(const char* Fmt, ...);
+
+	/* Memory Utility */
 	BITLIB_API double FromKiB(size_t Value);
 	BITLIB_API double FromMiB(size_t Value);
 	BITLIB_API double FromGiB(size_t Value);
 	BITLIB_API double FromTiB(size_t Value);
+	template<size_t Size> struct ConstFromKiB { static constexpr double Value = (double)Size / 1024.0; };
+	template<size_t Size> struct ConstFromMiB { static constexpr double Value = ConstFromKiB<Size>::Value / 1024.0; };
+	template<size_t Size> struct ConstFromGiB { static constexpr double Value = ConstFromMiB<Size>::Value / 1024.0; };
+	template<size_t Size> struct ConstFromTiB { static constexpr double Value = ConstFromGiB<Size>::Value / 1024.0; };
 
-	template<size_t Size>
-	struct ConstFromKiB { static constexpr double Value = (double)Size / 1024.0; };
-
-	template<size_t Size>
-	struct ConstFromMiB { static constexpr double Value = ConstFromKiB<Size>::Value / 1024.0; };
-
-	template<size_t Size>
-	struct ConstFromGiB { static constexpr double Value = ConstFromMiB<Size>::Value / 1024.0; };
-
-	template<size_t Size>
-	struct ConstFromTiB { static constexpr double Value = ConstFromGiB<Size>::Value / 1024.0; };
-
-	BITLIB_API void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
-	BITLIB_API void* Realloc(void* Pointer, size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
-	BITLIB_API void Free(void* Pointer);
-
-	template<typename T>
-	T* Malloc(size_t Count = 1)
-	{
-		return (T*)Malloc(Count * sizeof(T), alignof(T));
-	}
-
+	/* Object Construction */
 	template<class T>
 	T* DefaultConstruct(T* Elements, size_t Count)
 	{
@@ -91,16 +81,5 @@ namespace bit
 		Element->~T();
 	}
 
-	template<typename T, typename... TArgs>
-	T* New(TArgs&& ... ConstructorArgs)
-	{
-		return BitPlacementNew((T*)bit::Malloc(sizeof(T), alignof(T))) T(bit::Forward<TArgs>(ConstructorArgs)...);
-	}
 
-	template<typename T>
-	void Delete(T* Ptr)
-	{
-		Ptr->~T();
-		bit::Free(Ptr);
-	}
 }

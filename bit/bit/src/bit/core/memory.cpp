@@ -19,3 +19,8 @@ void bit::Free(void* Pointer)
 {
 	return GetDefaultAllocator().Free(Pointer);
 }
+
+size_t bit::CompactMemory()
+{
+	return GetDefaultAllocator().Compact();
+}

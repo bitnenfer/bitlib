@@ -1,11 +1,12 @@
-#include <bit/core/memory/tlsf_allocator.h>
+#include <bit/core/memory/medium_size_allocator.h>
+#include <bit/core/memory.h>
 #include <bit/core/os/scope_lock.h>
 #include <bit/core/os/debug.h>
 #include <bit/core/os/os.h>
 
 #define BIT_ENABLE_BLOCK_MARKING 0
 
-bit::TLSFAllocator::TLSFAllocator(size_t InitialPoolSize, const char* Name) :
+bit::MediumSizeAllocator::MediumSizeAllocator(size_t InitialPoolSize, const char* Name) :
 	IAllocator(Name),
 	FLBitmap(0),
 	MemoryPoolList(nullptr),
@@ -22,7 +23,7 @@ bit::TLSFAllocator::TLSFAllocator(size_t InitialPoolSize, const char* Name) :
 	}
 }
 
-bit::TLSFAllocator::TLSFAllocator(const char* Name) :
+bit::MediumSizeAllocator::MediumSizeAllocator(const char* Name) :
 	IAllocator(Name),
 	FLBitmap(0),
 	MemoryPoolList(nullptr),
@@ -34,7 +35,7 @@ bit::TLSFAllocator::TLSFAllocator(const char* Name) :
 	bit::Memset(FreeBlocks, 0, sizeof(FreeBlocks));
 }
 
-bit::TLSFAllocator::~TLSFAllocator()
+bit::MediumSizeAllocator::~MediumSizeAllocator()
 {
 	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; )
 	{
@@ -44,19 +45,18 @@ bit::TLSFAllocator::~TLSFAllocator()
 	}
 }
 
-void* bit::TLSFAllocator::Allocate(size_t Size, size_t Alignment)
+void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
 {
-	bit::ScopedLock<Mutex> Lock(&AccessLock);
 	if (FLBitmap == 0) AddNewPool(Size); // No available blocks in the pool.
 
-	TLSFSizeType_t AdjustedSize = (TLSFSizeType_t)bit::Max((TLSFSizeType_t)Size, MIN_ALLOC_SIZE);
+	SizeType_t AdjustedSize = (SizeType_t)bit::Max((SizeType_t)Size, MIN_ALLOC_SIZE);
 
 	if (Alignment > alignof(BlockHeader))
 	{
-		return AllocateAligned(AdjustedSize, (TLSFSizeType_t)Alignment);
+		return AllocateAligned(AdjustedSize, (SizeType_t)Alignment);
 	}
 
-	TLSFSizeType_t AlignedSize = (TLSFSizeType_t)bit::AlignUint(AdjustedSize, alignof(BlockHeader));
+	SizeType_t AlignedSize = (SizeType_t)bit::AlignUint(AdjustedSize, alignof(BlockHeader));
 	BlockMap Map = Mapping(AlignedSize);
 	BlockFreeHeader* Block = FindSuitableBlock(AlignedSize, Map);
 	if (Block == nullptr)
@@ -66,8 +66,8 @@ void* bit::TLSFAllocator::Allocate(size_t Size, size_t Alignment)
 	}
 	if (Block != nullptr)
 	{
-		TLSFSizeType_t BlockSize = Block->GetSize();
-		TLSFSizeType_t BlockFullSize = Block->GetFullSize();
+		SizeType_t BlockSize = Block->GetSize();
+		SizeType_t BlockFullSize = Block->GetFullSize();
 		RemoveBlock(Block, Map);
 		if (Block->GetSize() > AlignedSize && (Block->GetSize() - AlignedSize) > MIN_ALLOC_SIZE)
 		{
@@ -86,7 +86,7 @@ void* bit::TLSFAllocator::Allocate(size_t Size, size_t Alignment)
 	return nullptr; /* Out of memory */
 }
 
-void* bit::TLSFAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
+void* bit::MediumSizeAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
 {
 	if (Pointer == nullptr) return Allocate(Size, Alignment);
 	size_t BlockSize = GetSize(Pointer);
@@ -97,22 +97,24 @@ void* bit::TLSFAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignmen
 	return NewBlock;
 }
 
-void bit::TLSFAllocator::Free(void* Pointer)
+void bit::MediumSizeAllocator::Free(void* Pointer)
 {
 	if (Pointer != nullptr)
 	{
-		bit::ScopedLock<Mutex> Lock(&AccessLock);
 		BlockFreeHeader* FreeBlock = GetBlockHeaderFromPointer(Pointer);
 	#if BIT_ENABLE_BLOCK_MARKING
 		FillBlock(FreeBlock, 0xDD);
 	#endif
 		UsedSpaceInBytes -= FreeBlock->GetFullSize();
 		BlockFreeHeader* MergedBlock = Merge(FreeBlock);
-		InsertBlock(MergedBlock, Mapping(MergedBlock->GetSize()));
+		if (!ReleaseUnusedMemoryPool(MergedBlock))
+		{
+			InsertBlock(MergedBlock, Mapping(MergedBlock->GetSize()));
+		}
 	}
 }
 
-size_t bit::TLSFAllocator::GetSize(void* Pointer)
+size_t bit::MediumSizeAllocator::GetSize(void* Pointer)
 {
 	if (Pointer != nullptr)
 	{
@@ -121,7 +123,7 @@ size_t bit::TLSFAllocator::GetSize(void* Pointer)
 	return 0;
 }
 
-bit::MemoryUsageInfo bit::TLSFAllocator::GetMemoryUsageInfo()
+bit::MemoryUsageInfo bit::MediumSizeAllocator::GetMemoryUsageInfo()
 {
 	MemoryUsageInfo Usage = {};
 	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
@@ -133,26 +135,71 @@ bit::MemoryUsageInfo bit::TLSFAllocator::GetMemoryUsageInfo()
 	return Usage;
 }
 
-size_t bit::TLSFAllocator::TrimMemory()
+bool bit::MediumSizeAllocator::CanAllocate(size_t Size, size_t Alignment)
 {
-	bit::ScopedLock<Mutex> Lock(&AccessLock);
+	size_t AlignedSize = bit::AlignUint(Size, bit::Max(Alignment, alignof(BlockHeader)));
+	return AlignedSize >= MIN_ALLOC_SIZE && AlignedSize <= MAX_ALLOC_SIZE;
+}
+
+bool bit::MediumSizeAllocator::OwnsAllocation(const void* Ptr)
+{
+	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
+	{
+		if (Pool->Memory.OwnsAddress(Ptr))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+size_t bit::MediumSizeAllocator::Compact()
+{
 	size_t Total = 0;
 	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr;)
 	{
 		MemoryPool* Next = Pool->Next;
-		if (IsPoolReleasable(Pool))
+		if (RemoveMemoryPoolFreeBlocks(Pool))
 		{
-			Total += Pool->Memory.GetCommittedSize();
-			VirtualReleaseSpace(Pool->Memory);
+			ReleaseMemoryPool(Pool);
 		}
 		Pool = Next;
 	}
 	return Total;
 }
 
-void* bit::TLSFAllocator::AllocateAligned(TLSFSizeType_t Size, TLSFSizeType_t Alignment)
+void bit::MediumSizeAllocator::ReleaseMemoryPool(MemoryPool* Pool)
 {
-	TLSFSizeType_t AlignedSize = (TLSFSizeType_t)bit::AlignUint(Size, Alignment);
+	if (Pool != nullptr)
+	{
+		MemoryPool* Prev = Pool->Prev;
+		MemoryPool* Next = Pool->Next;
+		if (Prev != nullptr) Prev->Next = Next;
+		if (Next != nullptr) Next->Prev = Prev;
+		if (Prev == nullptr) MemoryPoolList = Next;
+		Pool->Memory.GetCommittedSize();
+		MemoryPoolCount -= 1;
+		VirtualReleaseSpace(Pool->Memory);
+	}
+}
+
+bool bit::MediumSizeAllocator::ReleaseUnusedMemoryPool(BlockFreeHeader* FreeBlock)
+{
+	if (FreeBlock->PrevPhysicalBlock->IsLastPhysicalBlock() &&
+		GetNextBlock(FreeBlock)->IsLastPhysicalBlock() &&
+		FLBitmap > 0)
+	{
+		MemoryPool* Pool = reinterpret_cast<MemoryPool*>(FreeBlock->PrevPhysicalBlock);
+		BIT_ASSERT(Pool->BaseAddress == FreeBlock);
+		ReleaseMemoryPool(Pool);
+		return true;
+}
+	return false;
+}
+
+void* bit::MediumSizeAllocator::AllocateAligned(SizeType_t Size, SizeType_t Alignment)
+{
+	SizeType_t AlignedSize = (SizeType_t)bit::AlignUint(Size, Alignment);
 	BlockMap Map = Mapping(AlignedSize);
 	BlockFreeHeader* Block = FindSuitableBlock(AlignedSize, Map);
 	if (Block == nullptr)
@@ -162,8 +209,8 @@ void* bit::TLSFAllocator::AllocateAligned(TLSFSizeType_t Size, TLSFSizeType_t Al
 	}
 	if (Block != nullptr)
 	{
-		TLSFSizeType_t BlockSize = Block->GetSize();
-		TLSFSizeType_t BlockFullSize = Block->GetFullSize();
+		SizeType_t BlockSize = Block->GetSize();
+		SizeType_t BlockFullSize = Block->GetFullSize();
 		RemoveBlock(Block, Map);
 		if (Block->GetSize() > AlignedSize 
 			&& (Block->GetSize() - AlignedSize) > MIN_ALLOC_SIZE && 
@@ -185,7 +232,7 @@ void* bit::TLSFAllocator::AllocateAligned(TLSFSizeType_t Size, TLSFSizeType_t Al
 	return nullptr; /* Out of memory */
 }
 
-bool bit::TLSFAllocator::IsPoolReleasable(MemoryPool* Pool)
+bool bit::MediumSizeAllocator::IsPoolReleasable(MemoryPool* Pool)
 {
 	BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(Pool->BaseAddress);
 	while (Block != nullptr)
@@ -201,7 +248,23 @@ bool bit::TLSFAllocator::IsPoolReleasable(MemoryPool* Pool)
 	return true;
 }
 
-void bit::TLSFAllocator::AddNewPool(size_t PoolSize)
+bool bit::MediumSizeAllocator::RemoveMemoryPoolFreeBlocks(MemoryPool* Pool)
+{
+	if (IsPoolReleasable(Pool))
+	{
+		BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(Pool->BaseAddress);
+		while (Block != nullptr)
+		{
+			if (Block->IsLastPhysicalBlock()) break;
+			RemoveBlock(Block, Mapping(Block->GetSize()));
+			Block = GetNextBlock(Block);
+		}
+		return true;
+	}
+	return false;
+}
+
+void bit::MediumSizeAllocator::AddNewPool(size_t PoolSize)
 {
 	size_t AlignedSize = bit::RoundUp(bit::AlignUint(PoolSize + sizeof(MemoryPool), alignof(BlockHeader)), bit::GetOSAllocationGranularity());
 	VirtualAddressSpace VirtualAddress = {};
@@ -209,12 +272,16 @@ void bit::TLSFAllocator::AddNewPool(size_t PoolSize)
 	{
 		MemoryPool* Pool = reinterpret_cast<MemoryPool*>(VirtualAddress.CommitAll());
 		Pool->Next = nullptr;
+		Pool->Prev = nullptr;
 		Pool->BaseAddress = bit::AlignPtr(bit::OffsetPtr(VirtualAddress.GetBaseAddress(), sizeof(MemoryPool)), sizeof(BlockHeader));
-		Pool->PoolSize = (TLSFSizeType_t)bit::PtrDiff(Pool->BaseAddress, VirtualAddress.GetEndAddress());
+		Pool->PoolSize = (SizeType_t)bit::PtrDiff(Pool->BaseAddress, VirtualAddress.GetEndAddress());
 		Pool->Memory = bit::Move(VirtualAddress);
+		Pool->BlockHead.Reset(0);
+		Pool->BlockHead.SetLastPhysicalBlock();
 
 		BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(Pool->BaseAddress);
-		Block->Reset((TLSFSizeType_t)Pool->PoolSize - sizeof(BlockFreeHeader) - sizeof(BlockHeader));
+		Block->Reset((SizeType_t)Pool->PoolSize - sizeof(BlockFreeHeader) - sizeof(BlockHeader));
+		Block->PrevPhysicalBlock = &Pool->BlockHead;
 		InsertBlock(Block, Mapping(Block->GetSize()));
 
 		BlockFreeHeader* EndOfBlock = GetNextBlock(Block);
@@ -224,45 +291,49 @@ void bit::TLSFAllocator::AddNewPool(size_t PoolSize)
 		EndOfBlock->NextFree = nullptr;
 		EndOfBlock->PrevFree = nullptr;
 		
-		Pool->Next = MemoryPoolList;
-		MemoryPoolList = Pool;
+		if (MemoryPoolList != nullptr)
+		{
+			Pool->Next = MemoryPoolList;
+			MemoryPoolList->Prev = Pool;
+		}
 
+		MemoryPoolList = Pool;
 		AvailableSpaceInBytes += Block->GetFullSize();
 		MemoryPoolCount += 1;
 	}
 }
 
-bit::TLSFAllocator::BlockMap bit::TLSFAllocator::Mapping(size_t Size) const
+bit::MediumSizeAllocator::BlockMap bit::MediumSizeAllocator::Mapping(size_t Size) const
 {
 	// First level index is the last set bit
-	TLSFSizeType_t FL = bit::BitScanReverse((TLSFSizeType_t)Size);
+	SizeType_t FL = bit::BitScanReverse((SizeType_t)Size);
 	// Second level index is the next rightmost SLI bits
 	// For example if SLI is 4, then 460 would result in 
 	// 0000000111001100
 	//       / |..|	
 	//    FL    SL
 	// FL = 8, SL = 12
-	TLSFSizeType_t SL = ((TLSFSizeType_t)Size >> (FL - SLI)) ^ (SL_COUNT);
+	SizeType_t SL = ((SizeType_t)Size >> (FL - SLI)) ^ (SL_COUNT);
 	FL -= COUNT_OFFSET - 1; // We need to adjust index so it maps to min alloc size range to max alloc size
 	return { FL, SL };
 }
 
-bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::GetBlockHeaderFromPointer(void* Block) const
+bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::GetBlockHeaderFromPointer(void* Block) const
 {
 	return bit::OffsetPtr<BlockFreeHeader>(Block, -(intptr_t)sizeof(BlockHeader));
 }
 
-void* bit::TLSFAllocator::GetPointerFromBlockHeader(BlockHeader* Block) const
+void* bit::MediumSizeAllocator::GetPointerFromBlockHeader(BlockHeader* Block) const
 {
 	return bit::OffsetPtr(Block, sizeof(BlockHeader));
 }
 
-bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::Merge(BlockFreeHeader* Block)
+bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::Merge(BlockFreeHeader* Block)
 {
 	return MergeRecursive(Block);
 }
 
-bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::MergeRecursive(BlockFreeHeader* Block)
+bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::MergeRecursive(BlockFreeHeader* Block)
 {
 	BlockFreeHeader* Next = GetNextBlock(Block);
 	if (Next->GetSize() > 0 && Next->IsFree())
@@ -274,7 +345,7 @@ bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::MergeRecursive(BlockFre
 	}
 
 	BlockFreeHeader* Prev = reinterpret_cast<BlockFreeHeader*>(Block->PrevPhysicalBlock);
-	if (Prev != nullptr && Prev->IsFree())
+	if (!Prev->IsLastPhysicalBlock() && Prev->IsFree())
 	{
 		BlockMap Map = Mapping(Prev->GetSize());
 		RemoveBlock(Prev, Map);
@@ -285,14 +356,14 @@ bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::MergeRecursive(BlockFre
 	return Block;
 }
 
-bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::FindSuitableBlock(size_t Size, BlockMap& Map)
+bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::FindSuitableBlock(size_t Size, BlockMap& Map)
 {
-	TLSFSizeType_t FL = Map.FL;
-	TLSFSizeType_t SL = Map.SL;
-	TLSFSizeType_t SLMapping = SLBitmap[FL] & (~0 << SL);
+	SizeType_t FL = Map.FL;
+	SizeType_t SL = Map.SL;
+	SizeType_t SLMapping = SLBitmap[FL] & (~(SizeType_t)0 << SL);
 	if (SLMapping == 0)
 	{
-		TLSFSizeType_t FLMapping = FLBitmap & (~0 << (FL + 1));
+		SizeType_t FLMapping = FLBitmap & (~(SizeType_t)0 << (FL + 1));
 		if (FLMapping == 0)
 		{
 			// OOM - We need to allocate a new pool
@@ -309,7 +380,7 @@ bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::FindSuitableBlock(size_
 	return Block;
 }
 
-void bit::TLSFAllocator::RemoveBlock(BlockFreeHeader* Block, BlockMap Map)
+void bit::MediumSizeAllocator::RemoveBlock(BlockFreeHeader* Block, BlockMap Map)
 {
 	Block->SetUsed();
 	BlockFreeHeader* Prev = Block->PrevFree;
@@ -333,11 +404,11 @@ void bit::TLSFAllocator::RemoveBlock(BlockFreeHeader* Block, BlockMap Map)
 	}
 }
 
-bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::Split(BlockFreeHeader* Block, TLSFSizeType_t Size)
+bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::Split(BlockFreeHeader* Block, SizeType_t Size)
 {
-	TLSFSizeType_t BlockSize = Block->GetSize();
-	TLSFSizeType_t FullBlockSize = Block->GetFullSize();
-	TLSFSizeType_t SizeWithHeader = Size + sizeof(BlockHeader);
+	SizeType_t BlockSize = Block->GetSize();
+	SizeType_t FullBlockSize = Block->GetFullSize();
+	SizeType_t SizeWithHeader = Size + sizeof(BlockHeader);
 	if (Size >= MIN_ALLOC_SIZE && BlockSize - SizeWithHeader >= MIN_ALLOC_SIZE)
 	{
 		BlockFreeHeader* RemainingBlock = bit::OffsetPtr<BlockFreeHeader>(Block, SizeWithHeader);
@@ -353,18 +424,18 @@ bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::Split(BlockFreeHeader* 
 	return Block;
 }
 
-bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::SplitAligned(BlockFreeHeader* Block, TLSFSizeType_t Size, TLSFSizeType_t Alignment)
+bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::SplitAligned(BlockFreeHeader* Block, SizeType_t Size, SizeType_t Alignment)
 {
-	TLSFSizeType_t BlockSize = Block->GetSize();
-	TLSFSizeType_t FullBlockSize = Block->GetFullSize();
-	TLSFSizeType_t SizeWithHeader = Size + sizeof(BlockHeader);
+	SizeType_t BlockSize = Block->GetSize();
+	SizeType_t FullBlockSize = Block->GetFullSize();
+	SizeType_t SizeWithHeader = Size + sizeof(BlockHeader);
 	if (Size >= MIN_ALLOC_SIZE && BlockSize - SizeWithHeader >= MIN_ALLOC_SIZE)
 	{
 		BlockFreeHeader* BlockNextBlock = GetNextBlock(Block);
 		void* AlignedBlock = bit::AlignPtr(bit::OffsetPtr(Block, SizeWithHeader), Alignment);
 		BlockFreeHeader* RemainingBlock = bit::OffsetPtr<BlockFreeHeader>(AlignedBlock, -(intptr_t)sizeof(BlockHeader));
-		TLSFSizeType_t RemainingBlockSize = (TLSFSizeType_t)bit::PtrDiff(BlockNextBlock, AlignedBlock);
-		TLSFSizeType_t NewBlockSize = (TLSFSizeType_t)bit::PtrDiff(GetPointerFromBlockHeader(Block), RemainingBlock);
+		SizeType_t RemainingBlockSize = (SizeType_t)bit::PtrDiff(BlockNextBlock, AlignedBlock);
+		SizeType_t NewBlockSize = (SizeType_t)bit::PtrDiff(GetPointerFromBlockHeader(Block), RemainingBlock);
 		RemainingBlock->Reset(RemainingBlockSize);
 		RemainingBlock->SetUsed();
 		RemainingBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(Block);
@@ -385,7 +456,7 @@ bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::SplitAligned(BlockFreeH
 	return Block;
 }
 
-void bit::TLSFAllocator::InsertBlock(BlockFreeHeader* Block, BlockMap Map)
+void bit::MediumSizeAllocator::InsertBlock(BlockFreeHeader* Block, BlockMap Map)
 {
 	BlockFreeHeader* Head = FreeBlocks[Map.FL][Map.SL];
 	Block->NextFree = Head;
@@ -397,7 +468,7 @@ void bit::TLSFAllocator::InsertBlock(BlockFreeHeader* Block, BlockMap Map)
 	SLBitmap[Map.FL] |= Pow2(Map.SL);
 }
 
-bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::MergeBlocks(BlockFreeHeader* Left, BlockFreeHeader* Right)
+bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::MergeBlocks(BlockFreeHeader* Left, BlockFreeHeader* Right)
 {
 	Left->SetSize(Left->GetSize() + Right->GetFullSize());
 	BlockFreeHeader* NextBlock = GetNextBlock(Left);
@@ -406,17 +477,17 @@ bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::MergeBlocks(BlockFreeHe
 	return Left;
 }
 
-bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::GetNextBlock(BlockFreeHeader* Block) const
+bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::GetNextBlock(BlockFreeHeader* Block) const
 {
 	return bit::OffsetPtr<BlockFreeHeader>(Block, Block->GetSize() + sizeof(BlockHeader));
 }
 
-size_t bit::TLSFAllocator::AdjustSize(size_t Size)
+size_t bit::MediumSizeAllocator::AdjustSize(size_t Size)
 {
 	return sizeof(BlockHeader) + Size;
 }
 
-void bit::TLSFAllocator::FillBlock(BlockHeader* Block, uint8_t Value) const
+void bit::MediumSizeAllocator::FillBlock(BlockHeader* Block, uint8_t Value) const
 {
 	/* For debugging purpose */
 	bit::Memset(GetPointerFromBlockHeader(Block), Value, Block->GetSize());

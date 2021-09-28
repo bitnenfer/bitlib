@@ -90,7 +90,9 @@ namespace bit
 		~MemoryArena();
 		
 		void* GetBaseAddress() const { return BaseAddress; }
+		void* GetEndAddress() const { return bit::OffsetPtr(BaseAddress, SizeInBytes); }
 		size_t GetSizeInBytes() const { return SizeInBytes; }
+		bool OwnsAllocation(const void* Ptr) const { return bit::PtrInRange(Ptr, GetBaseAddress(), GetEndAddress()); }
 
 	private:
 		RefCounter_t* RefCounter;
@@ -119,6 +121,10 @@ namespace bit
 		virtual void Free(void* Pointer) = 0;
 		virtual size_t GetSize(void* Pointer) = 0;
 		virtual MemoryUsageInfo GetMemoryUsageInfo() = 0;
+		virtual bool CanAllocate(size_t Size, size_t Alignment) = 0;
+		virtual bool OwnsAllocation(const void* Ptr) = 0;
+		virtual size_t Compact() { return 0; }
+
 		const char* GetName() const { return Name; }
 
 		template<typename T>

@@ -2,7 +2,7 @@
 
 #include <bit/core/memory.h>
 #include <bit/core/os/debug.h>
-#include <bit/core/memory/allocator.h>
+#include <bit/utility/utility.h>
 
 namespace bit
 {

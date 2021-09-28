@@ -1,13 +1,10 @@
 #include <bit/core/memory.h>
 #include <bit/core/memory/allocator.h>
-#include <bit/core/memory/tlsf_allocator.h>
 #include <bit/core/os/scope_lock.h>
 #include <intrin.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include "../windows_common.h"
-
-#define BIT_USE_WIN32_HEAP_AS_DEFAULT_ALLOCATOR 0
 
 #pragma function(memcpy)
 void* BitMemcpy(void* Dst, const void* Src, size_t Num)
@@ -28,9 +25,9 @@ extern "C" size_t strlen(const char* Str);
 extern "C" const char* strstr(const char* A, const char* B);
 extern "C" int strcmp(const char* A, const char* B);
 
+#if BIT_PLATFORM_DEFAULT_ALLOCATOR
 namespace bit
 {
-#if BIT_USE_WIN32_HEAP_AS_DEFAULT_ALLOCATOR
 	struct WindowsHeapAllocator : public bit::IAllocator
 	{
 		WindowsHeapAllocator() :
@@ -79,15 +76,15 @@ namespace bit
 			return Info;
 		}
 		
+		bool CanAllocate(size_t Size, size_t Alignment) override { return true; }
+		bool OwnsAllocation(const void* Ptr) override { return true; }
+		size_t Compact() override { return HeapCompact(Heap, 0); }
+
 		HANDLE Heap;
 		Mutex AccessLock;
 	};
 	static uint8_t HeapInitialBuffer[sizeof(WindowsHeapAllocator)];
 	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) WindowsHeapAllocator(); }
-#else
-	static uint8_t HeapInitialBuffer[sizeof(TLSFAllocator)];
-	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) TLSFAllocator("MainAllocator"); }
-#endif
 	static IAllocator* DefaultAllocator = nullptr;
 }
 
@@ -99,6 +96,7 @@ bit::IAllocator& bit::GetDefaultAllocator()
 	}
 	return *DefaultAllocator;
 }
+#endif
 
 void* bit::Memcpy(void* Dst, const void* Src, size_t Num)
 {

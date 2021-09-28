@@ -175,6 +175,11 @@ void bit::VirtualAddressSpace::Invalidate()
 	CommittedSize = 0;
 }
 
+bool bit::VirtualAddressSpace::OwnsAddress(const void* Ptr) const
+{
+	return bit::PtrInRange(Ptr, GetBaseAddress(), GetEndAddress());
+}
+
 bool bit::VirtualReserveSpace(void* Address, size_t Size, VirtualAddressSpace& OutVirtualMemorySpace)
 {
 	void* Ptr = VirtualAlloc(Address, Size, MEM_RESERVE, PAGE_READWRITE);

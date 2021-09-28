@@ -95,3 +95,13 @@ bit::MemoryUsageInfo bit::LinearAllocator::GetMemoryUsageInfo()
 	Info.ReservedBytes = Arena.GetSizeInBytes();
 	return Info;
 }
+
+bool bit::LinearAllocator::CanAllocate(size_t Size, size_t Alignment)
+{
+	return true;
+}
+
+bool bit::LinearAllocator::OwnsAllocation(const void* Ptr)
+{
+	return Arena.OwnsAllocation(Ptr);
+}

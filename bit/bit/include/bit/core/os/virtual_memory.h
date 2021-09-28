@@ -33,6 +33,7 @@ namespace bit
 		size_t GetPageCount() const;
 		bool IsValid() const;
 		void Invalidate();
+		bool OwnsAddress(const void* Ptr) const;
 
 	private:
 		VirtualAddressSpace(const VirtualAddressSpace&) = delete;

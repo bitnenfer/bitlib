@@ -169,7 +169,7 @@ size_t bit::PageAllocator::GetPageIndex(const void* Address)
 
 void* bit::PageAllocator::Allocate(size_t Size, size_t Alignment)
 {
-	BIT_UNUSED_VAR(Alignment); // Alignment will be page size.
+	size_t AlignedSize = bit::AlignUint(Size, bit::Max(GetPageGranularity(), Alignment));
 	ReservedPages Pages = Reserve(Size);
 	if (Pages.Address != nullptr)
 	{
@@ -177,7 +177,7 @@ void* bit::PageAllocator::Allocate(size_t Size, size_t Alignment)
 		// We'll still waste address space, but physical memory won't be wasted.
 		return CommitPage(Pages.Address, RoundToPageGranularity(Size));
 	}
-	BIT_PANIC("Out of memory"); // Out of memory ??
+	BIT_PANIC(); // Out of memory ??
 	return nullptr;
 }
 
@@ -246,6 +246,16 @@ bit::MemoryUsageInfo bit::PageAllocator::GetMemoryUsageInfo()
 	MemInfo.CommittedBytes = VirtualAddress.GetCommittedSize() + BitArray.GetCommittedSize();
 	MemInfo.AllocatedBytes = VirtualAddress.GetCommittedSize() + BitArray.GetCommittedSize();
 	return MemInfo;
+}
+
+bool bit::PageAllocator::CanAllocate(size_t Size, size_t Alignment)
+{
+	return Size >= PageGranularity || Alignment >= PageGranularity;
+}
+
+bool bit::PageAllocator::OwnsAllocation(const void* Ptr)
+{
+	return VirtualAddress.OwnsAddress(Ptr);
 }
 
 size_t bit::PageAllocator::GetPageGranularity()

@@ -260,7 +260,7 @@ namespace bit
 
 	BIT_FORCEINLINE bool PtrInRange(const void* Ptr, const void* Start, const void* End)
 	{
-		return Ptr >= Start && Ptr <= End;
+		return Ptr >= Start && Ptr < End;
 	}
 
 	BIT_FORCEINLINE size_t RoundUp(size_t Value, size_t RoundTo)
