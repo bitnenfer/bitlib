@@ -22,7 +22,7 @@
 struct MyValue : public bit::IntrusiveLinkedList<MyValue>
 {
 	MyValue(int32_t Value) :
-		bit::IntrusiveLinkedList<MyValue>(*this),
+		bit::IntrusiveLinkedList<MyValue>(this),
 		Value(Value)
 	{}
 	int32_t Value;
@@ -57,6 +57,8 @@ int main(int32_t Argc, const char* Argv[])
 #else
 	bit::ScopeTimer Timer("Sample");
 	bit::IAllocator& DefaultAllocator = bit::GetDefaultAllocator();
+
+
 
 	for (int32_t TestIndex = 0; TestIndex < 5; ++TestIndex)
 	{
@@ -132,7 +134,7 @@ int main(int32_t Argc, const char* Argv[])
 			{
 				MyArray.Add(Index);
 				MyValue* NewNode = bit::New<MyValue>(Index);
-				NewNode->InsertAtTail(MyRoot);
+				NewNode->InsertAtTail(&MyRoot);
 			}
 			int64_t Count = MyRoot.GetCount();
 

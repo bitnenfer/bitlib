@@ -214,6 +214,7 @@ namespace bit
 	// and assumes the alignment based on that. It might not be the selected alignment
 	// at allocation time, but it'll always be greater or equal.
 	BITLIB_API size_t GetAddressAlignment(const void* Address);
+
 	BIT_FORCEINLINE bool IsAddressAligned(const void* Address, size_t Alignment)
 	{
 		return (Alignment > 1) ? ((uintptr_t)Address % Alignment) == 0 : true;

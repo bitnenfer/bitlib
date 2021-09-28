@@ -11,7 +11,15 @@ namespace bit
 	{
 		typedef IntrusiveLinkedList<T> SelfType_t;
 
-		IntrusiveLinkedList(T& Owner) :
+		IntrusiveLinkedList() :
+			Prev(this),
+			Next(this),
+			Head(this),
+			Owner(nullptr),
+			Count(0)
+		{}
+
+		IntrusiveLinkedList(T* Owner) :
 			Prev(this),
 			Next(this),
 			Head(this),
@@ -58,36 +66,48 @@ namespace bit
 			}
 		}
 
-		void InsertBefore(SelfType_t& Target)
+		void InsertBefore(SelfType_t* Target)
 		{
-			Unlink();
-			Next = &Target;
-			Prev = Target.Prev;
-			Target.Prev = this;
-			Prev->Next = this;
-			Head = Target.Head;
-			Head->Count += 1;
+			if (Target != nullptr)
+			{
+				Unlink();
+				Next = Target;
+				Prev = Target->Prev;
+				Target->Prev = this;
+				Prev->Next = this;
+				Head = Target->Head;
+				Head->Count += 1;
+			}
 		}
 
-		void InsertAfter(SelfType_t& Target)
+		void InsertAfter(SelfType_t* Target)
 		{
-			Unlink();
-			Prev = &Target;
-			Next = Target.Next;
-			Target.Next = this;
-			Next->Prev = this;
-			Head = Target.Head;
-			Head->Count += 1;
+			if (Target != nullptr)
+			{
+				Unlink();
+				Prev = Target;
+				Next = Target->Next;
+				Target->Next = this;
+				Next->Prev = this;
+				Head = Target->Head;
+				Head->Count += 1;
+			}
 		}
 
-		void InsertAtTail(SelfType_t& Target)
+		void InsertAtTail(SelfType_t* Target)
 		{
-			InsertBefore(*Target.Head);
+			if (Target != nullptr)
+			{
+				InsertBefore(Target->Head);
+			}
 		}
 
-		void InsertAtHead(SelfType_t& Target)
+		void InsertAtHead(SelfType_t* Target)
 		{
-			InsertAfter(*Target.Head);
+			if (Target != nullptr)
+			{
+				InsertAfter(Target->Head);
+			}
 		}
 
 		SelfType_t* GetFirst() const { return Head->Next; }
@@ -96,19 +116,10 @@ namespace bit
 		SelfType_t* GetNext() const { return Next; }
 		bool IsEmpty() { return GetCount() == 0; }
 
-		T& GetOwner() const { return Owner; }
+		T* GetOwner() const { return Owner; }
 		SizeType_t GetCount()
 		{
-			SizeType_t Count = 0;
-			for (SelfType_t* Link = Head->Next; Link != Head; Link = Link->Next)
-			{
-				Count += 1;
-			}
-			if (Count == 0 && Head == this && Next == this)
-			{
-				return 1;
-			}
-			return Count;
+			return Head->Count;
 		}
 
 		T& operator[](SizeType_t Index)
@@ -136,11 +147,11 @@ namespace bit
 
 			T& operator*()
 			{
-				return Link->GetOwner();
+				return *Link->GetOwner();
 			}
 			T* operator->()
 			{
-				return &Link->GetOwner();
+				return Link->GetOwner();
 			}
 			Iterator& operator++()
 			{
@@ -169,11 +180,11 @@ namespace bit
 
 			const T& operator*()
 			{
-				return Link->GetOwner();
+				return *Link->GetOwner();
 			}
 			const T* operator->()
 			{
-				return &Link->GetOwner();
+				return Link->GetOwner();
 			}
 			ConstIterator& operator++()
 			{
@@ -212,7 +223,7 @@ namespace bit
 		SelfType_t* Prev;
 		SelfType_t* Next;
 		SelfType_t* Head;
-		T& Owner;
+		T* Owner;
 		SizeType_t Count;
 	};
 }

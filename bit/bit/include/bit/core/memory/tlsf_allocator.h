@@ -2,6 +2,7 @@
 #include <bit/core/memory/allocator.h>
 #include <bit/core/memory.h>
 #include <bit/core/os/mutex.h>
+#include <bit/container/intrusive_linked_list.h>
 
 namespace bit
 {
@@ -29,18 +30,18 @@ namespace bit
 			BlockHeader* PrevPhysicalBlock;
 		};
 
-		struct BITLIB_API MemoryPool
-		{
-			VirtualAddressSpace VirtualMemory;
-			MemoryPool* Next;
-			TLSFSizeType_t UsableSize;
-			void* BaseAddress;
-		};
-
 		struct BITLIB_API BlockFreeHeader : public BlockHeader
 		{
 			BlockFreeHeader* NextFree;
 			BlockFreeHeader* PrevFree;
+		};
+
+		struct BITLIB_API MemoryPool
+		{
+			VirtualAddressSpace Memory;
+			MemoryPool* Next;
+			TLSFSizeType_t PoolSize;
+			void* BaseAddress;
 		};
 
 		struct BITLIB_API BlockMap
@@ -69,10 +70,9 @@ namespace bit
 		size_t TrimMemory();
 	
 	private:
+		void* AllocateAligned(TLSFSizeType_t Size, TLSFSizeType_t Alignment);
 		bool IsPoolReleasable(MemoryPool* Pool);
-		void CreateAndInsertMemoryPool(size_t PoolSize);
-		void InsertMemoryPool(MemoryPool* NewMemoryPool);
-		MemoryPool* CreateMemoryPool(size_t PoolSize);
+		void AddNewPool(size_t PoolSize);
 		BlockMap Mapping(size_t Size) const;
 		BlockFreeHeader* GetBlockHeaderFromPointer(void* Block) const;
 		void* GetPointerFromBlockHeader(BlockHeader* Block) const;
@@ -81,6 +81,7 @@ namespace bit
 		BlockFreeHeader* FindSuitableBlock(size_t Size, BlockMap& Map);
 		void RemoveBlock(BlockFreeHeader* Block, BlockMap Map);
 		BlockFreeHeader* Split(BlockFreeHeader* Block, TLSFSizeType_t Size);
+		BlockFreeHeader* SplitAligned(BlockFreeHeader* Block, TLSFSizeType_t Size, TLSFSizeType_t Alignment);
 		void InsertBlock(BlockFreeHeader* Block, BlockMap Map);
 		BlockFreeHeader* MergeBlocks(BlockFreeHeader* Left, BlockFreeHeader* Right);
 		BlockFreeHeader* GetNextBlock(BlockFreeHeader* Block) const;

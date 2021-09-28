@@ -18,7 +18,7 @@ bit::TLSFAllocator::TLSFAllocator(size_t InitialPoolSize, const char* Name) :
 
 	if (InitialPoolSize > 0)
 	{
-		CreateAndInsertMemoryPool(InitialPoolSize);
+		AddNewPool(InitialPoolSize);
 	}
 }
 
@@ -36,27 +36,32 @@ bit::TLSFAllocator::TLSFAllocator(const char* Name) :
 
 bit::TLSFAllocator::~TLSFAllocator()
 {
-	MemoryPool* Block = MemoryPoolList;
-	while (Block != nullptr)
+	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; )
 	{
-		MemoryPool* Next = Block->Next;
-		VirtualReleaseSpace(Block->VirtualMemory);
-		Block = Next;
+		MemoryPool* Next = Pool->Next;
+		VirtualReleaseSpace(Pool->Memory);
+		Pool = Next;
 	}
 }
 
 void* bit::TLSFAllocator::Allocate(size_t Size, size_t Alignment)
 {
 	bit::ScopedLock<Mutex> Lock(&AccessLock);
-	if (FLBitmap == 0) CreateAndInsertMemoryPool(Size); // No available blocks in the pool.
+	if (FLBitmap == 0) AddNewPool(Size); // No available blocks in the pool.
 
 	TLSFSizeType_t AdjustedSize = (TLSFSizeType_t)bit::Max((TLSFSizeType_t)Size, MIN_ALLOC_SIZE);
+
+	if (Alignment > alignof(BlockHeader))
+	{
+		return AllocateAligned(AdjustedSize, (TLSFSizeType_t)Alignment);
+	}
+
 	TLSFSizeType_t AlignedSize = (TLSFSizeType_t)bit::AlignUint(AdjustedSize, alignof(BlockHeader));
 	BlockMap Map = Mapping(AlignedSize);
 	BlockFreeHeader* Block = FindSuitableBlock(AlignedSize, Map);
 	if (Block == nullptr)
 	{
-		CreateAndInsertMemoryPool(Size); // No available blocks in the pool.
+		AddNewPool(Size); // No available blocks in the pool.
 		Block = FindSuitableBlock(AlignedSize, Map);
 	}
 	if (Block != nullptr)
@@ -119,12 +124,10 @@ size_t bit::TLSFAllocator::GetSize(void* Pointer)
 bit::MemoryUsageInfo bit::TLSFAllocator::GetMemoryUsageInfo()
 {
 	MemoryUsageInfo Usage = {};
-	MemoryPool* Pool = MemoryPoolList;
-	while (Pool != nullptr)
+	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
 	{
-		Usage.CommittedBytes += Pool->VirtualMemory.GetCommittedSize();
-		Usage.ReservedBytes += Pool->VirtualMemory.GetRegionSize();
-		Pool = Pool->Next;
+		Usage.CommittedBytes += Pool->Memory.GetCommittedSize();
+		Usage.ReservedBytes += Pool->Memory.GetRegionSize();
 	}
 	Usage.AllocatedBytes = UsedSpaceInBytes;
 	return Usage;
@@ -134,25 +137,52 @@ size_t bit::TLSFAllocator::TrimMemory()
 {
 	bit::ScopedLock<Mutex> Lock(&AccessLock);
 	size_t Total = 0;
-	MemoryPool* Pool = MemoryPoolList;
-	MemoryPool* Prev = nullptr;
-	while (Pool != nullptr)
+	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr;)
 	{
 		MemoryPool* Next = Pool->Next;
 		if (IsPoolReleasable(Pool))
 		{
-			VirtualReleaseSpace(Pool->VirtualMemory);
-			if (Prev != nullptr) Prev->Next = Next;
-			else MemoryPoolList = nullptr;
-			Prev = Next;
-		}
-		else
-		{
-			Prev = Pool;
+			Total += Pool->Memory.GetCommittedSize();
+			VirtualReleaseSpace(Pool->Memory);
 		}
 		Pool = Next;
 	}
 	return Total;
+}
+
+void* bit::TLSFAllocator::AllocateAligned(TLSFSizeType_t Size, TLSFSizeType_t Alignment)
+{
+	TLSFSizeType_t AlignedSize = (TLSFSizeType_t)bit::AlignUint(Size, Alignment);
+	BlockMap Map = Mapping(AlignedSize);
+	BlockFreeHeader* Block = FindSuitableBlock(AlignedSize, Map);
+	if (Block == nullptr)
+	{
+		AddNewPool(Size); // No available blocks in the pool.
+		Block = FindSuitableBlock(AlignedSize, Map);
+	}
+	if (Block != nullptr)
+	{
+		TLSFSizeType_t BlockSize = Block->GetSize();
+		TLSFSizeType_t BlockFullSize = Block->GetFullSize();
+		RemoveBlock(Block, Map);
+		if (Block->GetSize() > AlignedSize 
+			&& (Block->GetSize() - AlignedSize) > MIN_ALLOC_SIZE && 
+			bit::IsAddressAligned(GetPointerFromBlockHeader(Block), Alignment))
+		{
+			BlockFreeHeader* AlignedBlock = SplitAligned(Block, Size, Alignment);
+			if (AlignedBlock != Block)
+			{
+				InsertBlock(Block, Mapping(Block->GetSize()));
+			}
+			Block = AlignedBlock;
+		}
+		UsedSpaceInBytes += Block->GetFullSize();
+	#if BIT_ENABLE_BLOCK_MARKING
+		FillBlock(Block, 0xAA);
+	#endif
+		return GetPointerFromBlockHeader(Block);
+	}
+	return nullptr; /* Out of memory */
 }
 
 bool bit::TLSFAllocator::IsPoolReleasable(MemoryPool* Pool)
@@ -171,31 +201,7 @@ bool bit::TLSFAllocator::IsPoolReleasable(MemoryPool* Pool)
 	return true;
 }
 
-void bit::TLSFAllocator::CreateAndInsertMemoryPool(size_t PoolSize)
-{
-	InsertMemoryPool(CreateMemoryPool(PoolSize));
-}
-
-void bit::TLSFAllocator::InsertMemoryPool(MemoryPool* NewMemoryPool)
-{
-	BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(NewMemoryPool->BaseAddress);
-	Block->Reset(NewMemoryPool->UsableSize - sizeof(BlockFreeHeader) - sizeof(BlockHeader));
-	InsertBlock(Block, Mapping(Block->GetSize()));
-
-	BlockFreeHeader* EndOfBlock = GetNextBlock(Block);
-	EndOfBlock->Reset(0);
-	EndOfBlock->SetLastPhysicalBlock();
-	EndOfBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(Block);
-	EndOfBlock->NextFree = nullptr;
-	EndOfBlock->PrevFree = nullptr;
-	
-	NewMemoryPool->Next = MemoryPoolList;
-	MemoryPoolList = NewMemoryPool;
-	AvailableSpaceInBytes += Block->GetFullSize();
-	MemoryPoolCount += 1;
-}
-
-bit::TLSFAllocator::MemoryPool* bit::TLSFAllocator::CreateMemoryPool(size_t PoolSize)
+void bit::TLSFAllocator::AddNewPool(size_t PoolSize)
 {
 	size_t AlignedSize = bit::RoundUp(bit::AlignUint(PoolSize + sizeof(MemoryPool), alignof(BlockHeader)), bit::GetOSAllocationGranularity());
 	VirtualAddressSpace VirtualAddress = {};
@@ -203,12 +209,27 @@ bit::TLSFAllocator::MemoryPool* bit::TLSFAllocator::CreateMemoryPool(size_t Pool
 	{
 		MemoryPool* Pool = reinterpret_cast<MemoryPool*>(VirtualAddress.CommitAll());
 		Pool->Next = nullptr;
-		Pool->BaseAddress = bit::AlignPtr(bit::OffsetPtr(Pool, sizeof(MemoryPool)), alignof(BlockHeader));
-		Pool->UsableSize = (TLSFSizeType_t)bit::PtrDiff(Pool->BaseAddress, VirtualAddress.GetEndAddress());
-		Pool->VirtualMemory = bit::Move(VirtualAddress);
-		return Pool;
+		Pool->BaseAddress = bit::AlignPtr(bit::OffsetPtr(VirtualAddress.GetBaseAddress(), sizeof(MemoryPool)), sizeof(BlockHeader));
+		Pool->PoolSize = (TLSFSizeType_t)bit::PtrDiff(Pool->BaseAddress, VirtualAddress.GetEndAddress());
+		Pool->Memory = bit::Move(VirtualAddress);
+
+		BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(Pool->BaseAddress);
+		Block->Reset((TLSFSizeType_t)Pool->PoolSize - sizeof(BlockFreeHeader) - sizeof(BlockHeader));
+		InsertBlock(Block, Mapping(Block->GetSize()));
+
+		BlockFreeHeader* EndOfBlock = GetNextBlock(Block);
+		EndOfBlock->Reset(0);
+		EndOfBlock->SetLastPhysicalBlock();
+		EndOfBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(Block);
+		EndOfBlock->NextFree = nullptr;
+		EndOfBlock->PrevFree = nullptr;
+		
+		Pool->Next = MemoryPoolList;
+		MemoryPoolList = Pool;
+
+		AvailableSpaceInBytes += Block->GetFullSize();
+		MemoryPoolCount += 1;
 	}
-	return nullptr;
 }
 
 bit::TLSFAllocator::BlockMap bit::TLSFAllocator::Mapping(size_t Size) const
@@ -327,6 +348,38 @@ bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::Split(BlockFreeHeader* 
 		NextBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(RemainingBlock);
 		Block->SetSize(Size);
 		BIT_ASSERT(FullBlockSize == Block->GetFullSize() + RemainingBlock->GetFullSize());
+		return RemainingBlock;
+	}
+	return Block;
+}
+
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::SplitAligned(BlockFreeHeader* Block, TLSFSizeType_t Size, TLSFSizeType_t Alignment)
+{
+	TLSFSizeType_t BlockSize = Block->GetSize();
+	TLSFSizeType_t FullBlockSize = Block->GetFullSize();
+	TLSFSizeType_t SizeWithHeader = Size + sizeof(BlockHeader);
+	if (Size >= MIN_ALLOC_SIZE && BlockSize - SizeWithHeader >= MIN_ALLOC_SIZE)
+	{
+		BlockFreeHeader* BlockNextBlock = GetNextBlock(Block);
+		void* AlignedBlock = bit::AlignPtr(bit::OffsetPtr(Block, SizeWithHeader), Alignment);
+		BlockFreeHeader* RemainingBlock = bit::OffsetPtr<BlockFreeHeader>(AlignedBlock, -(intptr_t)sizeof(BlockHeader));
+		TLSFSizeType_t RemainingBlockSize = (TLSFSizeType_t)bit::PtrDiff(BlockNextBlock, AlignedBlock);
+		TLSFSizeType_t NewBlockSize = (TLSFSizeType_t)bit::PtrDiff(GetPointerFromBlockHeader(Block), RemainingBlock);
+		RemainingBlock->Reset(RemainingBlockSize);
+		RemainingBlock->SetUsed();
+		RemainingBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(Block);
+		BlockFreeHeader* NextBlock = GetNextBlock(RemainingBlock);
+		NextBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(RemainingBlock);
+		Block->SetSize(NewBlockSize);
+		BIT_ASSERT(FullBlockSize == Block->GetFullSize() + RemainingBlock->GetFullSize());
+		if (RemainingBlock->GetSize() > Size)
+		{
+			BlockFreeHeader* NextRemainingBlock = Split(RemainingBlock, Size);
+			if (RemainingBlock != NextRemainingBlock)
+			{
+				InsertBlock(NextRemainingBlock, Mapping(NextRemainingBlock->GetSize()));
+			}
+		}
 		return RemainingBlock;
 	}
 	return Block;

@@ -38,22 +38,14 @@ namespace bit
 	template<size_t Size>
 	struct ConstFromTiB { static constexpr double Value = ConstFromGiB<Size>::Value / 1024.0; };
 
-	BIT_FORCEINLINE void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
-	{
-		return GetDefaultAllocator().Allocate(Size, Alignment);
-	}
-	BIT_FORCEINLINE void* Realloc(void* Pointer, size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT)
-	{
-		return GetDefaultAllocator().Reallocate(Pointer, Size, Alignment);
-	}
-	BIT_FORCEINLINE void Free(void* Pointer)
-	{
-		return GetDefaultAllocator().Free(Pointer);
-	}
+	BITLIB_API void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
+	BITLIB_API void* Realloc(void* Pointer, size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
+	BITLIB_API void Free(void* Pointer);
+
 	template<typename T>
 	T* Malloc(size_t Count = 1)
 	{
-		return (T*)GetDefaultAllocator().Allocate(Count * sizeof(T), alignof(T));
+		return (T*)Malloc(Count * sizeof(T), alignof(T));
 	}
 
 	template<class T>
