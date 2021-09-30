@@ -16,7 +16,7 @@ namespace bit
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
-		MemoryUsageInfo GetMemoryUsageInfo() override;
+		AllocatorMemoryInfo GetMemoryUsageInfo() override;
 		bool CanAllocate(size_t Size, size_t Alignment) override;
 		bool OwnsAllocation(const void* Ptr) override;
 

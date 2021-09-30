@@ -169,7 +169,7 @@ size_t bit::PageAllocator::GetPageIndex(const void* Address)
 
 void* bit::PageAllocator::Allocate(size_t Size, size_t Alignment)
 {
-	size_t AlignedSize = bit::AlignUint(Size, bit::Max(GetPageGranularity(), Alignment));
+	size_t AlignedSize = bit::AlignUint(Size, bit::Max(GetPageSize(), Alignment));
 	ReservedPages Pages = Reserve(Size);
 	if (Pages.Address != nullptr)
 	{
@@ -239,9 +239,9 @@ size_t bit::PageAllocator::GetSize(void* Address)
 	return GetPageSize(GetPageIndex(Address));
 }
 
-bit::MemoryUsageInfo bit::PageAllocator::GetMemoryUsageInfo()
+bit::AllocatorMemoryInfo bit::PageAllocator::GetMemoryUsageInfo()
 {
-	MemoryUsageInfo MemInfo = {};
+	AllocatorMemoryInfo MemInfo = {};
 	MemInfo.ReservedBytes = VirtualAddress.GetReservedSize() + BitArray.GetReservedSize();
 	MemInfo.CommittedBytes = VirtualAddress.GetCommittedSize() + BitArray.GetCommittedSize();
 	MemInfo.AllocatedBytes = VirtualAddress.GetCommittedSize() + BitArray.GetCommittedSize();
@@ -258,7 +258,7 @@ bool bit::PageAllocator::OwnsAllocation(const void* Ptr)
 	return VirtualAddress.OwnsAddress(Ptr);
 }
 
-size_t bit::PageAllocator::GetPageGranularity()
+size_t bit::PageAllocator::GetPageSize()
 {
 	return PageGranularity;
 }

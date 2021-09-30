@@ -123,8 +123,9 @@ bool bit::operator!=(const String& LHS, const String& RHS)
 
 BITLIB_API bit::String bit::FormatSize(size_t Size)
 {
-	if (Size >= 1 KiB && Size < 1 MiB) return String::Format("%.2lf KiB", FromKiB(Size));
-	else if (Size >= 1 MiB && Size < 1 GiB) return String::Format("%.2lf MiB", FromMiB(Size));
-	else if (Size >= 1 GiB && Size < 1 * 1024 GiB) return String::Format("%.2lf GiB", FromGiB(Size));
-	else return String::Format("%.2lf B", (double)Size);
+	if (Size >= 1 KiB && Size < 1 MiB) return String::Format("%.3lf KiB", FromKiB(Size));
+	else if (Size >= 1 MiB && Size < 1 GiB) return String::Format("%.3lf MiB", FromMiB(Size));
+	else if (Size >= 1 GiB && Size < 1 * 1024 GiB) return String::Format("%.3lf GiB", FromGiB(Size));
+	else if (Size >= 1 TiB && Size < 1 * 1024 PiB) return String::Format("%.3lf TiB", FromGiB(Size));
+	else return String::Format("%.3lf B", (double)Size);
 }

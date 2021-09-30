@@ -27,6 +27,7 @@ extern "C" const char* strstr(const char* A, const char* B);
 extern "C" int strcmp(const char* A, const char* B);
 
 #if BIT_PLATFORM_DEFAULT_ALLOCATOR
+#include <malloc.h>
 namespace bit
 {
 	struct WindowsHeapAllocator : public bit::IAllocator
@@ -62,11 +63,11 @@ namespace bit
 			return HeapSize(Heap, 0, Pointer);
 		}
 
-		MemoryUsageInfo GetMemoryUsageInfo() override
+		AllocatorMemoryInfo GetMemoryUsageInfo() override
 		{
 			bit::ScopedLock<Mutex> Lock(&AccessLock);
 			HEAP_SUMMARY Summary = {};
-			MemoryUsageInfo Info = {};
+			AllocatorMemoryInfo Info = {};
 			Summary.cb = sizeof(HEAP_SUMMARY);
 			if (HeapSummary(Heap, 0, &Summary))
 			{

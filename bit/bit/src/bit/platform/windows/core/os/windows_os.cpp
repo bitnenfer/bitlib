@@ -75,6 +75,33 @@ bit::ProcessorArch bit::GetOSProcessorArch()
 	return ProcArch;
 }
 
+bit::ProcessMemoryInfo bit::GetOSProcessMemoryInfo()
+{
+	ProcessMemoryInfo Info = {};
+	Info.PageSize = GetOSPageSize();
+	Info.AllocationGranularity = GetOSAllocationGranularity();
+
+	PROCESS_MEMORY_COUNTERS MemCounters = {};
+	MemCounters.cb = sizeof(MemCounters);
+	if (GetProcessMemoryInfo(GetCurrentProcess(), &MemCounters, sizeof(MemCounters)) == TRUE)
+	{
+		Info.PhysicalUsedInBytes = MemCounters.WorkingSetSize;
+		Info.PhysicalPeakUsedInBytes = MemCounters.PeakWorkingSetSize;
+		Info.VirtualUsedInBytes = MemCounters.PagefileUsage;
+		Info.VirtualPeakUsedInBytes = MemCounters.PeakPagefileUsage;
+	}
+
+	MEMORYSTATUSEX MemStat = {};
+	MemStat.dwLength = sizeof(MemStat);
+	if (GlobalMemoryStatusEx(&MemStat) == TRUE)
+	{
+		Info.PhysicalTotalInBytes = MemStat.ullTotalPhys;
+		Info.VirtualTotalInBytes = MemStat.ullTotalVirtual;
+	}
+
+	return Info;
+}
+
 
 void bit::OutputLog(const char* Fmt, ...)
 {

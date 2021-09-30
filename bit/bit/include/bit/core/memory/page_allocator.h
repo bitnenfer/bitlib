@@ -22,9 +22,10 @@ namespace bit
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment = DEFAULT_PAGE_ALIGNMENT) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
-		MemoryUsageInfo GetMemoryUsageInfo() override;
+		AllocatorMemoryInfo GetMemoryUsageInfo() override;
 		bool CanAllocate(size_t Size, size_t Alignment) override;
 		bool OwnsAllocation(const void* Ptr) override;
+		size_t GetPageSize();
 
 	protected:
 		void DebugPrintState(size_t PageIndex = 0, size_t Depth = 0);
@@ -43,7 +44,6 @@ namespace bit
 		void* Commit(void* Address, size_t Size);
 		void Decommit(void* Address, size_t Size);
 		bool SetProtection(void* Address, size_t Size, PageProtectionType ProtectionType);
-		size_t GetPageGranularity();
 
 	private:
 		enum PageState

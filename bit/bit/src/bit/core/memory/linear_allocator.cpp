@@ -87,9 +87,9 @@ size_t bit::LinearAllocator::GetSize(void* Pointer)
 	return LinearAllocatorHeader::GetHeader(Pointer)->RequestedSize;
 }
 
-bit::MemoryUsageInfo bit::LinearAllocator::GetMemoryUsageInfo()
+bit::AllocatorMemoryInfo bit::LinearAllocator::GetMemoryUsageInfo()
 {
-	MemoryUsageInfo Info = {};
+	AllocatorMemoryInfo Info = {};
 	Info.AllocatedBytes = (size_t)bit::PtrDiff(bit::OffsetPtr(Arena.GetBaseAddress(), BufferOffset), Arena.GetBaseAddress());
 	Info.CommittedBytes = Arena.GetSizeInBytes();
 	Info.ReservedBytes = Arena.GetSizeInBytes();

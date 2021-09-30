@@ -14,6 +14,18 @@ namespace bit
 		PROC_ARCH_X86
 	};
 
+	struct BITLIB_API ProcessMemoryInfo
+	{
+		size_t PhysicalTotalInBytes;
+		size_t PhysicalUsedInBytes;
+		size_t PhysicalPeakUsedInBytes;
+		size_t VirtualTotalInBytes;
+		size_t VirtualUsedInBytes;
+		size_t VirtualPeakUsedInBytes;
+		size_t PageSize;
+		size_t AllocationGranularity;
+	};
+
 	BITLIB_API void ExitProgram(int32_t ExitCode);
 	BITLIB_API double GetSeconds();
 	BITLIB_API int32_t GetOSErrorCode();
@@ -23,4 +35,5 @@ namespace bit
 	BITLIB_API void* GetOSMaxAddress();
 	BITLIB_API int32_t GetOSProcessorCount();
 	BITLIB_API ProcessorArch GetOSProcessorArch();
+	BITLIB_API ProcessMemoryInfo GetOSProcessMemoryInfo();
 }

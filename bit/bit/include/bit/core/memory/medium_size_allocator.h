@@ -1,6 +1,9 @@
 #include <bit/core/os/virtual_memory.h>
 #include <bit/core/memory/allocator.h>
 #include <bit/core/os/mutex.h>
+#include <bit/core/memory/page_allocator.h>
+
+#define BIT_MEDIUM_SIZE_ALLOCATOR_DISABLE_VIRTUAL_ADDRESS_MEMORY 0
 
 namespace bit
 {
@@ -33,15 +36,17 @@ namespace bit
 			BlockFreeHeader* PrevFree;
 		};
 
-		//struct BITLIB_API MemoryPool
-		//{
-		//	BlockHeader BlockHead; /* This must be at the top */
-		//	VirtualAddressSpace Memory;
-		//	MemoryPool* Prev;
-		//	MemoryPool* Next;
-		//	SizeType_t PoolSize;
-		//	void* BaseAddress;
-		//};
+#if BIT_MEDIUM_SIZE_ALLOCATOR_DISABLE_VIRTUAL_ADDRESS_MEMORY
+		struct BITLIB_API MemoryPool
+		{
+			BlockHeader BlockHead; /* This must be at the top */
+			VirtualAddressSpace Memory;
+			MemoryPool* Prev;
+			MemoryPool* Next;
+			SizeType_t PoolSize;
+			void* BaseAddress;
+		};
+#endif
 
 		struct BITLIB_API BlockMap
 		{
@@ -50,15 +55,14 @@ namespace bit
 		};
 
 	public:
-		static constexpr SizeType_t SLI = 6; // How many bits we assign for second level index
-		static constexpr SizeType_t MAX_ALLOCATION_SIZE = 4 MiB;
-		static constexpr SizeType_t MIN_ALLOCATION_SIZE = 2 KiB;
+		static constexpr SizeType_t SLI = 5; // How many bits we assign for second level index
+		static constexpr SizeType_t MAX_ALLOCATION_SIZE = 2 MiB;
+		static constexpr SizeType_t MIN_ALLOCATION_SIZE = 4 KiB;
 		static constexpr SizeType_t COUNT_OFFSET = bit::ConstBitScanReverse(MIN_ALLOCATION_SIZE) + 1;
 		static constexpr SizeType_t FL_COUNT = bit::ConstBitScanReverse(MAX_ALLOCATION_SIZE) - COUNT_OFFSET + 1;
 		static constexpr SizeType_t SL_COUNT = 1 << SLI;
 		static constexpr SizeType_t ADDRESS_SPACE_SIZE = 8 GiB;
 
-		MediumSizeAllocator(size_t InitialPoolSize, const char* Name = "Medium Size Allocator");
 		MediumSizeAllocator(const char* Name = "Medium Size Allocator");
 		~MediumSizeAllocator();
 
@@ -66,20 +70,24 @@ namespace bit
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
-		MemoryUsageInfo GetMemoryUsageInfo() override;
+		AllocatorMemoryInfo GetMemoryUsageInfo() override;
 		bool CanAllocate(size_t Size, size_t Alignment) override;
 		bool OwnsAllocation(const void* Ptr) override;
 		size_t Compact() override;
 	
 	private:
+#if BIT_MEDIUM_SIZE_ALLOCATOR_DISABLE_VIRTUAL_ADDRESS_MEMORY
+		void ReleaseMemoryPool(MemoryPool* Pool);
+		bool ReleaseUnusedMemoryPool(BlockFreeHeader* FreeBlock);
+		bool IsPoolReleasable(MemoryPool* Pool);
+		bool RemoveMemoryPoolFreeBlocks(MemoryPool* Pool);
+		void AddNewPool(size_t PoolSize);
+#else
 		void AllocateVirtualMemory(size_t Size);
 		bool FreeVirtualMemory(BlockFreeHeader* FreeBlock);
-		//void ReleaseMemoryPool(MemoryPool* Pool);
-		//bool ReleaseUnusedMemoryPool(BlockFreeHeader* FreeBlock);
+#endif
+
 		void* AllocateAligned(SizeType_t Size, SizeType_t Alignment);
-		//bool IsPoolReleasable(MemoryPool* Pool);
-		//bool RemoveMemoryPoolFreeBlocks(MemoryPool* Pool);
-		//void AddNewPool(size_t PoolSize);
 		BlockMap Mapping(size_t Size) const;
 		BlockFreeHeader* GetBlockHeaderFromPointer(void* Block) const;
 		void* GetPointerFromBlockHeader(BlockHeader* Block) const;
@@ -98,10 +106,12 @@ namespace bit
 		SizeType_t FLBitmap;
 		SizeType_t SLBitmap[FL_COUNT];
 		BlockFreeHeader* FreeBlocks[FL_COUNT][SL_COUNT];
-		//MemoryPool* MemoryPoolList;
-		VirtualAddressSpace Memory;
-		size_t VirtualMemoryOffset;
-		//size_t MemoryPoolCount;
+#if BIT_MEDIUM_SIZE_ALLOCATOR_DISABLE_VIRTUAL_ADDRESS_MEMORY
+		MemoryPool* MemoryPoolList;
+		size_t MemoryPoolCount;
+#else
+		PageAllocator VirtualMemory;
+#endif
 		size_t UsedSpaceInBytes;
 		size_t AvailableSpaceInBytes;
 	};

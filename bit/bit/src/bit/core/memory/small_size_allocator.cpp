@@ -97,9 +97,9 @@ size_t bit::SmallSizeAllocator::GetSize(void* Pointer)
 	return 0;
 }
 
-bit::MemoryUsageInfo bit::SmallSizeAllocator::GetMemoryUsageInfo()
+bit::AllocatorMemoryInfo bit::SmallSizeAllocator::GetMemoryUsageInfo()
 {
-	MemoryUsageInfo Usage = {};
+	AllocatorMemoryInfo Usage = {};
 	Usage.ReservedBytes = Memory.GetReservedSize();
 	Usage.CommittedBytes = Memory.GetCommittedSize();
 	Usage.AllocatedBytes = UsedSpaceInBytes;

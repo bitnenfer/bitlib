@@ -14,7 +14,7 @@ namespace bit
 	#else
 		static constexpr size_t MIN_ALLOCATION_SIZE = 8;
 	#endif
-		static constexpr size_t NUM_OF_SIZES = 512;
+		static constexpr size_t NUM_OF_SIZES = 1 << 10;
 		static constexpr size_t MAX_ALLOCATION_SIZE = MIN_ALLOCATION_SIZE * NUM_OF_SIZES;
 		static constexpr size_t ADDRESS_SPACE_SIZE = 512 MiB;
 		static constexpr size_t RANGE_SIZE = ADDRESS_SPACE_SIZE / NUM_OF_SIZES;
@@ -47,7 +47,7 @@ namespace bit
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
-		MemoryUsageInfo GetMemoryUsageInfo() override;
+		AllocatorMemoryInfo GetMemoryUsageInfo() override;
 		bool CanAllocate(size_t Size, size_t Alignment) override;
 		bool OwnsAllocation(const void* Ptr) override;
 

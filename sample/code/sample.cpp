@@ -213,19 +213,19 @@ int main(int32_t Argc, const char* Argv[])
 
 			if (TestIndex == IterCount - 1)
 			{
-				bit::MemoryUsageInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
+				bit::AllocatorMemoryInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
 				BIT_ALWAYS_LOG("%s", bit::TempFmtString(
 					"Memory Usage Info:\n\t"
-					"Total Allocated: %u\n\t"
-					"Total Committed: %u\n\t"
-					"Total Reserved: %u\n\t"
+					"Total Allocated: %s\n\t"
+					"Total Committed: %s\n\t"
+					"Total Reserved: %s\n\t"
 					"Avg. Exec. Time: %.4lf s\n\t"
 					"Peak Exec. Time: %.4lf s\n\t"
 					"Iter. Count: %d\n\t"
 					,
-					(MemInfo.AllocatedBytes),
-					(MemInfo.CommittedBytes),
-					(MemInfo.ReservedBytes),
+					*bit::FormatSize(MemInfo.AllocatedBytes),
+					*bit::FormatSize(MemInfo.CommittedBytes),
+					*bit::FormatSize(MemInfo.ReservedBytes),
 					TotalTime / (double)IterCount,
 					PeakTime,
 					IterCount
@@ -240,26 +240,26 @@ int main(int32_t Argc, const char* Argv[])
 
 	}
 
-	//bit::MemoryUsageInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
-	//BIT_ALWAYS_LOG("%s", bit::TempFmtString(
-	//	"=======\n"
-	//	"Outside\n"
-	//	"=======\n"
-	//	"Memory Usage Info:\n\t"
-	//	"Total Allocated: %s\n\t"
-	//	"Total Committed: %s\n\t"
-	//	"Total Reserved: %s\n\t"
-	//	"Avg. Exec. Time: %.4lf s\n\t"
-	//	"Peak Exec. Time: %.4lf s\n\t"
-	//	"Iter. Count: %d\n\t"
-	//	,
-	//	*bit::FormatSize(MemInfo.AllocatedBytes),
-	//	*bit::FormatSize(MemInfo.CommittedBytes),
-	//	*bit::FormatSize(MemInfo.ReservedBytes),
-	//	TotalTime / (double)IterCount,
-	//	PeakTime,
-	//	IterCount
-	//));
+	bit::AllocatorMemoryInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
+	BIT_ALWAYS_LOG("%s", bit::TempFmtString(
+		"=======\n"
+		"Outside\n"
+		"=======\n"
+		"Memory Usage Info:\n\t"
+		"Total Allocated: %s\n\t"
+		"Total Committed: %s\n\t"
+		"Total Reserved: %s\n\t"
+		"Avg. Exec. Time: %.4lf s\n\t"
+		"Peak Exec. Time: %.4lf s\n\t"
+		"Iter. Count: %d\n\t"
+		,
+		*bit::FormatSize(MemInfo.AllocatedBytes),
+		*bit::FormatSize(MemInfo.CommittedBytes),
+		*bit::FormatSize(MemInfo.ReservedBytes),
+		TotalTime / (double)IterCount,
+		PeakTime,
+		IterCount
+	));
 
 #endif
 	return 0;

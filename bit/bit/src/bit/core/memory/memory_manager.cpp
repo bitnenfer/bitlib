@@ -51,12 +51,12 @@ size_t bit::MemoryManager::GetSize(void* Pointer)
 	if (SmallSize == 0) return MediumAllocator.GetSize(Pointer);
 	return SmallSize;
 }
-bit::MemoryUsageInfo bit::MemoryManager::GetMemoryUsageInfo()
+bit::AllocatorMemoryInfo bit::MemoryManager::GetMemoryUsageInfo()
 {
 	bit::ScopedLock<bit::Mutex> Lock(&AccessLock);
-	MemoryUsageInfo SmallUsage =  SmallAllocator.GetMemoryUsageInfo();
-	MemoryUsageInfo MediumUsage = MediumAllocator.GetMemoryUsageInfo();
-	MemoryUsageInfo Usage = {};
+	AllocatorMemoryInfo SmallUsage =  SmallAllocator.GetMemoryUsageInfo();
+	AllocatorMemoryInfo MediumUsage = MediumAllocator.GetMemoryUsageInfo();
+	AllocatorMemoryInfo Usage = {};
 	Usage.AllocatedBytes = SmallUsage.AllocatedBytes + MediumUsage.AllocatedBytes;
 	Usage.CommittedBytes = SmallUsage.CommittedBytes + MediumUsage.CommittedBytes;
 	Usage.ReservedBytes = SmallUsage.ReservedBytes + MediumUsage.ReservedBytes;

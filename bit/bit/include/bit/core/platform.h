@@ -16,7 +16,8 @@ inline void operator delete(void*, _BitMemNewDummy_, void*) {}
 #define KiB * (1024ULL)
 #define MiB * (1024ULL KiB)
 #define GiB * (1024ULL MiB)
-#define TiB * (1024ULL MiB)
+#define TiB * (1024ULL GiB)
+#define PiB * (1024ULL TiB)
 
 namespace bit
 {

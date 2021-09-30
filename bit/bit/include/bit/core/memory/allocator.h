@@ -13,7 +13,7 @@
 namespace bit
 {
 	static constexpr size_t ALLOCATOR_MAX_NAME_LEN = 128;
-	struct BITLIB_API MemoryUsageInfo
+	struct BITLIB_API AllocatorMemoryInfo
 	{
 		size_t AllocatedBytes;
 		size_t CommittedBytes;
@@ -126,7 +126,7 @@ namespace bit
 		virtual void* Reallocate(void* Pointer, size_t Size, size_t Alignment) = 0;
 		virtual void Free(void* Pointer) = 0;
 		virtual size_t GetSize(void* Pointer) = 0;
-		virtual MemoryUsageInfo GetMemoryUsageInfo() = 0;
+		virtual AllocatorMemoryInfo GetMemoryUsageInfo() = 0;
 		virtual bool CanAllocate(size_t Size, size_t Alignment) = 0;
 		virtual bool OwnsAllocation(const void* Ptr) = 0;
 		virtual size_t Compact() { return 0; }
