@@ -4,11 +4,13 @@
 #include <bit/utility/hash.h>
 
 #define BIT_SMALL_OPT_STRING_INLINE_SIZE 16
+#define BIT_STRING_USE_SSO 1
 
 namespace bit
 {
 	typedef char CharType_t;
 
+#if BIT_STRING_USE_SSO
 	BITLIB_API_TEMPLATE_STRUCT bit::SmallBlockStorage<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>;
 	BITLIB_API_TEMPLATE_STRUCT bit::Array<CharType_t, bit::SmallBlockStorage<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>>;
 
@@ -16,6 +18,10 @@ namespace bit
 		CharType_t,
 		bit::SmallBlockStorage<CharType_t, BIT_SMALL_OPT_STRING_INLINE_SIZE>
 	> StringStorage_t;
+#else
+	BITLIB_API_TEMPLATE_STRUCT bit::Array<CharType_t>;
+	typedef bit::Array<CharType_t> StringStorage_t;
+#endif
 
 	/* ASCII String. Maybe at some point use unicode (utf-8 encoding) */
 	struct BITLIB_API String

@@ -1,6 +1,6 @@
 #include <bit/core/memory/medium_size_allocator.h>
 #include <bit/core/memory.h>
-#include <bit/core/os/scope_lock.h>
+#include <bit/utility/scope_lock.h>
 #include <bit/core/os/debug.h>
 #include <bit/core/os/os.h>
 
@@ -9,48 +9,61 @@
 bit::MediumSizeAllocator::MediumSizeAllocator(size_t InitialPoolSize, const char* Name) :
 	IAllocator(Name),
 	FLBitmap(0),
-	MemoryPoolList(nullptr),
-	MemoryPoolCount(0),
+	//MemoryPoolList(nullptr),
+	//MemoryPoolCount(0),
+	VirtualMemoryOffset(0),
 	UsedSpaceInBytes(0),
 	AvailableSpaceInBytes(0)
 {
 	bit::Memset(SLBitmap, 0, sizeof(SLBitmap));
 	bit::Memset(FreeBlocks, 0, sizeof(FreeBlocks));
 
-	if (InitialPoolSize > 0)
+	/*if (InitialPoolSize > 0)
 	{
 		AddNewPool(InitialPoolSize);
+	}*/
+
+	if (!VirtualReserveSpace(VirtualRandomAddress(), ADDRESS_SPACE_SIZE, Memory))
+	{
+		BIT_PANIC();
 	}
 }
 
 bit::MediumSizeAllocator::MediumSizeAllocator(const char* Name) :
 	IAllocator(Name),
 	FLBitmap(0),
-	MemoryPoolList(nullptr),
-	MemoryPoolCount(0),
+	//MemoryPoolList(nullptr),
+	///MemoryPoolCount(0),
+	VirtualMemoryOffset(0),
 	UsedSpaceInBytes(0),
 	AvailableSpaceInBytes(0)
 {
 	bit::Memset(SLBitmap, 0, sizeof(SLBitmap));
 	bit::Memset(FreeBlocks, 0, sizeof(FreeBlocks));
+	
+	if (!VirtualReserveSpace(VirtualRandomAddress(), ADDRESS_SPACE_SIZE, Memory))
+	{
+		BIT_PANIC();
+	}
 }
 
 bit::MediumSizeAllocator::~MediumSizeAllocator()
 {
-	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; )
+	/*for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; )
 	{
 		MemoryPool* Next = Pool->Next;
 		VirtualReleaseSpace(Pool->Memory);
 		Pool = Next;
-	}
+	}*/
+	VirtualReleaseSpace(Memory);
 }
 
 void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
 {
-	if (FLBitmap == 0) AddNewPool(Size); // No available blocks in the pool.
-
-	SizeType_t AdjustedSize = (SizeType_t)bit::Max((SizeType_t)Size, MIN_ALLOC_SIZE);
-
+	SizeType_t AdjustedSize = (SizeType_t)bit::Max((SizeType_t)Size, MIN_ALLOCATION_SIZE);
+	//if (FLBitmap == 0) AddNewPool(AdjustedSize); // No available blocks in the pool.
+	if (FLBitmap == 0) AllocateVirtualMemory(AdjustedSize);
+	
 	if (Alignment > alignof(BlockHeader))
 	{
 		return AllocateAligned(AdjustedSize, (SizeType_t)Alignment);
@@ -61,7 +74,8 @@ void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
 	BlockFreeHeader* Block = FindSuitableBlock(AlignedSize, Map);
 	if (Block == nullptr)
 	{
-		AddNewPool(Size); // No available blocks in the pool.
+		//AddNewPool(Size); // No available blocks in the pool.
+		AllocateVirtualMemory(Size);
 		Block = FindSuitableBlock(AlignedSize, Map);
 	}
 	if (Block != nullptr)
@@ -69,7 +83,7 @@ void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
 		SizeType_t BlockSize = Block->GetSize();
 		SizeType_t BlockFullSize = Block->GetFullSize();
 		RemoveBlock(Block, Map);
-		if (Block->GetSize() > AlignedSize && (Block->GetSize() - AlignedSize) > MIN_ALLOC_SIZE)
+		if (Block->GetSize() > AlignedSize && (Block->GetSize() - AlignedSize) > MIN_ALLOCATION_SIZE)
 		{
 			BlockFreeHeader* RemainingBlock = Split(Block, AlignedSize);
 			if (RemainingBlock != Block)
@@ -77,7 +91,7 @@ void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
 				InsertBlock(RemainingBlock, Mapping(RemainingBlock->GetSize()));
 			}
 		}
-		UsedSpaceInBytes += Block->GetFullSize();
+		UsedSpaceInBytes += Block->GetSize();
 	#if BIT_ENABLE_BLOCK_MARKING
 		FillBlock(Block, 0xAA);
 	#endif
@@ -105,12 +119,16 @@ void bit::MediumSizeAllocator::Free(void* Pointer)
 	#if BIT_ENABLE_BLOCK_MARKING
 		FillBlock(FreeBlock, 0xDD);
 	#endif
-		UsedSpaceInBytes -= FreeBlock->GetFullSize();
+		UsedSpaceInBytes -= FreeBlock->GetSize();
 		BlockFreeHeader* MergedBlock = Merge(FreeBlock);
-		if (!ReleaseUnusedMemoryPool(MergedBlock))
+		if (!FreeVirtualMemory(MergedBlock))
 		{
 			InsertBlock(MergedBlock, Mapping(MergedBlock->GetSize()));
 		}
+		/*if (!ReleaseUnusedMemoryPool(MergedBlock))
+		{
+			InsertBlock(MergedBlock, Mapping(MergedBlock->GetSize()));
+		}*/
 	}
 }
 
@@ -126,11 +144,13 @@ size_t bit::MediumSizeAllocator::GetSize(void* Pointer)
 bit::MemoryUsageInfo bit::MediumSizeAllocator::GetMemoryUsageInfo()
 {
 	MemoryUsageInfo Usage = {};
-	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
+	Usage.CommittedBytes = Memory.GetCommittedSize();
+	Usage.ReservedBytes = Memory.GetReservedSize();
+	/*for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
 	{
 		Usage.CommittedBytes += Pool->Memory.GetCommittedSize();
 		Usage.ReservedBytes += Pool->Memory.GetRegionSize();
-	}
+	}*/
 	Usage.AllocatedBytes = UsedSpaceInBytes;
 	return Usage;
 }
@@ -138,25 +158,26 @@ bit::MemoryUsageInfo bit::MediumSizeAllocator::GetMemoryUsageInfo()
 bool bit::MediumSizeAllocator::CanAllocate(size_t Size, size_t Alignment)
 {
 	size_t AlignedSize = bit::AlignUint(Size, bit::Max(Alignment, alignof(BlockHeader)));
-	return AlignedSize >= MIN_ALLOC_SIZE && AlignedSize <= MAX_ALLOC_SIZE;
+	return AlignedSize >= MIN_ALLOCATION_SIZE && AlignedSize <= MAX_ALLOCATION_SIZE;
 }
 
 bool bit::MediumSizeAllocator::OwnsAllocation(const void* Ptr)
 {
-	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
+	/*for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
 	{
 		if (Pool->Memory.OwnsAddress(Ptr))
 		{
 			return true;
 		}
-	}
-	return false;
+	}*/
+	return Memory.OwnsAddress(Ptr);
+	//return false;
 }
 
 size_t bit::MediumSizeAllocator::Compact()
 {
 	size_t Total = 0;
-	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr;)
+	/*for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr;)
 	{
 		MemoryPool* Next = Pool->Next;
 		if (RemoveMemoryPoolFreeBlocks(Pool))
@@ -164,11 +185,13 @@ size_t bit::MediumSizeAllocator::Compact()
 			ReleaseMemoryPool(Pool);
 		}
 		Pool = Next;
-	}
+	}*/
 	return Total;
 }
 
-void bit::MediumSizeAllocator::ReleaseMemoryPool(MemoryPool* Pool)
+
+
+/*void bit::MediumSizeAllocator::ReleaseMemoryPool(MemoryPool* Pool)
 {
 	if (Pool != nullptr)
 	{
@@ -186,8 +209,7 @@ void bit::MediumSizeAllocator::ReleaseMemoryPool(MemoryPool* Pool)
 bool bit::MediumSizeAllocator::ReleaseUnusedMemoryPool(BlockFreeHeader* FreeBlock)
 {
 	if (FreeBlock->PrevPhysicalBlock->IsLastPhysicalBlock() &&
-		GetNextBlock(FreeBlock)->IsLastPhysicalBlock() &&
-		FLBitmap > 0)
+		GetNextBlock(FreeBlock)->IsLastPhysicalBlock())
 	{
 		MemoryPool* Pool = reinterpret_cast<MemoryPool*>(FreeBlock->PrevPhysicalBlock);
 		BIT_ASSERT(Pool->BaseAddress == FreeBlock);
@@ -195,7 +217,7 @@ bool bit::MediumSizeAllocator::ReleaseUnusedMemoryPool(BlockFreeHeader* FreeBloc
 		return true;
 }
 	return false;
-}
+}*/
 
 void* bit::MediumSizeAllocator::AllocateAligned(SizeType_t Size, SizeType_t Alignment)
 {
@@ -204,7 +226,8 @@ void* bit::MediumSizeAllocator::AllocateAligned(SizeType_t Size, SizeType_t Alig
 	BlockFreeHeader* Block = FindSuitableBlock(AlignedSize, Map);
 	if (Block == nullptr)
 	{
-		AddNewPool(Size); // No available blocks in the pool.
+		//AddNewPool(Size); // No available blocks in the pool.
+		AllocateVirtualMemory(Size);
 		Block = FindSuitableBlock(AlignedSize, Map);
 	}
 	if (Block != nullptr)
@@ -213,7 +236,7 @@ void* bit::MediumSizeAllocator::AllocateAligned(SizeType_t Size, SizeType_t Alig
 		SizeType_t BlockFullSize = Block->GetFullSize();
 		RemoveBlock(Block, Map);
 		if (Block->GetSize() > AlignedSize 
-			&& (Block->GetSize() - AlignedSize) > MIN_ALLOC_SIZE && 
+			&& (Block->GetSize() - AlignedSize) > MIN_ALLOCATION_SIZE && 
 			bit::IsAddressAligned(GetPointerFromBlockHeader(Block), Alignment))
 		{
 			BlockFreeHeader* AlignedBlock = SplitAligned(Block, Size, Alignment);
@@ -223,7 +246,7 @@ void* bit::MediumSizeAllocator::AllocateAligned(SizeType_t Size, SizeType_t Alig
 			}
 			Block = AlignedBlock;
 		}
-		UsedSpaceInBytes += Block->GetFullSize();
+		UsedSpaceInBytes += Block->GetSize();
 	#if BIT_ENABLE_BLOCK_MARKING
 		FillBlock(Block, 0xAA);
 	#endif
@@ -232,7 +255,7 @@ void* bit::MediumSizeAllocator::AllocateAligned(SizeType_t Size, SizeType_t Alig
 	return nullptr; /* Out of memory */
 }
 
-bool bit::MediumSizeAllocator::IsPoolReleasable(MemoryPool* Pool)
+/*bool bit::MediumSizeAllocator::IsPoolReleasable(MemoryPool* Pool)
 {
 	BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(Pool->BaseAddress);
 	while (Block != nullptr)
@@ -262,11 +285,45 @@ bool bit::MediumSizeAllocator::RemoveMemoryPoolFreeBlocks(MemoryPool* Pool)
 		return true;
 	}
 	return false;
+}*/
+
+void bit::MediumSizeAllocator::AllocateVirtualMemory(size_t Size)
+{
+	size_t AlignedSize = bit::RoundUp(bit::AlignUint(Size, alignof(BlockHeader)), bit::GetOSPageSize() * 4);
+	void* Pages = Memory.CommitPagesByOffset(VirtualMemoryOffset, AlignedSize);
+	if (Memory.CommitPagesByOffset(VirtualMemoryOffset, AlignedSize) != nullptr)
+	{
+		VirtualMemoryOffset += AlignedSize;
+
+		BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(Pages);
+		Block->Reset((SizeType_t)AlignedSize - sizeof(BlockFreeHeader) - sizeof(BlockHeader));
+		Block->PrevPhysicalBlock = nullptr;
+		InsertBlock(Block, Mapping(Block->GetSize()));
+
+		BlockFreeHeader* EndOfBlock = GetNextBlock(Block);
+		EndOfBlock->Reset(0);
+		EndOfBlock->SetLastPhysicalBlock();
+		EndOfBlock->PrevPhysicalBlock = reinterpret_cast<BlockHeader*>(Block);
+		EndOfBlock->NextFree = nullptr;
+		EndOfBlock->PrevFree = nullptr;
+
+		AvailableSpaceInBytes += Block->GetSize();
+	}
 }
 
+bool bit::MediumSizeAllocator::FreeVirtualMemory(BlockFreeHeader* FreeBlock)
+{
+	if (FreeBlock->PrevPhysicalBlock == nullptr && GetNextBlock(FreeBlock)->IsLastPhysicalBlock())
+	{
+		return Memory.DecommitPagesByAddress(FreeBlock, FreeBlock->GetFullSize() + sizeof(BlockFreeHeader));
+	}
+	return false;
+}
+
+/*
 void bit::MediumSizeAllocator::AddNewPool(size_t PoolSize)
 {
-	size_t AlignedSize = bit::RoundUp(bit::AlignUint(PoolSize + sizeof(MemoryPool), alignof(BlockHeader)), bit::GetOSAllocationGranularity());
+	size_t AlignedSize = bit::RoundUp(bit::AlignUint(PoolSize + sizeof(MemoryPool), alignof(BlockHeader)), bit::GetOSPageSize() * 4);
 	VirtualAddressSpace VirtualAddress = {};
 	if (VirtualReserveSpace(nullptr, AlignedSize, VirtualAddress))
 	{
@@ -298,10 +355,10 @@ void bit::MediumSizeAllocator::AddNewPool(size_t PoolSize)
 		}
 
 		MemoryPoolList = Pool;
-		AvailableSpaceInBytes += Block->GetFullSize();
+		AvailableSpaceInBytes += Block->GetSize();
 		MemoryPoolCount += 1;
 	}
-}
+}*/
 
 bit::MediumSizeAllocator::BlockMap bit::MediumSizeAllocator::Mapping(size_t Size) const
 {
@@ -345,7 +402,7 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::MergeRecurs
 	}
 
 	BlockFreeHeader* Prev = reinterpret_cast<BlockFreeHeader*>(Block->PrevPhysicalBlock);
-	if (!Prev->IsLastPhysicalBlock() && Prev->IsFree())
+	if (Prev != nullptr && Prev->IsFree())
 	{
 		BlockMap Map = Mapping(Prev->GetSize());
 		RemoveBlock(Prev, Map);
@@ -409,7 +466,7 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::Split(Block
 	SizeType_t BlockSize = Block->GetSize();
 	SizeType_t FullBlockSize = Block->GetFullSize();
 	SizeType_t SizeWithHeader = Size + sizeof(BlockHeader);
-	if (Size >= MIN_ALLOC_SIZE && BlockSize - SizeWithHeader >= MIN_ALLOC_SIZE)
+	if (Size >= MIN_ALLOCATION_SIZE && BlockSize - SizeWithHeader >= MIN_ALLOCATION_SIZE)
 	{
 		BlockFreeHeader* RemainingBlock = bit::OffsetPtr<BlockFreeHeader>(Block, SizeWithHeader);
 		RemainingBlock->Reset(BlockSize - SizeWithHeader);
@@ -429,7 +486,7 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::SplitAligne
 	SizeType_t BlockSize = Block->GetSize();
 	SizeType_t FullBlockSize = Block->GetFullSize();
 	SizeType_t SizeWithHeader = Size + sizeof(BlockHeader);
-	if (Size >= MIN_ALLOC_SIZE && BlockSize - SizeWithHeader >= MIN_ALLOC_SIZE)
+	if (Size >= MIN_ALLOCATION_SIZE && BlockSize - SizeWithHeader >= MIN_ALLOCATION_SIZE)
 	{
 		BlockFreeHeader* BlockNextBlock = GetNextBlock(Block);
 		void* AlignedBlock = bit::AlignPtr(bit::OffsetPtr(Block, SizeWithHeader), Alignment);

@@ -41,8 +41,8 @@ namespace bit
 		{
 			if (InAllocator.IsValid())
 			{
-				Allocate(InAllocator.GetAllocationSize(), 1);
-				bit::Memcpy(Block, InAllocator.GetAllocation(), InAllocator.GetAllocationSize());
+				Allocate(InAllocator.GetBlockSize(), 1);
+				bit::Memcpy(Block, InAllocator.GetBlock(), InAllocator.GetBlockSize());
 			}
 		}
 
@@ -53,8 +53,8 @@ namespace bit
 		{
 			if (InAllocator.IsValid())
 			{
-				Allocate(InAllocator.GetAllocationSize(), 1);
-				bit::Memcpy(Block, InAllocator.GetAllocation(), InAllocator.GetAllocationSize());
+				Allocate(InAllocator.GetBlockSize(), 1);
+				bit::Memcpy(Block, InAllocator.GetBlock(), InAllocator.GetBlockSize());
 			}
 		}
 
@@ -63,8 +63,8 @@ namespace bit
 			Free();
 			if (InAllocator.IsValid())
 			{
-				Allocate(InAllocator.GetAllocationSize(), 1);
-				bit::Memcpy(Block, InAllocator.GetAllocation(), InAllocator.GetAllocationSize());
+				Allocate(InAllocator.GetBlockSize(), 1);
+				bit::Memcpy(Block, InAllocator.GetBlock(), InAllocator.GetBlockSize());
 			}
 			return *this;
 		}
@@ -113,8 +113,8 @@ namespace bit
 			}
 		}
 
-		SizeType_t GetAllocationSize() const { return AllocationSize; }
-		void* GetAllocation() const { return Block; }
+		SizeType_t GetBlockSize() const { return AllocationSize; }
+		void* GetBlock() const { return Block; }
 		bool IsValid() const { return Block != nullptr; }
 
 	private:
@@ -139,8 +139,8 @@ namespace bit
 		}
 
 		void Free() {}
-		SizeType_t GetAllocationSize() const { return Capacity * sizeof(T); }
-		void* GetAllocation() const { return (void*)&Block[0]; }
+		SizeType_t GetBlockSize() const { return Capacity * sizeof(T); }
+		void* GetBlock() const { return (void*)&Block[0]; }
 		bool IsValid() const { return true; }
 	
 	private:
@@ -152,18 +152,18 @@ namespace bit
 	{
 		SmallBlockStorage() :
 			Block((void*)&InlineBlock[0]),
-			AllocationSize(InlineCount * sizeof(T))
+			BlockSize(InlineCount * sizeof(T))
 		{}
 
 		SmallBlockStorage(IAllocator* InPolyAllocator) :
 			FallbackAllocator(InPolyAllocator),
 			Block((void*)&InlineBlock[0]),
-			AllocationSize(InlineCount * sizeof(T))
+			BlockSize(InlineCount * sizeof(T))
 		{}
 
 		SmallBlockStorage(SmallBlockStorage&& Allocator) :
 			Block((void*)&InlineBlock[0]),
-			AllocationSize(InlineCount * sizeof(T))
+			BlockSize(InlineCount * sizeof(T))
 		{
 			FallbackAllocator = bit::Move(Allocator.FallbackAllocator);
 			if (Allocator.IsUsingInlineBlock())
@@ -173,16 +173,16 @@ namespace bit
 			else
 			{
 				Block = Allocator.Block;
-				AllocationSize = Allocator.AllocationSize;
+				BlockSize = Allocator.BlockSize;
 			}
 		
 			Allocator.Block = nullptr;
-			Allocator.AllocationSize = 0;
+			Allocator.BlockSize = 0;
 		}
 
 		SmallBlockStorage(const SmallBlockStorage& InAllocator) :
 			Block((void*)&InlineBlock[0]),
-			AllocationSize(InlineCount * sizeof(T))
+			BlockSize(InlineCount * sizeof(T))
 		{
 			FallbackAllocator = InAllocator.FallbackAllocator;
 			if (InAllocator.IsUsingInlineBlock())
@@ -191,8 +191,8 @@ namespace bit
 			}
 			else
 			{
-				Allocate(InAllocator.GetAllocationSize(), 1);
-				bit::Memcpy(Block, InAllocator.GetAllocation(), InAllocator.GetAllocationSize());
+				Allocate(InAllocator.GetBlockSize(), 1);
+				bit::Memcpy(Block, InAllocator.GetBlock(), InAllocator.GetBlockSize());
 			}
 		}
 
@@ -207,10 +207,10 @@ namespace bit
 			else
 			{
 				Block = Allocator.Block;
-				AllocationSize = Allocator.AllocationSize;
+				BlockSize = Allocator.BlockSize;
 			}
 			Allocator.Block = nullptr;
-			Allocator.AllocationSize = 0;
+			Allocator.BlockSize = 0;
 			return *this;
 		}
 
@@ -224,8 +224,8 @@ namespace bit
 			}
 			else
 			{
-				Allocate(InAllocator.GetAllocationSize(), 1);
-				bit::Memcpy(Block, InAllocator.GetAllocation(), InAllocator.GetAllocationSize());
+				Allocate(InAllocator.GetBlockSize(), 1);
+				bit::Memcpy(Block, InAllocator.GetBlock(), InAllocator.GetBlockSize());
 			}
 			return *this;
 		}
@@ -239,15 +239,15 @@ namespace bit
 				FallbackAllocator.Allocate(Size, Count);
 				if (IsUsingInlineBlock())
 				{
-					bit::Memcpy(FallbackAllocator.GetAllocation(), Block, InlineCount * sizeof(T));
+					bit::Memcpy(FallbackAllocator.GetBlock(), Block, InlineCount * sizeof(T));
 				}
-				Block = FallbackAllocator.GetAllocation();
-				AllocationSize = Size * Count;
+				Block = FallbackAllocator.GetBlock();
+				BlockSize = Size * Count;
 			}
 			else
 			{
 				Block = (void*)&InlineBlock[0];
-				AllocationSize = InlineCount * sizeof(T);
+				BlockSize = InlineCount * sizeof(T);
 			}
 		}
 
@@ -257,11 +257,11 @@ namespace bit
 			{
 				FallbackAllocator.Free();
 				Block = nullptr;
-				AllocationSize = 0;
+				BlockSize = 0;
 			}
 		}
-		SizeType_t GetAllocationSize() const { return AllocationSize; }
-		void* GetAllocation() const { return Block; }
+		SizeType_t GetBlockSize() const { return IsUsingInlineBlock() ? BlockSize : FallbackAllocator.GetBlockSize(); }
+		void* GetBlock() const { return Block; }
 		bool IsValid() const { return Block != nullptr; }
 
 	private:
@@ -269,34 +269,99 @@ namespace bit
 		T InlineBlock[InlineCount];
 		TFallbackStorage FallbackAllocator;
 		void* Block;
-		SizeType_t AllocationSize;
+		SizeType_t BlockSize;
 	};
 
 	struct BITLIB_API LinkedListStorage
 	{
-		template<typename TLinkType>
-		struct LinkAllocator
+		struct BITLIB_API StorageBlockLink
 		{
-			LinkAllocator() :
-				Allocator(&bit::GetDefaultAllocator())
-			{}
-
-			LinkAllocator(IAllocator* InAllocator) :
-				Allocator(InAllocator)
-			{}
-
-			TLinkType* AllocateLink(SizeType_t Count)
-			{
-				return (TLinkType*)Allocator->Reallocate(nullptr, sizeof(TLinkType), bit::DEFAULT_ALIGNMENT);
-			}
-
-			void FreeLink(TLinkType* Link)
-			{
-				Allocator->Free(Link);
-			}
-
-			IAllocator* Allocator;
+			StorageBlockLink* Next;
 		};
+
+		LinkedListStorage(size_t InAllocSize, size_t InAllocCount, size_t InAlignment) :
+			Allocator(&bit::GetDefaultAllocator()),
+			BlockList(nullptr),
+			BlockData(nullptr),
+			BlockUsed(0),
+			AllocSize(InAllocSize),
+			AllocCount(InAllocCount),
+			AllocAlignment(InAlignment)
+		{}
+
+		LinkedListStorage(size_t InAllocSize, size_t InAllocCount, size_t InAlignment, IAllocator* InAllocator) :
+			Allocator(InAllocator),
+			BlockList(nullptr),
+			BlockData(nullptr),
+			BlockUsed(0),
+			AllocSize(InAllocSize),
+			AllocCount(InAllocCount),
+			AllocAlignment(InAlignment)
+		{}
+
+		LinkedListStorage(LinkedListStorage&& Other) :
+			Allocator(Other.Allocator),
+			BlockList(Other.BlockList),
+			BlockData(Other.BlockData),
+			BlockUsed(Other.BlockUsed),
+			AllocSize(Other.AllocSize),
+			AllocCount(Other.AllocCount),
+			AllocAlignment(Other.AllocAlignment)
+		{
+			Other.Allocator = nullptr;
+			Other.BlockList = nullptr;
+			Other.AllocSize = 0;
+			Other.AllocCount = 0;
+			Other.AllocAlignment = 0;
+		}
+
+		void Free()
+		{
+			for (StorageBlockLink* Block = BlockList; Block != nullptr; )
+			{
+				StorageBlockLink* Next = Block->Next;
+				Allocator->Free(Block);
+				Block = Next;
+			}
+		}
+
+		void* AllocateLink()
+		{
+			if (Allocator == nullptr) return nullptr;
+			if (BlockList == nullptr)
+			{
+				AllocateNewBlock();
+			}
+			
+			if (BlockUsed + AllocSize > (AllocSize * AllocCount))
+			{
+				AllocateNewBlock();
+			}
+			void* Ptr = bit::OffsetPtr(BlockData, BlockUsed);
+			BlockUsed += AllocSize;
+			return Ptr;
+		}
+
+		void FreeLink(void* Link)
+		{}
+
+	private:
+		void AllocateNewBlock()
+		{
+			StorageBlockLink* NewBlock = (StorageBlockLink*)Allocator->Allocate(sizeof(StorageBlockLink) + AllocSize * AllocCount, alignof(StorageBlockLink));
+			NewBlock->Next = BlockList;
+			BlockList = NewBlock;
+			BlockData = bit::AlignPtr(bit::OffsetPtr(NewBlock, sizeof(StorageBlockLink)), AllocAlignment);
+			BlockUsed = 0;
+		}
+
+		IAllocator* Allocator;
+		StorageBlockLink* BlockList;
+		void* BlockData;
+		size_t BlockUsed;
+		size_t AllocSize;
+		size_t AllocCount;
+		size_t AllocAlignment;
 	};
 
 	struct BITLIB_API HashTableStorage
@@ -304,4 +369,5 @@ namespace bit
 		typedef LinkedListStorage BucketEntryAllocatorType_t;
 		typedef DefaultHeapAllocator BucketAllocatorType_t;
 	};
+
 }

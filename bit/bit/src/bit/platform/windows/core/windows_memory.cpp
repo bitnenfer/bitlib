@@ -1,6 +1,7 @@
 #include <bit/core/memory.h>
 #include <bit/core/memory/allocator.h>
-#include <bit/core/os/scope_lock.h>
+#include <bit/utility/scope_lock.h>
+#include <bit/core/os/mutex.h>
 #include <intrin.h>
 #include <stdarg.h>
 #include <stdio.h>

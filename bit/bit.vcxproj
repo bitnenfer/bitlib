@@ -181,6 +181,7 @@
   <ItemGroup>
     <ClInclude Include="bit\include\bit\core\memory\allocator.h" />
     <ClInclude Include="bit\include\bit\container\array.h" />
+    <ClInclude Include="bit\include\bit\core\memory\large_size_allocator.h" />
     <ClInclude Include="bit\include\bit\core\memory\small_size_allocator.h" />
     <ClInclude Include="bit\include\bit\core\memory\memory_manager.h" />
     <ClInclude Include="bit\include\bit\core\os\atomics.h" />
@@ -204,7 +205,7 @@
     <ClInclude Include="bit\include\bit\utility\pointers.h" />
     <ClInclude Include="bit\include\bit\utility\reference_counter.h" />
     <ClInclude Include="bit\include\bit\core\os\rw_lock.h" />
-    <ClInclude Include="bit\include\bit\core\os\scope_lock.h" />
+    <ClInclude Include="bit\include\bit\utility\scope_lock.h" />
     <ClInclude Include="bit\include\bit\utility\prof_timer.h" />
     <ClInclude Include="bit\include\bit\container\string.h" />
     <ClInclude Include="bit\include\bit\core\os\thread.h" />
@@ -243,9 +244,6 @@
     <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_thread_local_storage.cpp" />
     <ClCompile Include="bit\src\bit\platform\windows\core\utility\windows_utility.cpp" />
     <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_virtual_memory.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

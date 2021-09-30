@@ -93,7 +93,7 @@
     <ClInclude Include="bit\include\bit\core\os\mutex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\core\os\scope_lock.h">
+    <ClInclude Include="bit\include\bit\utility\scope_lock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bit\include\bit\core\os\rw_lock.h">
@@ -121,6 +121,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bit\include\bit\core\memory\medium_size_allocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bit\include\bit\core\memory\large_size_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -197,8 +200,5 @@
     <ClCompile Include="bit\src\bit\core\memory\medium_size_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

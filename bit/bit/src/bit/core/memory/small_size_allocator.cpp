@@ -4,17 +4,26 @@
 
 #define BIT_DEBUG_MARK_BLOCKS 0
 
-bit::SmallSizeAllocator::SmallSizeAllocator(size_t ReservedSpaceInBytes, const char* Name) :
-	SmallSizeAllocator(Name)
-{
-	BIT_ASSERT((ReservedSpaceInBytes % NUM_OF_SIZES) == 0);
+#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+#define BIT_SMALL_NULL (~0)
+#else
+#define BIT_SMALL_NULL 0
+#define GetOffset(Index, Block) Block
+#define GetBlock(Index, Block) Block
+#endif
 
-	if (!VirtualReserveSpace(VirtualRandomAddress(), ReservedSpaceInBytes, Memory))
+
+bit::SmallSizeAllocator::SmallSizeAllocator(const char* Name) :
+	IAllocator(Name)
+{
+	bit::Memset(Blocks, 0, sizeof(Blocks));
+	bit::Memset(FreeLists, BIT_SMALL_NULL, sizeof(FreeLists));
+
+	if (!VirtualReserveSpace(VirtualRandomAddress(), ADDRESS_SPACE_SIZE, Memory))
 	{
 		BIT_PANIC();
 	}
 
-	size_t RangeSize = ReservedSpaceInBytes / NUM_OF_SIZES;
 	void* BaseAddress = bit::AlignPtr(Memory.GetBaseAddress(), MIN_ALLOCATION_SIZE);
 
 	for (size_t Index = 0; Index < NUM_OF_SIZES; ++Index)
@@ -22,17 +31,9 @@ bit::SmallSizeAllocator::SmallSizeAllocator(size_t ReservedSpaceInBytes, const c
 		size_t BlockSize = GetBlockSize(Index);
 		Blocks[Index].Committed = 0;
 		Blocks[Index].Start = bit::AlignPtr(BaseAddress, BlockSize);
-		Blocks[Index].End = bit::OffsetPtr(BaseAddress, RangeSize);
+		Blocks[Index].End = bit::OffsetPtr(BaseAddress, RANGE_SIZE);
 		BaseAddress = Blocks[Index].End;
 	}
-}
-
-bit::SmallSizeAllocator::SmallSizeAllocator(const char* Name) :
-	IAllocator(Name),
-	UsedSpaceInBytes(0)
-{
-	bit::Memset(Blocks, 0, sizeof(Blocks));
-	bit::Memset(FreeLists, 0, sizeof(FreeLists));
 }
 
 void* bit::SmallSizeAllocator::Allocate(size_t Size, size_t Alignment)
@@ -69,13 +70,13 @@ void bit::SmallSizeAllocator::Free(void* Pointer)
 #endif
 		FreeBlock* Block = reinterpret_cast<FreeBlock*>(Pointer);
 		Block->Next = FreeLists[Index];
-		FreeLists[Index] = Block;
+		FreeLists[Index] = GetOffset(Index, Block);
 		UsedSpaceInBytes -= BlockSize;
 		Blocks[Index].Allocated -= BlockSize;
 		if (Blocks[Index].Allocated == 0)
 		{
 			Memory.DecommitPagesByAddress(Blocks[Index].Start, Blocks[Index].Committed);
-			FreeLists[Index] = nullptr;
+			FreeLists[Index] = BIT_SMALL_NULL;
 			Blocks[Index].Committed = 0;
 		}
 	}
@@ -99,7 +100,7 @@ size_t bit::SmallSizeAllocator::GetSize(void* Pointer)
 bit::MemoryUsageInfo bit::SmallSizeAllocator::GetMemoryUsageInfo()
 {
 	MemoryUsageInfo Usage = {};
-	Usage.ReservedBytes = Memory.GetRegionSize();
+	Usage.ReservedBytes = Memory.GetReservedSize();
 	Usage.CommittedBytes = Memory.GetCommittedSize();
 	Usage.AllocatedBytes = UsedSpaceInBytes;
 	return Usage;
@@ -115,6 +116,20 @@ bool bit::SmallSizeAllocator::OwnsAllocation(const void* Ptr)
 	return Memory.OwnsAddress(Ptr);
 }
 
+#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+bit::SmallSizeAllocator::FreeBlock* bit::SmallSizeAllocator::GetBlock(size_t BlockIndex, uint32_t Block)
+{
+	if (Block == BIT_SMALL_NULL) return nullptr;
+	return bit::OffsetPtr<FreeBlock>(Blocks[BlockIndex].Start, (intptr_t)Block);
+}
+
+uint32_t bit::SmallSizeAllocator::GetOffset(size_t BlockIndex, FreeBlock* Block)
+{
+	if (Block == nullptr) return BIT_SMALL_NULL;
+	return (uint32_t)bit::PtrDiff(Block, Blocks[BlockIndex].Start);
+}
+#endif 
+
 void* bit::SmallSizeAllocator::AllocateFromVirtualBlock(size_t BlockIndex, size_t AlignedSize)
 {
 	size_t BlockSize = GetBlockSize(BlockIndex);
@@ -128,7 +143,7 @@ void* bit::SmallSizeAllocator::AllocateFromVirtualBlock(size_t BlockIndex, size_
 	{
 		FreeBlock* NewBlock = reinterpret_cast<FreeBlock*>(bit::OffsetPtr(CurrentAddress, Index * BlockSize));
 		NewBlock->Next = FreeLists[BlockIndex];
-		FreeLists[BlockIndex] = NewBlock;
+		FreeLists[BlockIndex] = GetOffset(BlockIndex, NewBlock);
 	}
 	// Return the last block
 	return PopFreeBlock(BlockIndex);
@@ -148,7 +163,7 @@ size_t bit::SmallSizeAllocator::GetBlockSize(size_t BlockIndex)
 
 bit::SmallSizeAllocator::FreeBlock* bit::SmallSizeAllocator::PopFreeBlock(size_t BlockIndex)
 {
-	FreeBlock* Block = FreeLists[BlockIndex];
+	FreeBlock* Block = GetBlock(BlockIndex, FreeLists[BlockIndex]);
 	if (Block != nullptr)
 	{
 		size_t BlockSize = GetBlockSize(BlockIndex);

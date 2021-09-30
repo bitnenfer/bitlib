@@ -4,8 +4,16 @@
 
 template<> uint64_t bit::BitScanReverse<uint64_t>(uint64_t Value) { return BitScanReverse64(Value); }
 template<> uint32_t bit::BitScanReverse<uint32_t>(uint32_t Value) { return BitScanReverse32(Value); }
+template<> uint16_t bit::BitScanReverse<uint16_t>(uint16_t Value) { return BitScanReverse32((uint32_t)Value); }
 template<> uint64_t bit::BitScanForward<uint64_t>(uint64_t Value) { return BitScanForward64(Value); }
 template<> uint32_t bit::BitScanForward<uint32_t>(uint32_t Value) { return BitScanForward32(Value); }
+template<> uint16_t bit::BitScanForward<uint16_t>(uint16_t Value) { return BitScanForward32((uint32_t)Value); }
+
+template<>
+uint16_t bit::Pow2<uint16_t>(uint16_t Exp)
+{
+	return 1 << Exp;
+}
 
 template<>
 uint32_t bit::Pow2<uint32_t>(uint32_t Exp)

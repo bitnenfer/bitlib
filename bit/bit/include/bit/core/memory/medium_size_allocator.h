@@ -8,7 +8,7 @@ namespace bit
 	/* Source: http://www.gii.upv.es/tlsf/files/ecrts04_tlsf.pdf */
 	struct BITLIB_API MediumSizeAllocator : public bit::IAllocator
 	{
-		using SizeType_t = uint32_t;
+		using SizeType_t = uint64_t;
 	private:
 		struct BITLIB_API BlockHeader
 		{
@@ -33,15 +33,15 @@ namespace bit
 			BlockFreeHeader* PrevFree;
 		};
 
-		struct BITLIB_API MemoryPool
-		{
-			BlockHeader BlockHead; /* This must be at the top */
-			VirtualAddressSpace Memory;
-			MemoryPool* Prev;
-			MemoryPool* Next;
-			SizeType_t PoolSize;
-			void* BaseAddress;
-		};
+		//struct BITLIB_API MemoryPool
+		//{
+		//	BlockHeader BlockHead; /* This must be at the top */
+		//	VirtualAddressSpace Memory;
+		//	MemoryPool* Prev;
+		//	MemoryPool* Next;
+		//	SizeType_t PoolSize;
+		//	void* BaseAddress;
+		//};
 
 		struct BITLIB_API BlockMap
 		{
@@ -50,15 +50,16 @@ namespace bit
 		};
 
 	public:
-		static constexpr SizeType_t SLI = 5; // How many bits we assign for second level index
-		static constexpr SizeType_t MAX_ALLOC_SIZE = (SizeType_t)ConstNextPow2(512 MiB);
-		static constexpr SizeType_t MIN_ALLOC_SIZE = 128;
-		static constexpr SizeType_t COUNT_OFFSET = bit::ConstBitScanReverse(MIN_ALLOC_SIZE) + 1;
-		static constexpr SizeType_t FL_COUNT = bit::ConstBitScanReverse(MAX_ALLOC_SIZE) - COUNT_OFFSET + 1;
+		static constexpr SizeType_t SLI = 6; // How many bits we assign for second level index
+		static constexpr SizeType_t MAX_ALLOCATION_SIZE = 4 MiB;
+		static constexpr SizeType_t MIN_ALLOCATION_SIZE = 2 KiB;
+		static constexpr SizeType_t COUNT_OFFSET = bit::ConstBitScanReverse(MIN_ALLOCATION_SIZE) + 1;
+		static constexpr SizeType_t FL_COUNT = bit::ConstBitScanReverse(MAX_ALLOCATION_SIZE) - COUNT_OFFSET + 1;
 		static constexpr SizeType_t SL_COUNT = 1 << SLI;
+		static constexpr SizeType_t ADDRESS_SPACE_SIZE = 8 GiB;
 
-		MediumSizeAllocator(size_t InitialPoolSize, const char* Name = "TLSF Allocator");
-		MediumSizeAllocator(const char* Name = "TLSF Allocator");
+		MediumSizeAllocator(size_t InitialPoolSize, const char* Name = "Medium Size Allocator");
+		MediumSizeAllocator(const char* Name = "Medium Size Allocator");
 		~MediumSizeAllocator();
 
 		void* Allocate(size_t Size, size_t Alignment) override;
@@ -71,12 +72,14 @@ namespace bit
 		size_t Compact() override;
 	
 	private:
-		void ReleaseMemoryPool(MemoryPool* Pool);
-		bool ReleaseUnusedMemoryPool(BlockFreeHeader* FreeBlock);
+		void AllocateVirtualMemory(size_t Size);
+		bool FreeVirtualMemory(BlockFreeHeader* FreeBlock);
+		//void ReleaseMemoryPool(MemoryPool* Pool);
+		//bool ReleaseUnusedMemoryPool(BlockFreeHeader* FreeBlock);
 		void* AllocateAligned(SizeType_t Size, SizeType_t Alignment);
-		bool IsPoolReleasable(MemoryPool* Pool);
-		bool RemoveMemoryPoolFreeBlocks(MemoryPool* Pool);
-		void AddNewPool(size_t PoolSize);
+		//bool IsPoolReleasable(MemoryPool* Pool);
+		//bool RemoveMemoryPoolFreeBlocks(MemoryPool* Pool);
+		//void AddNewPool(size_t PoolSize);
 		BlockMap Mapping(size_t Size) const;
 		BlockFreeHeader* GetBlockHeaderFromPointer(void* Block) const;
 		void* GetPointerFromBlockHeader(BlockHeader* Block) const;
@@ -95,8 +98,10 @@ namespace bit
 		SizeType_t FLBitmap;
 		SizeType_t SLBitmap[FL_COUNT];
 		BlockFreeHeader* FreeBlocks[FL_COUNT][SL_COUNT];
-		MemoryPool* MemoryPoolList;
-		size_t MemoryPoolCount;
+		//MemoryPool* MemoryPoolList;
+		VirtualAddressSpace Memory;
+		size_t VirtualMemoryOffset;
+		//size_t MemoryPoolCount;
 		size_t UsedSpaceInBytes;
 		size_t AvailableSpaceInBytes;
 	};

@@ -3,14 +3,22 @@
 #include <bit/core/memory/allocator.h>
 #include <bit/core/os/virtual_memory.h>
 
+#define BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN 1
+
 namespace bit
 {
 	struct BITLIB_API SmallSizeAllocator : public bit::IAllocator
 	{
-		/* Since we're mostly on 64 bit system the min allocation size is size of pointer */
-		static constexpr size_t MIN_ALLOCATION_SIZE = 8; 
-		static constexpr size_t NUM_OF_SIZES = 16;
+	#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+		static constexpr size_t MIN_ALLOCATION_SIZE = 4; 
+	#else
+		static constexpr size_t MIN_ALLOCATION_SIZE = 8;
+	#endif
+		static constexpr size_t NUM_OF_SIZES = 512;
 		static constexpr size_t MAX_ALLOCATION_SIZE = MIN_ALLOCATION_SIZE * NUM_OF_SIZES;
+		static constexpr size_t ADDRESS_SPACE_SIZE = 512 MiB;
+		static constexpr size_t RANGE_SIZE = ADDRESS_SPACE_SIZE / NUM_OF_SIZES;
+		static_assert((ADDRESS_SPACE_SIZE % NUM_OF_SIZES) == 0, "ADDRESS_SPACE_SIZE must be divisible by the number of sizes");
 
 	private:
 		struct BITLIB_API VirtualBlock
@@ -26,12 +34,15 @@ namespace bit
 
 		struct BITLIB_API FreeBlock
 		{
+		#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+			uint32_t Next;
+		#else
 			FreeBlock* Next;
+		#endif
 		};
 
 	public:
-		SmallSizeAllocator(size_t ReservedSpaceInBytes, const char* Name = "Small Allocator");
-		SmallSizeAllocator(const char* Name = "Small Allocator");
+		SmallSizeAllocator(const char* Name = "Small Size Allocator");
 		void* Allocate(size_t Size, size_t Alignment) override;
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
@@ -41,6 +52,10 @@ namespace bit
 		bool OwnsAllocation(const void* Ptr) override;
 
 	private:
+	#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+		FreeBlock* GetBlock(size_t BlockIndex, uint32_t Next);
+		uint32_t GetOffset(size_t BlockIndex, FreeBlock* Block);
+	#endif
 		void* AllocateFromVirtualBlock(size_t BlockIndex, size_t Size);
 		size_t SelectBlockIndex(size_t Size);
 		size_t GetBlockSize(size_t BlockIndex);
@@ -48,7 +63,11 @@ namespace bit
 
 		VirtualAddressSpace Memory;
 		VirtualBlock Blocks[NUM_OF_SIZES];
+	#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+		uint32_t FreeLists[NUM_OF_SIZES];
+	#else
 		FreeBlock* FreeLists[NUM_OF_SIZES];
+	#endif
 		size_t UsedSpaceInBytes;
 	};
 }

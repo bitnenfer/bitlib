@@ -1,11 +1,11 @@
 #include <bit/core/memory/memory_manager.h>
 #include <bit/core/os/debug.h>
 #include <bit/core/memory.h>
-#include <bit/core/os/scope_lock.h>
+#include <bit/utility/scope_lock.h>
 
 bit::MemoryManager::MemoryManager() :
 	IAllocator("MemoryManager"),
-	SmallAllocator(512 MiB, "MemoryManager::SmallAllocator"),
+	SmallAllocator("MemoryManager::SmallAllocator"),
 	MediumAllocator("MemoryManager::MediumAllocator")
 {
 }
@@ -54,7 +54,7 @@ size_t bit::MemoryManager::GetSize(void* Pointer)
 bit::MemoryUsageInfo bit::MemoryManager::GetMemoryUsageInfo()
 {
 	bit::ScopedLock<bit::Mutex> Lock(&AccessLock);
-	MemoryUsageInfo SmallUsage = SmallAllocator.GetMemoryUsageInfo();
+	MemoryUsageInfo SmallUsage =  SmallAllocator.GetMemoryUsageInfo();
 	MemoryUsageInfo MediumUsage = MediumAllocator.GetMemoryUsageInfo();
 	MemoryUsageInfo Usage = {};
 	Usage.AllocatedBytes = SmallUsage.AllocatedBytes + MediumUsage.AllocatedBytes;

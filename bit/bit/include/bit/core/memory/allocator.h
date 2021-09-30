@@ -4,6 +4,12 @@
 #include <bit/utility/utility.h>
 #include <bit/utility/reference_counter.h>
 
+#if BIT_BUILD_DEBUG
+#define BIT_ALLOCATOR_USE_NAME 1
+#else
+#define BIT_ALLOCATOR_USE_NAME 0
+#endif
+
 namespace bit
 {
 	static constexpr size_t ALLOCATOR_MAX_NAME_LEN = 128;
@@ -125,7 +131,11 @@ namespace bit
 		virtual bool OwnsAllocation(const void* Ptr) = 0;
 		virtual size_t Compact() { return 0; }
 
+	#if BIT_ALLOCATOR_USE_NAME
 		const char* GetName() const { return Name; }
+	#else
+		const char* GetName() const { return ""; }
+	#endif
 
 		template<typename T>
 		T* Allocate()
@@ -158,7 +168,9 @@ namespace bit
 		}
 
 	private:
+	#if BIT_ALLOCATOR_USE_NAME
 		char Name[bit::ALLOCATOR_MAX_NAME_LEN];
+	#endif
 	};
 }
 

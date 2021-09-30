@@ -1,6 +1,6 @@
 #include <bit/core/os/debug.h>
 #include <bit/core/os/thread_local_storage.h>
-#include <bit/core/os/scope_lock.h>
+#include <bit/utility/scope_lock.h>
 #include "../../windows_common.h"
 
 bit::ThreadLocalStorage::ThreadLocalStorage() :

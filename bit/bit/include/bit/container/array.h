@@ -42,7 +42,6 @@ namespace bit
 	>
 	struct Array
 	{
-
 		typedef Array<T, TStorage> SelfType_t;
 		typedef T ElementType_t;
 
@@ -55,21 +54,21 @@ namespace bit
 
 		Array() : 
 			Count(0), 
-			Capacity(Storage.GetAllocationSize() / sizeof(T)),
-			Data((T*)Storage.GetAllocation())
+			Capacity(Storage.GetBlockSize() / sizeof(T)),
+			Data((T*)Storage.GetBlock())
 		{}
 
 		Array(IAllocator& BackingAllocator) :
 			Storage(&BackingAllocator),
 			Count(0),
-			Capacity(Storage.GetAllocationSize() / sizeof(T)),
-			Data((T*)Storage.GetAllocation())
+			Capacity(Storage.GetBlockSize() / sizeof(T)),
+			Data((T*)Storage.GetBlock())
 		{}
 
 		Array(SizeType_t InitialCapacity) : 
 			Count(0),
-			Capacity(Storage.GetAllocationSize() / sizeof(T)),
-			Data((T*)Storage.GetAllocation())
+			Capacity(Storage.GetBlockSize() / sizeof(T)),
+			Data((T*)Storage.GetBlock())
 		{
 			Resize(InitialCapacity);
 		}
@@ -77,8 +76,8 @@ namespace bit
 		Array(IAllocator& BackingAllocator, SizeType_t InitialCapacity) :
 			Storage(&BackingAllocator),
 			Count(0),
-			Capacity(Storage.GetAllocationSize() / sizeof(T)),
-			Data((T*)Storage.GetAllocation())
+			Capacity(Storage.GetBlockSize() / sizeof(T)),
+			Data((T*)Storage.GetBlock())
 		{
 			Resize(InitialCapacity);
 		}
@@ -86,15 +85,15 @@ namespace bit
 		Array(const SelfType_t& Copy) :
 			Storage(Copy.Storage),
 			Count(Copy.Count),
-			Capacity(Storage.GetAllocationSize() / sizeof(T)),
-			Data((T*)Storage.GetAllocation())
+			Capacity(Storage.GetBlockSize() / sizeof(T)),
+			Data((T*)Storage.GetBlock())
 		{
 		}
 
 		Array(SelfType_t&& Move) :
 			Count(0),
-			Capacity(Storage.GetAllocationSize() / sizeof(T)),
-			Data((T*)Storage.GetAllocation())
+			Capacity(Storage.GetBlockSize() / sizeof(T)),
+			Data((T*)Storage.GetBlock())
 		{
 			Storage = bit::Move(Move.Storage);
 			Data = Move.Data;
@@ -153,7 +152,7 @@ namespace bit
 		{
 			Storage.Allocate(sizeof(T), NewSize);
 			BIT_ASSERT(Storage.IsValid());
-			Data = (T*)Storage.GetAllocation();
+			Data = (T*)Storage.GetBlock();
 			Capacity = NewSize;
 		}
 
@@ -183,7 +182,7 @@ namespace bit
 
 		void Add(const SelfType_t& Other)
 		{
-			CheckGrow();
+			CheckGrow(Other.GetCount());
 			Add(Other.GetData(), Other.GetCount());
 		}
 
@@ -285,9 +284,9 @@ namespace bit
 			if (!CanAdd(AddCount))
 			{
 			#ifdef BIT_SLOW_ARRAY_GROW
-				Reserve((Storage.GetAllocationSize() / sizeof(T)) + AddCount);
+				Reserve((Storage.GetBlockSize() / sizeof(T)) + AddCount);
 			#else
-				Resize((Storage.GetAllocationSize() / sizeof(T)) * 2 + AddCount);
+				Resize((Storage.GetBlockSize() / sizeof(T)) * 2 + AddCount);
 			#endif
 			}
 		}

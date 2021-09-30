@@ -170,6 +170,7 @@ namespace bit
 	T BitScanReverse(T Value);
 	template<> BITLIB_API uint64_t BitScanReverse<uint64_t>(uint64_t Value);
 	template<> BITLIB_API uint32_t BitScanReverse<uint32_t>(uint32_t Value);
+	template<> BITLIB_API uint16_t BitScanReverse<uint16_t>(uint16_t Value);
 	template<> BITLIB_API int64_t BitScanReverse<int64_t>(int64_t Value);
 	template<> BITLIB_API int32_t BitScanReverse<int32_t>(int32_t Value);
 
@@ -177,6 +178,7 @@ namespace bit
 	T BitScanForward(T Value);
 	template<> BITLIB_API uint64_t BitScanForward<uint64_t>(uint64_t Value);
 	template<> BITLIB_API uint32_t BitScanForward<uint32_t>(uint32_t Value);
+	template<> BITLIB_API uint16_t BitScanForward<uint16_t>(uint16_t Value);
 
 	constexpr uint64_t ConstBitScanReverse64(uint64_t Value)
 	{
@@ -209,6 +211,7 @@ namespace bit
 	constexpr T ConstBitScanReverse(T Value);
 	template<> constexpr uint64_t ConstBitScanReverse<uint64_t>(uint64_t Value) { return ConstBitScanReverse64(Value); }
 	template<> constexpr uint32_t ConstBitScanReverse<uint32_t>(uint32_t Value) { return ConstBitScanReverse32(Value); }
+	template<> constexpr uint16_t ConstBitScanReverse<uint16_t>(uint16_t Value) { return ConstBitScanReverse32((uint32_t)Value); }
 
 	// This function counts the number of bits before a set bit is found
 	// and assumes the alignment based on that. It might not be the selected alignment
@@ -257,6 +260,9 @@ namespace bit
 
 	template<>
 	BITLIB_API uint32_t Pow2<uint32_t>(uint32_t Exp);
+
+	template<>
+	BITLIB_API uint16_t Pow2<uint16_t>(uint16_t Exp);
 
 	BIT_FORCEINLINE bool PtrInRange(const void* Ptr, const void* Start, const void* End)
 	{

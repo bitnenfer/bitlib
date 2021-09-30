@@ -148,7 +148,7 @@ void* bit::VirtualAddressSpace::GetEndAddress() const
 	return bit::OffsetPtr(BaseAddress, ReservedSize);
 }
 
-size_t bit::VirtualAddressSpace::GetRegionSize() const
+size_t bit::VirtualAddressSpace::GetReservedSize() const
 {
 	return ReservedSize;
 }
@@ -195,7 +195,7 @@ void bit::VirtualReleaseSpace(bit::VirtualAddressSpace& VirtualMemoryRegion)
 	if (VirtualMemoryRegion.IsValid())
 	{
 		void* Base = VirtualMemoryRegion.GetBaseAddress();
-		size_t Size = VirtualMemoryRegion.GetRegionSize();
+		size_t Size = VirtualMemoryRegion.GetReservedSize();
 		VirtualFree(Base, Size, MEM_DECOMMIT);
 		VirtualFree(Base, Size, MEM_RELEASE);
 	}

@@ -28,7 +28,7 @@ namespace bit
 		void* GetBaseAddress() const;
 		void* GetAddress(size_t Offset) const;
 		void* GetEndAddress() const;
-		size_t GetRegionSize() const;
+		size_t GetReservedSize() const;
 		size_t GetCommittedSize() const;
 		size_t GetPageCount() const;
 		bool IsValid() const;

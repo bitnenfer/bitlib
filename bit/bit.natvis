@@ -6,19 +6,7 @@
   <Type Name="bit::Array&lt;*&gt;">
     <DisplayString>{{ Count={Count}, Capacity={Capacity} }}</DisplayString>
     <Expand>
-      <Item Name="[Allocator]">Allocator</Item>
-      <Item Name="[Count]">Count</Item>
-      <Item Name="[Capacity]">Capacity</Item>
-      <ArrayItems>
-        <Size>Count</Size>
-        <ValuePointer>Data</ValuePointer>
-      </ArrayItems>
-    </Expand>
-  </Type>
-  <Type Name="bit::pmr::Array&lt;*&gt;">
-    <DisplayString>{{ Count={Count}, Capacity={Capacity} }}</DisplayString>
-    <Expand>
-      <Item Name="[Allocator]">Allocator,na</Item>
+      <Item Name="[Storage]">Storage</Item>
       <Item Name="[Count]">Count</Item>
       <Item Name="[Capacity]">Capacity</Item>
       <ArrayItems>
@@ -137,8 +125,11 @@
       </CustomListItems>
     </Expand>
   </Type>
-  <Type Name="bit::ScopeTimer">
-    <DisplayString>{{ {TimerName,sb}, Start={StartTime} }}</DisplayString>
+  <Type Name="bit::ProfTimer">
+    <DisplayString>{{ Start={StartTime} s }}</DisplayString>
+  </Type>
+  <Type Name="bit::ScopeProfTimer">
+    <DisplayString>{{ {TimerName,sb}, Start={Timer.StartTime} }}</DisplayString>
   </Type>
   <Type Name="bit::AtomicRefCounter&lt;*&gt;">
     <DisplayString>{{ Ref Count={Counter} }}</DisplayString>
@@ -240,18 +231,18 @@
     </Expand>
   </Type>
 
-  <Type Name="bit::TLSFAllocator::BlockHeader">
+  <Type Name="bit::MediumSizeAllocator::BlockHeader">
     <DisplayString Condition="(Size &amp; 0b10) &gt; 0">{{ End of Pool }}</DisplayString>
     <DisplayString Condition="(Size &amp; 0b1) &gt; 0">{{ Size={ Size &amp; (~0b11) }, Free }}</DisplayString>
     <DisplayString>{{ Size={Size &amp; (~0b11)}, Used }}</DisplayString>
     <Expand HideRawView="1">
       <Item Condition="(Size &amp; 0b10) == 0" Name="[Size]">Size &amp; (~0b11)</Item>
       <Item Name="[Prev PhysBlock]">PrevPhysicalBlock</Item>
-      <Item Condition="(Size &amp; 0b10) == 0" Name="[Next PhysBlock]">(bit::TLSFAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
+      <Item Condition="(Size &amp; 0b10) == 0" Name="[Next PhysBlock]">(bit::MediumSizeAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
     </Expand>
   </Type>
 
-  <Type Name="bit::TLSFAllocator::BlockFreeHeader">
+  <Type Name="bit::MediumSizeAllocator::BlockFreeHeader">
     <DisplayString Condition="(Size &amp; 0b10) &gt; 0">{{ End of Pool }}</DisplayString>
     <DisplayString Condition="(Size &amp; 0b1) &gt; 0 &amp;&amp; NextFree != nullptr &amp;&amp; PrevFree == nullptr">{{ Size={ Size &amp; (~0b11) }, Free, List Head }}</DisplayString>
     <DisplayString Condition="(Size &amp; 0b1) &gt; 0">{{ Size={ Size &amp; (~0b11) }, Free }}</DisplayString>
@@ -261,7 +252,7 @@
       <Synthetic Condition="this != nullptr" Name="[Adjacent Blocks]">
         <Expand>
           <Item Name="[Prev]">PrevPhysicalBlock</Item>
-          <Item Condition="(Size &amp; 0b10) == 0" Name="[Next]">(bit::TLSFAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
+          <Item Condition="(Size &amp; 0b10) == 0" Name="[Next]">(bit::MediumSizeAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
         </Expand>
       </Synthetic>
       <Synthetic Condition="PrevFree == nullptr &amp;&amp; NextFree != nullptr" Name="[Free List]">
@@ -279,32 +270,32 @@
     </Expand>
   </Type>
 
-  <Type Name="bit::TLSFAllocator::MemoryPool">
-    <DisplayString Condition="UsableSize &gt; 1024 * 1024 * 1024">{{ Size={(double)UsableSize / 1024.0 / 1024.0 / 1024.0,g} GiB }}</DisplayString>
-    <DisplayString Condition="UsableSize &gt; 1024 * 1024">{{ Size={(double)UsableSize / 1024.0 / 1024.0,g} MiB }}</DisplayString>
-    <DisplayString Condition="UsableSize &gt; 1024">{{ Size={(double)UsableSize / 1024.0,g} KiB }}</DisplayString>
-    <DisplayString>{{ Size={(double)UsableSize,g} B }}</DisplayString>
+  <Type Name="bit::MediumSizeAllocator::MemoryPool">
+    <DisplayString Condition="PoolSize &gt; 1024 * 1024 * 1024">{{ Size={(double)PoolSize / 1024.0 / 1024.0 / 1024.0,g} GiB }}</DisplayString>
+    <DisplayString Condition="PoolSize &gt; 1024 * 1024">{{ Size={(double)PoolSize / 1024.0 / 1024.0,g} MiB }}</DisplayString>
+    <DisplayString Condition="PoolSize &gt; 1024">{{ Size={(double)PoolSize / 1024.0,g} KiB }}</DisplayString>
+    <DisplayString>{{ Size={(double)PoolSize,g} B }}</DisplayString>
     <Expand HideRawView="1">
-      <Synthetic Name="[Available Space]" Condition="UsableSize &lt; 1024">
-        <DisplayString>{ (double)UsableSize,g } B</DisplayString>
+      <Synthetic Name="[Available Space]" Condition="PoolSize &lt; 1024">
+        <DisplayString>{ (double)PoolSize,g } B</DisplayString>
       </Synthetic>
-      <Synthetic Name="[Available Space]" Condition="UsableSize &gt; 1024 &amp;&amp; UsableSize &lt; 1024 * 1024">
-        <DisplayString>{ (double)UsableSize / 1024.0,g } KiB</DisplayString>
+      <Synthetic Name="[Available Space]" Condition="PoolSize &gt; 1024 &amp;&amp; PoolSize &lt; 1024 * 1024">
+        <DisplayString>{ (double)PoolSize / 1024.0,g } KiB</DisplayString>
       </Synthetic>
-      <Synthetic Name="[Available Space]" Condition="UsableSize &gt; 1024 * 1024 &amp;&amp; UsableSize &lt; 1024 * 1024 * 1024">
-        <DisplayString>{ (double)UsableSize / 1024.0 / 1024.0,g } MiB</DisplayString>
+      <Synthetic Name="[Available Space]" Condition="PoolSize &gt; 1024 * 1024 &amp;&amp; PoolSize &lt; 1024 * 1024 * 1024">
+        <DisplayString>{ (double)PoolSize / 1024.0 / 1024.0,g } MiB</DisplayString>
       </Synthetic>
       <Item Name="[Base Address]">BaseAddress</Item>
       <Item Name="[Next Pool]">Next</Item>
     </Expand>
   </Type>
 
-  <Type Name="bit::TLSFAllocator">
-    <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024">{{ {Name,s}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes, g} B }</DisplayString>
-    <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024">{{ {Name,s}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0,g} KiB }</DisplayString>
-    <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024">{{ {Name,s}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0 / 1024.0,g} MiB }</DisplayString>
-    <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024 * 1024">{{ {Name,s}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0 / 1024.0 / 1024.0,g} GiB }</DisplayString>
-    <DisplayString Condition="AvailableSpaceInBytes &gt; 0">{{ {Name,s}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }}</DisplayString>
+  <Type Name="bit::MediumSizeAllocator">
+    <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes, g} B }</DisplayString>
+    <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0,g} KiB }</DisplayString>
+    <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0 / 1024.0,g} MiB }</DisplayString>
+    <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024 * 1024">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0 / 1024.0 / 1024.0,g} GiB }</DisplayString>
+    <DisplayString Condition="AvailableSpaceInBytes &gt; 0">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }}</DisplayString>
     <DisplayString>{{ {Name,s}, Empty }}</DisplayString>
     <Expand HideRawView="1">
       <Synthetic Name="[TLSF Config]">
@@ -314,10 +305,10 @@
           <Item Name="First Level Count">FL_COUNT</Item>
           <Item Name="Second Level Count">SL_COUNT</Item>
           <Synthetic Name="Max Alloc Block">
-            <DisplayString Condition="MAX_POOL_SIZE &gt;= 1024 * 1024 * 1024">{MAX_POOL_SIZE / 1024 / 1024 / 1024,u} GiB</DisplayString>
-            <DisplayString Condition="MAX_POOL_SIZE &gt;= 1024 * 1024">{MAX_POOL_SIZE / 1024 / 1024,u} MiB</DisplayString>
-            <DisplayString Condition="MAX_POOL_SIZE &gt;= 1024">{MAX_POOL_SIZE / 1024,u} KiB</DisplayString>
-            <DisplayString>{MAX_POOL_SIZE,u}</DisplayString>
+            <DisplayString Condition="MAX_ALLOC_SIZE &gt;= 1024 * 1024 * 1024">{MAX_ALLOC_SIZE / 1024 / 1024 / 1024,u} GiB</DisplayString>
+            <DisplayString Condition="MAX_ALLOC_SIZE &gt;= 1024 * 1024">{MAX_ALLOC_SIZE / 1024 / 1024,u} MiB</DisplayString>
+            <DisplayString Condition="MAX_ALLOC_SIZE &gt;= 1024">{MAX_ALLOC_SIZE / 1024,u} KiB</DisplayString>
+            <DisplayString>{MAX_ALLOC_SIZE,u}</DisplayString>
           </Synthetic>
           <Synthetic Name="Min Alloc Block">
             <DisplayString>{MIN_ALLOC_SIZE,u} B</DisplayString>
@@ -399,6 +390,70 @@
             </Expand>
           </Synthetic>
           
+        </Expand>
+      </Synthetic>
+    </Expand>
+  </Type>
+
+  <Type Name="bit::MemoryManager">
+    <DisplayString>{{ {Name,sb} }}</DisplayString>
+    <Expand HideRawView="1">
+      <Item Name="[Small Allocator]">SmallAllocator</Item>
+      <Item Name="[Medium Allocator]">MediumAllocator</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="bit::SmallSizeAllocator::FreeBlock">
+    <Expand>
+      <CustomListItems MaxItemsPerView="30">
+        <Variable Name="Block" InitialValue="this"/>
+        <Loop Condition="Block != nullptr">
+          <Item>Block</Item>
+          <Exec>Block = Block->Next</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="bit::SmallSizeAllocator::VirtualBlock">
+    <DisplayString>{{ Allocated={Allocated}, Committed={Committed}, Reserved={(uintptr_t)End-(uintptr_t)Start} }}</DisplayString>
+    <Expand>
+      <Item Name="[Allocated]">Allocated</Item>
+      <Item Name="[Committed]">Committed</Item>
+      <Item Name="[Reserved]">(uintptr_t)End-(uintptr_t)Start</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="bit::SmallSizeAllocator">
+    <DisplayString>{{ {Name,sb} }}</DisplayString>
+    <Expand>
+      <Synthetic Name="[Virtual Blocks]">
+        <DisplayString>{{ Min Alloc={MIN_ALLOCATION_SIZE} B, Max Alloc={MAX_ALLOCATION_SIZE} }}</DisplayString>
+        <Expand>
+          <CustomListItems>
+            <Variable Name="Index" InitialValue="0"/>
+            <Variable Name="BlockSize" InitialValue="0"/>
+            <Loop Condition="Index &lt; NUM_OF_SIZES">
+              <Exec>BlockSize = ((Index+1) * MIN_ALLOCATION_SIZE)</Exec>
+              <Item Name="[{Index}]  [{BlockSize} B]">Blocks[Index]</Item>
+              <Exec>Index += 1</Exec>
+            </Loop>
+          </CustomListItems>
+        </Expand>
+      </Synthetic>
+
+      <Synthetic Name="[Free List]">
+        <DisplayString>{{ Min Alloc={MIN_ALLOCATION_SIZE} B, Max Alloc={MAX_ALLOCATION_SIZE} }}</DisplayString>
+        <Expand>
+          <CustomListItems>
+            <Variable Name="Index" InitialValue="0"/>
+            <Variable Name="BlockSize" InitialValue="0"/>
+            <Loop Condition="Index &lt; NUM_OF_SIZES">
+              <Exec>BlockSize = ((Index+1) * MIN_ALLOCATION_SIZE)</Exec>
+              <Item Name="[{Index}]  [{BlockSize} B]">FreeLists[Index]</Item>
+              <Exec>Index += 1</Exec>
+            </Loop>
+          </CustomListItems>
         </Expand>
       </Synthetic>
     </Expand>
