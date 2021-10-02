@@ -366,8 +366,28 @@ namespace bit
 
 	struct BITLIB_API HashTableStorage
 	{
-		typedef LinkedListStorage BucketEntryAllocatorType_t;
-		typedef DefaultHeapAllocator BucketAllocatorType_t;
+		HashTableStorage() :
+			Allocator(&bit::GetDefaultAllocator())
+		{}
+
+		HashTableStorage(IAllocator& InAllocator) :
+			Allocator(&InAllocator)
+		{}
+
+		void* AllocateBuckets(size_t Size, size_t Count)
+		{
+			return Allocator->Allocate(Size * Count, bit::DEFAULT_ALIGNMENT);
+		}
+
+		void FreeBuckets(void* Buckets)
+		{
+			Allocator->Free(Buckets);
+		}
+
+		IAllocator& GetAllocator() { return *Allocator; }
+
+	private:
+		IAllocator* Allocator;
 	};
 
 }

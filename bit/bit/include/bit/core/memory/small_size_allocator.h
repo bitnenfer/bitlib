@@ -3,13 +3,13 @@
 #include <bit/core/memory/allocator.h>
 #include <bit/core/os/virtual_memory.h>
 
-#define BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN 1
+#define BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN 1
 
 namespace bit
 {
 	struct BITLIB_API SmallSizeAllocator : public bit::IAllocator
 	{
-	#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+	#if BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN
 		static constexpr size_t MIN_ALLOCATION_SIZE = 4; 
 	#else
 		static constexpr size_t MIN_ALLOCATION_SIZE = 8;
@@ -34,7 +34,7 @@ namespace bit
 
 		struct BITLIB_API FreeBlock
 		{
-		#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+		#if BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN
 			uint32_t Next;
 		#else
 			FreeBlock* Next;
@@ -52,7 +52,7 @@ namespace bit
 		bool OwnsAllocation(const void* Ptr) override;
 
 	private:
-	#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+	#if BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN
 		FreeBlock* GetBlock(size_t BlockIndex, uint32_t Next);
 		uint32_t GetOffset(size_t BlockIndex, FreeBlock* Block);
 	#endif
@@ -63,7 +63,7 @@ namespace bit
 
 		VirtualAddressSpace Memory;
 		VirtualBlock Blocks[NUM_OF_SIZES];
-	#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+	#if BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN
 		uint32_t FreeLists[NUM_OF_SIZES];
 	#else
 		FreeBlock* FreeLists[NUM_OF_SIZES];

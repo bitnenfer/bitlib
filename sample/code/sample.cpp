@@ -67,22 +67,13 @@ int main(int32_t Argc, const char* Argv[])
 		{
 			bit::TempFmtString("Hello %s", "World");
 
-			bit::PageAllocator PageAllocator("PageAllocator", bit::VirtualRandomAddress(), 1 GiB);
 			bit::String MyString = "Testing";
 
 			MyString += bit::String::Format("Hello wtf %.2f", 3.14f);
 
 			BIT_LOG("My Str says = %s\n", *(MyString + "\nWOoo"));
 
-			MyValue* NM = PageAllocator.New<MyValue>(99);
-			size_t Alignment = bit::GetAddressAlignment(NM);
-			size_t NMSize = PageAllocator.GetSize(NM);
-			size_t Wastage = NMSize - sizeof(MyValue);
-			PageAllocator.Delete(NM);
-
-			auto MX = bit::Forward<size_t>(bit::Move(Alignment));
-
-			bit::LinearAllocator LinearAllocator("TestLinearAllocator", PageAllocator.AllocateArena(10 MiB));
+			bit::LinearAllocator LinearAllocator("TestLinearAllocator", DefaultAllocator.AllocateArena(2 MiB));
 			bit::FixedMemoryArena<1 KiB> FixedMemoryArena;
 			bit::LinearAllocator FixedAllocator("FixedLinearAllocator", FixedMemoryArena);
 
@@ -110,8 +101,8 @@ int main(int32_t Argc, const char* Argv[])
 
 			bit::Array<int32_t> MyArray{ LinearAllocator };
 			bit::Array<int32_t> CopyArray{ FixedAllocator };
-			bit::HashTable<int32_t, int32_t> Table{};
-			bit::LinkedList<int32_t> List{};
+			bit::HashTable<int32_t, int32_t> Table{ LinearAllocator };
+			bit::LinkedList<int32_t> List{ LinearAllocator };
 
 			Table.Insert(69, 0);
 			Table.Insert(169, 1);

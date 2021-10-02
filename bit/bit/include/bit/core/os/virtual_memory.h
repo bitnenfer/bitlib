@@ -41,7 +41,7 @@ namespace bit
 
 		void* BaseAddress = nullptr;
 		size_t ReservedSize = 0;
-		size_t CommittedSize = 0;
+		int64_t CommittedSize = 0;
 	};
 
 	BITLIB_API bool VirtualReserveSpace(void* Address, size_t Size, VirtualAddressSpace& OutVirtualMemorySpace);

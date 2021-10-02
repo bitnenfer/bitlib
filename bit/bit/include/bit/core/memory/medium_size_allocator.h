@@ -3,14 +3,16 @@
 #include <bit/core/os/mutex.h>
 #include <bit/core/memory/page_allocator.h>
 
-#define BIT_MEDIUM_SIZE_ALLOCATOR_DISABLE_VIRTUAL_ADDRESS_MEMORY 0
+#define BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY 1
 
 namespace bit
 {
-	/* Two-Level Segregated Fit Allocator */
+	/* Based on Two-Level Segregated Fit Allocator */
 	/* Source: http://www.gii.upv.es/tlsf/files/ecrts04_tlsf.pdf */
 	struct BITLIB_API MediumSizeAllocator : public bit::IAllocator
 	{
+		static constexpr bool USING_VIRTUAL_MEMORY = BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY;
+
 		using SizeType_t = uint64_t;
 	private:
 		struct BITLIB_API BlockHeader
@@ -36,7 +38,7 @@ namespace bit
 			BlockFreeHeader* PrevFree;
 		};
 
-#if BIT_MEDIUM_SIZE_ALLOCATOR_DISABLE_VIRTUAL_ADDRESS_MEMORY
+#if !BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
 		struct BITLIB_API MemoryPool
 		{
 			BlockHeader BlockHead; /* This must be at the top */
@@ -56,7 +58,7 @@ namespace bit
 
 	public:
 		static constexpr SizeType_t SLI = 5; // How many bits we assign for second level index
-		static constexpr SizeType_t MAX_ALLOCATION_SIZE = 2 MiB;
+		static constexpr SizeType_t MAX_ALLOCATION_SIZE = 4 MiB;
 		static constexpr SizeType_t MIN_ALLOCATION_SIZE = 4 KiB;
 		static constexpr SizeType_t COUNT_OFFSET = bit::ConstBitScanReverse(MIN_ALLOCATION_SIZE) + 1;
 		static constexpr SizeType_t FL_COUNT = bit::ConstBitScanReverse(MAX_ALLOCATION_SIZE) - COUNT_OFFSET + 1;
@@ -76,15 +78,15 @@ namespace bit
 		size_t Compact() override;
 	
 	private:
-#if BIT_MEDIUM_SIZE_ALLOCATOR_DISABLE_VIRTUAL_ADDRESS_MEMORY
+#if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
+		void AllocateVirtualMemory(size_t Size);
+		bool FreeVirtualMemory(BlockFreeHeader* FreeBlock);
+#else
 		void ReleaseMemoryPool(MemoryPool* Pool);
 		bool ReleaseUnusedMemoryPool(BlockFreeHeader* FreeBlock);
 		bool IsPoolReleasable(MemoryPool* Pool);
 		bool RemoveMemoryPoolFreeBlocks(MemoryPool* Pool);
 		void AddNewPool(size_t PoolSize);
-#else
-		void AllocateVirtualMemory(size_t Size);
-		bool FreeVirtualMemory(BlockFreeHeader* FreeBlock);
 #endif
 
 		void* AllocateAligned(SizeType_t Size, SizeType_t Alignment);
@@ -106,11 +108,11 @@ namespace bit
 		SizeType_t FLBitmap;
 		SizeType_t SLBitmap[FL_COUNT];
 		BlockFreeHeader* FreeBlocks[FL_COUNT][SL_COUNT];
-#if BIT_MEDIUM_SIZE_ALLOCATOR_DISABLE_VIRTUAL_ADDRESS_MEMORY
+#if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
+		PageAllocator VirtualMemory;
+#else
 		MemoryPool* MemoryPoolList;
 		size_t MemoryPoolCount;
-#else
-		PageAllocator VirtualMemory;
 #endif
 		size_t UsedSpaceInBytes;
 		size_t AvailableSpaceInBytes;

@@ -104,11 +104,11 @@ namespace bit
 
 	template<
 		typename T, 
-		typename TAllocator = LinkedListStorage
+		typename TStorage = LinkedListStorage
 	>
 	struct LinkedList
 	{
-		typedef LinkedList<T, TAllocator> SelfType_t;
+		typedef LinkedList<T, TStorage> SelfType_t;
 		typedef NodeLink<T> LinkType_t;
 		typedef T ElementType_t;
 		typedef LinkIterator<LinkType_t> IteratorType_t;
@@ -123,14 +123,14 @@ namespace bit
 		/* End range for loop implementation */
 
 		LinkedList() :
-			Allocator(sizeof(LinkType_t), 8, alignof(LinkType_t)),
+			Storage(sizeof(LinkType_t), 8, alignof(LinkType_t)),
 			Head(nullptr),
 			Tail(nullptr),
 			Count(0)
 		{}
 
 		LinkedList(const SelfType_t& Other) :
-			Allocator(sizeof(LinkType_t), 8, alignof(LinkType_t)),
+			Storage(sizeof(LinkType_t), 8, alignof(LinkType_t)),
 			Head(nullptr),
 			Tail(nullptr),
 			Count(0)
@@ -141,8 +141,15 @@ namespace bit
 			}
 		}
 
+		LinkedList(IAllocator& InAllocator) :
+			Storage(sizeof(LinkType_t), 8, alignof(LinkType_t), &InAllocator),
+			Head(nullptr),
+			Tail(nullptr),
+			Count(0)
+		{}
+
 		LinkedList(SelfType_t&& Other) :
-			Allocator(Other.Allocator),
+			Storage(Other.Storage),
 			Head(Other.Head),
 			Tail(Other.Tail),
 			Count(Other.Count)
@@ -161,7 +168,7 @@ namespace bit
 				bit::Destroy(Link);
 				Link = Next;
 			}
-			Allocator.Free();
+			Storage.Free();
 		}
 
 		T& Insert(const T& Element)
@@ -186,7 +193,7 @@ namespace bit
 					Tail = nullptr;
 				}
 				bit::Destroy(Link);
-				Allocator.FreeLink(Link);
+				Storage.FreeLink(Link);
 				Count -= 1;
 				return true;
 			}
@@ -196,7 +203,7 @@ namespace bit
 		template<typename... TArgs>
 		T* New(TArgs&& ... ConstructorArgs)
 		{
-			LinkType_t* Link = bit::Construct((LinkType_t*)Allocator.AllocateLink());
+			LinkType_t* Link = bit::Construct((LinkType_t*)Storage.AllocateLink());
 			Link->Prev = nullptr;
 			Link->Next = nullptr;
 			bit::Construct(&Link->Element, bit::Forward<TArgs>(ConstructorArgs)...);
@@ -238,11 +245,11 @@ namespace bit
 
 		SelfType_t operator=(SelfType_t&& Other)
 		{
-			Allocator = Other.Allocator;
+			Storage = Other.Storage;
 			Head = Other.Head;
 			Tail = Other.Tail;
 			Count = Other.Count;
-			Other.Allocator = nullptr;
+			Other.Storage = nullptr;
 			Other.Head = nullptr;
 			Other.Tail = nullptr;
 			Other.Count = 0;
@@ -282,7 +289,7 @@ namespace bit
 
 		LinkType_t* CreateLink(const T& Element)
 		{
-			LinkType_t* Link = bit::Construct((LinkType_t*)Allocator.AllocateLink());
+			LinkType_t* Link = bit::Construct((LinkType_t*)Storage.AllocateLink());
 			Link->Prev = nullptr;
 			Link->Next = nullptr;
 			Link->Element = Element;
@@ -291,7 +298,7 @@ namespace bit
 
 		LinkType_t* CreateLink(T&& Element)
 		{
-			LinkType_t* Link = bit::Construct((LinkType_t*)Allocator.AllocateLink());
+			LinkType_t* Link = bit::Construct((LinkType_t*)Storage.AllocateLink());
 			Link->Prev = nullptr;
 			Link->Next = nullptr;
 			Link->Element = Element;
@@ -317,7 +324,7 @@ namespace bit
 			Link->Next = nullptr;
 		}
 
-		TAllocator Allocator;
+		TStorage Storage;
 		LinkType_t* Head;
 		LinkType_t* Tail;
 		SizeType_t Count;

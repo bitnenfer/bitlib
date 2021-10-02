@@ -75,9 +75,14 @@ bool bit::VirtualAddressSpace::DecommitPagesByAddress(void* Address, size_t Size
 {
 	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
 	{
+		if (CommittedSize - (int64_t)Size < 0)
+			BIT_DEBUG_BREAK();
 		if (VirtualFree(Address, Size, MEM_DECOMMIT))
 		{
-			CommittedSize -= Size;
+			if (CommittedSize > 0)
+				CommittedSize -= Size;
+			if (CommittedSize < 0)
+				BIT_DEBUG_BREAK();
 			return true;
 		}
 		return false;
@@ -97,40 +102,17 @@ bool bit::VirtualAddressSpace::ProtectPagesByAddress(void* Address, size_t Size,
 
 void* bit::VirtualAddressSpace::CommitPagesByOffset(size_t Offset, size_t Size)
 {
-	void* Address = GetAddress(Offset);
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
-	{
-		void* Pages = VirtualAlloc(Address, Size, MEM_COMMIT, PAGE_READWRITE);
-		if (Pages != nullptr) CommittedSize += Size;
-		return Pages;
-	}
-	return nullptr;
+	return CommitPagesByAddress(GetAddress(Offset), Size);
 }
 
 bool bit::VirtualAddressSpace::DecommitPagesByOffset(size_t Offset, size_t Size)
 {
-	void* Address = GetAddress(Offset);
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
-	{
-		if (VirtualFree(Address, Size, MEM_DECOMMIT))
-		{
-			CommittedSize -= Size;
-			return true;
-		}
-		return false;
-	}
-	return false;
+	return DecommitPagesByAddress(GetAddress(Offset), Size);
 }
 
 bool bit::VirtualAddressSpace::ProtectPagesByOffset(size_t Offset, size_t Size, PageProtectionType Protection)
 {
-	void* Address = GetAddress(Offset);
-	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
-	{
-		DWORD OldProtection = 0;
-		return VirtualProtect(Address, Size, BitGetProtection(Protection), &OldProtection) == TRUE;
-	}
-	return false;
+	return ProtectPagesByAddress(GetAddress(Offset), Size, Protection);
 }
 
 void* bit::VirtualAddressSpace::GetBaseAddress() const

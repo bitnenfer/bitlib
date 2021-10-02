@@ -4,7 +4,7 @@
 
 #define BIT_DEBUG_MARK_BLOCKS 0
 
-#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+#if BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN
 #define BIT_SMALL_NULL (~0)
 #else
 #define BIT_SMALL_NULL 0
@@ -116,7 +116,7 @@ bool bit::SmallSizeAllocator::OwnsAllocation(const void* Ptr)
 	return Memory.OwnsAddress(Ptr);
 }
 
-#if BIT_SMALL_ALLOCATOR_USE_4BYTE_MIN
+#if BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN
 bit::SmallSizeAllocator::FreeBlock* bit::SmallSizeAllocator::GetBlock(size_t BlockIndex, uint32_t Block)
 {
 	if (Block == BIT_SMALL_NULL) return nullptr;
