@@ -53,7 +53,7 @@ bool bit::CommandArgs::Contains(const char* Arg)
 	CommandArgEntry Output;
 	return Entries.FindFirst([&](const CommandArgEntry& Entry)->bool 
 	{
-		return Entry.NameLen == Len && bit::Memcmp(Arg, Entry.Name, Len) == 0;
+		return Entry.NameLen == Len && bit::Memcmp(Arg, Entry.Name, Len);
 	}, Output);
 }
 
@@ -64,7 +64,7 @@ const char* bit::CommandArgs::GetValue(const char* Arg)
 	CommandArgEntry Output;
 	Entries.FindFirst([&](const CommandArgEntry& Entry)->bool
 	{
-		return Entry.NameLen == Len && bit::Memcmp(Arg, Entry.Name, Len) == 0;
+		return Entry.NameLen == Len && bit::Memcmp(Arg, Entry.Name, Len);
 	}, Output);
 	return Output.Value;
 }
