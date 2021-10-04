@@ -6,8 +6,8 @@
 
 namespace bit
 {
-	typedef int32_t SizeType_t;
-	static_assert(bit::IsSigned<SizeType_t>::Value, "Size type must be signed");
+	typedef int64_t SizeType_t;
+	//static_assert(bit::IsSigned<SizeType_t>::Value, "Size type must be signed");
 
 	struct BITLIB_API DefaultHeapAllocator
 	{
@@ -327,7 +327,7 @@ namespace bit
 
 		void* AllocateLink()
 		{
-			if (Allocator == nullptr) return nullptr;
+			/*if (Allocator == nullptr) return nullptr;
 			if (BlockList == nullptr)
 			{
 				AllocateNewBlock();
@@ -339,11 +339,14 @@ namespace bit
 			}
 			void* Ptr = bit::OffsetPtr(BlockData, BlockUsed);
 			BlockUsed += AllocSize;
-			return Ptr;
+			return Ptr;*/
+			return Allocator->Allocate(AllocSize, AllocAlignment);
 		}
 
 		void FreeLink(void* Link)
-		{}
+		{
+			Allocator->Free(Link);
+		}
 
 	private:
 		void AllocateNewBlock()

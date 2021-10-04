@@ -2,108 +2,57 @@
 #include <bit/core/memory.h>
 #include <bit/core/os/debug.h>
 
-#define BIT_DEBUG_MARK_BLOCKS 0
-
-#if BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN
-#define BIT_SMALL_NULL (~0)
-#else
-#define BIT_SMALL_NULL 0
-#define GetOffset(Index, Block) Block
-#define GetBlock(Index, Block) Block
-#endif
-
-
-bit::SmallSizeAllocator::SmallSizeAllocator(const char* Name) :
-	IAllocator(Name)
+bit::SmallSizeAllocator::SmallSizeAllocator() :
+	BaseVirtualAddress(nullptr),
+	BaseVirtualAddressOffset(0),
+	PageFreeList(nullptr),
+	PageInfo(nullptr)
 {
-	bit::Memset(Blocks, 0, sizeof(Blocks));
-	bit::Memset(FreeLists, BIT_SMALL_NULL, sizeof(FreeLists));
-
-	if (!VirtualReserveSpace(VirtualRandomAddress(), ADDRESS_SPACE_SIZE, Memory))
+	if (!VirtualReserveSpace(nullptr, TOTAL_ADDRESS_SPACE_SIZE, Memory))
 	{
 		BIT_PANIC();
 	}
-
-	void* BaseAddress = bit::AlignPtr(Memory.GetBaseAddress(), MIN_ALLOCATION_SIZE);
-
-	for (size_t Index = 0; Index < NUM_OF_SIZES; ++Index)
-	{
-		size_t BlockSize = GetBlockSize(Index);
-		Blocks[Index].Committed = 0;
-		Blocks[Index].Start = bit::AlignPtr(BaseAddress, BlockSize);
-		Blocks[Index].End = bit::OffsetPtr(BaseAddress, RANGE_SIZE);
-		BaseAddress = Blocks[Index].End;
-	}
+	PageInfo = (PageAllocationInfo*)Memory.CommitPagesByOffset(0, SIZE_OF_BOOKKEEPING);
+	bit::Memset(PageInfo, 0, SIZE_OF_BOOKKEEPING);
+	bit::Memset(Blocks, 0, sizeof(Blocks));
+	BaseVirtualAddress = bit::AlignPtr(bit::OffsetPtr(PageInfo, SIZE_OF_BOOKKEEPING), PAGE_SIZE);
 }
 
 void* bit::SmallSizeAllocator::Allocate(size_t Size, size_t Alignment)
 {
 	size_t AlignedSize = bit::AlignUint(Size, bit::Max(MIN_ALLOCATION_SIZE, Alignment));
 	size_t BlockIndex = SelectBlockIndex(AlignedSize);
-	FreeBlock* Block = PopFreeBlock(BlockIndex);
-	if (Block != nullptr)
-	{
-		return Block;
-	}
-	return  AllocateFromVirtualBlock(BlockIndex, AlignedSize);
-}
-
-void* bit::SmallSizeAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
-{
-	if (Pointer == nullptr) return Allocate(Size, Alignment);
-	size_t BlockSize = GetSize(Pointer);
-	if (BlockSize == Size) return Pointer;
-	void* NewBlock = Allocate(Size, Alignment);
-	bit::Memcpy(NewBlock, Pointer, bit::Min(BlockSize, Size));
-	Free(Pointer);
-	return NewBlock;
+	return AllocateFreeBlock(AlignedSize, BlockIndex);
 }
 
 void bit::SmallSizeAllocator::Free(void* Pointer)
 {
-	size_t BlockSize = GetSize(Pointer);
-	if (BlockSize > 0)
+	if (OwnsAllocation(Pointer))
 	{
-		size_t Index = SelectBlockIndex(BlockSize);
-#if BIT_DEBUG_MARK_BLOCKS
-		bit::Memset(Pointer, 0xDD, BlockSize);
-#endif
-		FreeBlock* Block = reinterpret_cast<FreeBlock*>(Pointer);
-		Block->Next = FreeLists[Index];
-		FreeLists[Index] = GetOffset(Index, Block);
-		UsedSpaceInBytes -= BlockSize;
-		Blocks[Index].Allocated -= BlockSize;
-		if (Blocks[Index].Allocated == 0)
-		{
-			Memory.DecommitPagesByAddress(Blocks[Index].Start, Blocks[Index].Committed);
-			FreeLists[Index] = BIT_SMALL_NULL;
-			Blocks[Index].Committed = 0;
-		}
+		size_t PageIndex = GetPageAllocationInfoIndex(Pointer);
+		int64_t BlockSize = PageInfo[PageIndex].AssignedSize;
+		PushPointerToFreeList(Pointer, (size_t)BlockSize);
+		TrackAllocation(SelectBlockIndex(BlockSize), PageIndex, -BlockSize);
 	}
 }
 
 size_t bit::SmallSizeAllocator::GetSize(void* Pointer)
 {
-	if (Memory.OwnsAddress(Pointer))
+	if (OwnsAllocation(Pointer))
 	{
-		for (size_t Index = 0; Index < NUM_OF_SIZES; ++Index)
-		{
-			if (Blocks[Index].OwnsPointer(Pointer))
-			{
-				return GetBlockSize(Index);
-			}
-		}
+		PageAllocationInfo& Info = PageInfo[GetPageAllocationInfoIndex(Pointer)];
+		return Info.AssignedSize;
 	}
 	return 0;
 }
 
 bit::AllocatorMemoryInfo bit::SmallSizeAllocator::GetMemoryUsageInfo()
 {
-	AllocatorMemoryInfo Usage = {};
-	Usage.ReservedBytes = Memory.GetReservedSize();
-	Usage.CommittedBytes = Memory.GetCommittedSize();
-	Usage.AllocatedBytes = UsedSpaceInBytes;
-	return Usage;
+	AllocatorMemoryInfo Info = { };
+	Info.CommittedBytes = Memory.GetCommittedSize();
+	Info.ReservedBytes = Memory.GetReservedSize();
+	Info.AllocatedBytes = (size_t)AllocatedBytes;
+	return Info;
 }
 
 bool bit::SmallSizeAllocator::CanAllocate(size_t Size, size_t Alignment)
@@ -116,37 +65,26 @@ bool bit::SmallSizeAllocator::OwnsAllocation(const void* Ptr)
 	return Memory.OwnsAddress(Ptr);
 }
 
-#if BIT_SMALL_SIZE_ALLOCATOR_USE_4BYTE_MIN
-bit::SmallSizeAllocator::FreeBlock* bit::SmallSizeAllocator::GetBlock(size_t BlockIndex, uint32_t Block)
+size_t bit::SmallSizeAllocator::Compact()
 {
-	if (Block == BIT_SMALL_NULL) return nullptr;
-	return bit::OffsetPtr<FreeBlock>(Blocks[BlockIndex].Start, (intptr_t)Block);
-}
-
-uint32_t bit::SmallSizeAllocator::GetOffset(size_t BlockIndex, FreeBlock* Block)
-{
-	if (Block == nullptr) return BIT_SMALL_NULL;
-	return (uint32_t)bit::PtrDiff(Block, Blocks[BlockIndex].Start);
-}
-#endif 
-
-void* bit::SmallSizeAllocator::AllocateFromVirtualBlock(size_t BlockIndex, size_t AlignedSize)
-{
-	size_t BlockSize = GetBlockSize(BlockIndex);
-	size_t PageSizeAligned = bit::AlignUint(BlockSize, bit::GetOSPageSize());
-	void* CurrentAddress = bit::OffsetPtr(Blocks[BlockIndex].Start, Blocks[BlockIndex].Committed);
-	CurrentAddress = Memory.CommitPagesByAddress(CurrentAddress, PageSizeAligned);
-	Blocks[BlockIndex].Committed += PageSizeAligned;
-	size_t BlockCount = PageSizeAligned / BlockSize;
-	// Fill up the free list with the new blocks
-	for (size_t Index = 0; Index < BlockCount; ++Index)
+	size_t Total = 0;
+	for (FreePage* Page = PageFreeList; Page != nullptr;)
 	{
-		FreeBlock* NewBlock = reinterpret_cast<FreeBlock*>(bit::OffsetPtr(CurrentAddress, Index * BlockSize));
-		NewBlock->Next = FreeLists[BlockIndex];
-		FreeLists[BlockIndex] = GetOffset(BlockIndex, NewBlock);
+		size_t PageIndex = GetPageAllocationInfoIndex(Page);
+		PageInfo[PageIndex].bCommitted = false;
+		PageInfo[PageIndex].AssignedSize = 0;
+		PageInfo[PageIndex].AllocatedBytes = 0;
+		FreePage* Next = Page->Next;
+		Memory.DecommitPagesByAddress(Page, PAGE_SIZE);
+		Page = Next;
+		Total += PAGE_SIZE;
 	}
-	// Return the last block
-	return PopFreeBlock(BlockIndex);
+	return Total;
+}
+
+size_t bit::SmallSizeAllocator::GetBlockSize(size_t BlockIndex)
+{
+	return (BlockIndex + 1) * MIN_ALLOCATION_SIZE;
 }
 
 size_t bit::SmallSizeAllocator::SelectBlockIndex(size_t Size)
@@ -156,25 +94,154 @@ size_t bit::SmallSizeAllocator::SelectBlockIndex(size_t Size)
 	return ((Size / MIN_ALLOCATION_SIZE + 1) * MIN_ALLOCATION_SIZE) / MIN_ALLOCATION_SIZE - 1;
 }
 
-size_t bit::SmallSizeAllocator::GetBlockSize(size_t BlockIndex)
+void* bit::SmallSizeAllocator::GetPageBaseByAddress(const void* Address)
 {
-	return MIN_ALLOCATION_SIZE * (BlockIndex + 1);
+	uintptr_t PageBase = (uintptr_t)Address & ~(PAGE_SIZE - 1);
+	return (void*)PageBase;
 }
 
-bit::SmallSizeAllocator::FreeBlock* bit::SmallSizeAllocator::PopFreeBlock(size_t BlockIndex)
+size_t bit::SmallSizeAllocator::GetPageAllocationInfoIndex(const void* Address)
 {
-	FreeBlock* Block = GetBlock(BlockIndex, FreeLists[BlockIndex]);
-	if (Block != nullptr)
+	uintptr_t Base = (uintptr_t)BaseVirtualAddress;
+	uintptr_t PageBase = (uintptr_t)GetPageBaseByAddress(Address);
+	uintptr_t Offset = PageBase - Base;
+	return Offset / PAGE_SIZE;
+}
+
+void bit::SmallSizeAllocator::TrackAllocation(size_t BlockIndex, size_t PageIndex, int64_t Size)
+{
+	PageAllocationInfo& Info = PageInfo[PageIndex];
+	Info.AllocatedBytes += Size;
+	AllocatedBytes += Size;
+	Blocks[BlockIndex].AllocatedBytes += Size;
+	if (Info.AllocatedBytes == 0)
 	{
 		size_t BlockSize = GetBlockSize(BlockIndex);
-		FreeLists[BlockIndex] = Block->Next;
-#if BIT_DEBUG_MARK_BLOCKS
-		bit::Memset(Block, 0xAA, BlockSize);
-#endif
-		UsedSpaceInBytes += BlockSize;
-		Blocks[BlockIndex].Allocated += BlockSize;
+		size_t BlockCount = PAGE_SIZE / BlockSize;
+		void* PageAddress = GetPageAddress(PageIndex);
+		for (size_t Index = 0; Index < BlockCount; ++Index)
+		{
+			FreeBlock* Block = (FreeBlock*)bit::OffsetPtr(PageAddress, BlockSize * Index);
+			UnlinkFreeBlock(Block, Blocks[BlockIndex]);
+		}
+		FreePage* Page = (FreePage*)PageAddress;
+		Page->Next = PageFreeList;
+		PageFreeList = Page;
+		Info.AssignedSize = 0;
+	}
+}
+
+void* bit::SmallSizeAllocator::AllocateFreeBlock(size_t BlockSize, size_t BlockIndex)
+{
+	void* Block = PopFreeBlock(BlockIndex);
+	if (Block == nullptr)
+	{
+		Block = AllocateFromNewPage(BlockSize, BlockIndex);
+	}
+	BIT_ASSERT(Block != nullptr);
+	TrackAllocation(BlockIndex, GetPageAllocationInfoIndex(Block), BlockSize);
+	return Block;
+}
+
+void* bit::SmallSizeAllocator::GetPageAddress(size_t PageIndex)
+{
+	return bit::OffsetPtr(BaseVirtualAddress, PageIndex * PAGE_SIZE);
+}
+
+void* bit::SmallSizeAllocator::AllocateNewPage(size_t BlockSize)
+{
+	if (PageFreeList != nullptr)
+	{
+		FreePage* Page = PageFreeList;
+		PageFreeList = Page->Next;
+		return Page;
+	}
+
+	size_t BookkeepingIndex = BaseVirtualAddressOffset / PAGE_SIZE;
+	void* Page = bit::OffsetPtr(BaseVirtualAddress, BaseVirtualAddressOffset);
+	Page = Memory.CommitPagesByAddress(Page, PAGE_SIZE);
+	BaseVirtualAddressOffset += PAGE_SIZE;
+	PageInfo[BookkeepingIndex].AllocatedBytes = 0;
+	PageInfo[BookkeepingIndex].AssignedSize = (int16_t)BlockSize;
+	PageInfo[BookkeepingIndex].bCommitted = true;
+	return Page;
+}
+
+void* bit::SmallSizeAllocator::AllocateFromNewPage(size_t BlockSize, size_t BlockIndex)
+{
+	void* NewPage = AllocateNewPage(BlockSize);
+	PushPageToFreeBlocks(NewPage, BlockSize, BlockIndex);
+	return PopFreeBlock(BlockIndex);
+}
+
+void bit::SmallSizeAllocator::UnlinkFreeBlock(FreeBlock* Block, BlockInfo& Info)
+{
+	if (Block != nullptr)
+	{
+	#if BIT_SMALL_SIZE_ALLOCATOR_USE_LARGE_BLOCKS
+		if (Block->Prev == nullptr) Info.FreeList = Block->Next;
+		if (Block->Prev != nullptr) Block->Prev->Next = Block->Next;
+		if (Block->Next != nullptr) Block->Next->Prev = Block->Prev;
+		Block->Prev = nullptr;
+		Block->Next = nullptr;
+	#else
+		for (FreeBlock* CurrBlock = Info.FreeList, *Prev = nullptr; CurrBlock != nullptr;)
+		{
+			if (CurrBlock == Block)
+			{
+				if (Prev != nullptr) Prev->Next = Block->Next;
+				else Info.FreeList = Block->Next;
+				Block->Next = nullptr;
+				break;
+			}
+
+			Prev = CurrBlock;
+			CurrBlock = CurrBlock->Next;
+		}
+	#endif
+	}
+}
+
+void* bit::SmallSizeAllocator::PopFreeBlock(size_t BlockIndex)
+{
+	if (Blocks[BlockIndex].FreeList != nullptr)
+	{
+		FreeBlock* Block = Blocks[BlockIndex].FreeList;
+		FreeBlock* Next = Block->Next;
+	#if BIT_SMALL_SIZE_ALLOCATOR_USE_LARGE_BLOCKS
+		if (Next != nullptr) Next->Prev = nullptr;
+	#endif
+		Blocks[BlockIndex].FreeList = Next;
+		Block->Next = nullptr;
 		return Block;
 	}
 	return nullptr;
 }
+
+void bit::SmallSizeAllocator::PushFreeBlockToFreeList(FreeBlock* Block, size_t BlockIndex)
+{
+	FreeBlock* FreeListHead = Blocks[BlockIndex].FreeList;
+#if BIT_SMALL_SIZE_ALLOCATOR_USE_LARGE_BLOCKS
+	if (FreeListHead != nullptr) FreeListHead->Prev = Block;
+	Block->Prev = nullptr;
+#endif
+	Block->Next = FreeListHead;
+	Blocks[BlockIndex].FreeList = Block;
+}
+
+void bit::SmallSizeAllocator::PushPointerToFreeList(void* Pointer, size_t Size)
+{
+	PushFreeBlockToFreeList((FreeBlock*)Pointer, SelectBlockIndex(Size));
+}
+
+void bit::SmallSizeAllocator::PushPageToFreeBlocks(void* Pages, size_t BlockSize, size_t BlockIndex)
+{
+	size_t BlockCount = PAGE_SIZE / BlockSize;
+	for (int32_t Index = (int32_t)BlockCount - 1; Index >= 0; --Index)
+	{
+		FreeBlock* Block = bit::OffsetPtr<FreeBlock>(Pages, Index * BlockSize);
+		PushFreeBlockToFreeList(Block, BlockIndex);
+	}
+}
+
 

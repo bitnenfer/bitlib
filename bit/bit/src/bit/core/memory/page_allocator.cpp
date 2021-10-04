@@ -10,6 +10,7 @@ bit::PageAllocator::PageAllocator(const char* Name, void* StartAddress, size_t R
 	BIT_ASSERT(VirtualAddress.GetReservedSize() > 0); // Can't be 0
 	BIT_ASSERT(VirtualAddress.IsValid());
 	BIT_ASSERT(bit::IsPow2(VirtualAddress.GetReservedSize())); // ***  TotalSize is not a power of 2 value. TotalSize MUST be power of 2. *** 
+	BIT_ASSERT(bit::IsPow2(AllocationGranularity)); // ***  AllocationGranularity is not a power of 2 value. AllocationGranularity MUST be power of 2. *** 
 	LevelCount = bit::BitScanReverse(VirtualAddress.GetReservedSize() / PageGranularity) + 1;
 	PageCount = bit::Pow2(LevelCount) - 1; // We subtract 1 because we can't have a block at the end of memory.
 	size_t PageBitCount = PageCount * BITS_PER_PAGE;
@@ -38,12 +39,12 @@ void* bit::PageAllocator::CommitPage(void* Address, size_t Size)
 
 void bit::PageAllocator::DecommitPage(void* Address, size_t Size)
 {
-	VirtualAddress.DecommitPagesByAddress(Address, Size);
+	VirtualAddress.DecommitPagesByAddress( Address, Size );
 }
 
 bool bit::PageAllocator::SetProtectionPage(void* Address, size_t Size, PageProtectionType ProtectionType)
 {
-	return VirtualAddress.ProtectPagesByAddress(Address, Size, ProtectionType);
+	return VirtualAddress.ProtectPagesByAddress( Address, Size , ProtectionType);
 }
 
 const char* bit::PageAllocator::GetStateName(PageState State)
@@ -170,12 +171,10 @@ size_t bit::PageAllocator::GetPageIndex(const void* Address)
 void* bit::PageAllocator::Allocate(size_t Size, size_t Alignment)
 {
 	size_t AlignedSize = bit::AlignUint(Size, bit::Max(GetPageSize(), Alignment));
-	ReservedPages Pages = Reserve(Size);
+	ReservedPages Pages = Reserve(AlignedSize);
 	if (Pages.Address != nullptr)
 	{
-		// To avoid over committing memory we'll just round up to the page granularity
-		// We'll still waste address space, but physical memory won't be wasted.
-		return CommitPage(Pages.Address, RoundToPageGranularity(Size));
+		return CommitPage(Pages.Address, Pages.ReservedSize);
 	}
 	BIT_PANIC(); // Out of memory ??
 	return nullptr;
@@ -201,7 +200,8 @@ void bit::PageAllocator::Free(void* Address)
 	if (PageIndex != INVALID_PAGE)
 	{
 		FreePage(PageIndex);
-		DecommitPage(Address, GetPageSize(PageIndex)); // Maybe I should batch this, specially if I coalesce free pages
+		size_t PageSize = GetPageSize(PageIndex);
+		DecommitPage(Address, PageSize); // Maybe I should batch this, specially if I coalesce free pages
 	}
 }
 
@@ -300,7 +300,7 @@ size_t bit::PageAllocator::FindPageRecursive(size_t PageIndex, size_t MinSize)
 size_t bit::PageAllocator::AllocPage(size_t Size)
 {
 	size_t PageSize = RoundToPageGranularity(Size);
-	size_t Level = GetLevelForSize(Size);
+	size_t Level = GetLevelForSize(PageSize);
 	size_t PageIndex = GetPageIndex(Level, 0);
 	size_t PageCount = VirtualAddress.GetReservedSize() / PageSize;
 	for (size_t Index = 0; Index < PageCount; ++Index)

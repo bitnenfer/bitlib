@@ -183,28 +183,30 @@ namespace bit
 	constexpr uint64_t ConstBitScanReverse64(uint64_t Value)
 	{
 		if (Value == 0) return 64;
-		uint64_t BitIndex = 0;
-		for (uint64_t Index = 0; Index < 64; ++Index)
+		int64_t BitIndex = 63;
+		while (BitIndex >= 0)
 		{
-			if (((Value >> Index) & 0b1) > 0)
+			if ((Value & (1ULL << BitIndex)) > 0)
 			{
-				BitIndex = Index;
+				return BitIndex;
 			}
+			BitIndex--;
 		}
-		return BitIndex;
+		return 64;
 	}
 	constexpr uint32_t ConstBitScanReverse32(uint32_t Value)
 	{
 		if (Value == 0) return 32;
-		uint32_t BitIndex = 0;
-		for (uint32_t Index = 0; Index < 32; ++Index)
+		uint32_t BitIndex = 32;
+		while (BitIndex > 0)
 		{
-			if (((Value >> Index) & 0b1) > 0)
+			if ((Value & (1 << BitIndex)) > 0)
 			{
-				BitIndex = Index;
+				return BitIndex;
 			}
+			BitIndex--;
 		}
-		return BitIndex;
+		return 64;
 	}
 
 	template<typename T>

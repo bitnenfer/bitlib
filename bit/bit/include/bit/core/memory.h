@@ -13,6 +13,7 @@ namespace bit
 	BITLIB_API void* Realloc(void* Pointer, size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
 	BITLIB_API void Free(void* Pointer);
 	BITLIB_API size_t CompactMemory();
+	BITLIB_API size_t GetMallocSize(void* Pointer);
 	template<typename T> T* Malloc(size_t Count = 1) { return (T*)Malloc(Count * sizeof(T), alignof(T)); }
 	template<typename T, typename... TArgs> T* New(TArgs&& ... ConstructorArgs) { return BitPlacementNew((T*)bit::Malloc(sizeof(T), alignof(T))) T(bit::Forward<TArgs>(ConstructorArgs)...); }
 	template<typename T> void Delete(T* Ptr) { Ptr->~T(); bit::Free(Ptr); }

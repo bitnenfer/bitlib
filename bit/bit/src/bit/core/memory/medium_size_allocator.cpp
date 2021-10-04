@@ -4,13 +4,12 @@
 #include <bit/core/os/debug.h>
 #include <bit/core/os/os.h>
 
-#define BIT_ENABLE_BLOCK_MARKING 0
+#define BIT_ENABLE_BLOCK_MARKING 1
 
-bit::MediumSizeAllocator::MediumSizeAllocator(const char* Name) :
-	IAllocator(Name),
+bit::MediumSizeAllocator::MediumSizeAllocator() :
 	FLBitmap(0),
 #if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
-	VirtualMemory("Virtual Memory Allocator", bit::VirtualRandomAddress(), ADDRESS_SPACE_SIZE, 256 KiB),
+	PagesInUse(nullptr),
 #else
 	MemoryPoolList(nullptr),
 	MemoryPoolCount(0),
@@ -18,6 +17,15 @@ bit::MediumSizeAllocator::MediumSizeAllocator(const char* Name) :
 	UsedSpaceInBytes(0),
 	AvailableSpaceInBytes(0)
 {
+#if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
+	if (!VirtualReserveSpace((void*)0x80000000ULL, ADDRESS_SPACE_SIZE, Memory))
+	{
+		BIT_PANIC();
+	}
+	VirtualMemoryBaseOffset = 0;
+	VirtualMemoryBaseAddress = Memory.GetBaseAddress();
+#endif
+
 	bit::Memset(SLBitmap, 0, sizeof(SLBitmap));
 	bit::Memset(FreeBlocks, 0, sizeof(FreeBlocks));
 }
@@ -62,6 +70,7 @@ void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
 	}
 	if (Block != nullptr)
 	{
+		BIT_ASSERT(!Block->IsLastPhysicalBlock());
 		SizeType_t BlockSize = Block->GetSize();
 		SizeType_t BlockFullSize = Block->GetFullSize();
 		RemoveBlock(Block, Map);
@@ -132,9 +141,9 @@ bit::AllocatorMemoryInfo bit::MediumSizeAllocator::GetMemoryUsageInfo()
 	AllocatorMemoryInfo Usage = {};
 
 #if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
-	AllocatorMemoryInfo VmUsage = VirtualMemory.GetMemoryUsageInfo();
-	Usage.CommittedBytes = VmUsage.CommittedBytes;
-	Usage.ReservedBytes = VmUsage.ReservedBytes;
+	AllocatorMemoryInfo VmUsage = {};
+	Usage.CommittedBytes = Memory.GetCommittedSize();
+	Usage.ReservedBytes = Memory.GetReservedSize();
 #else
 	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
 	{
@@ -149,13 +158,13 @@ bit::AllocatorMemoryInfo bit::MediumSizeAllocator::GetMemoryUsageInfo()
 bool bit::MediumSizeAllocator::CanAllocate(size_t Size, size_t Alignment)
 {
 	size_t AlignedSize = bit::AlignUint(Size, bit::Max(Alignment, alignof(BlockHeader)));
-	return AlignedSize >= MIN_ALLOCATION_SIZE && AlignedSize <= MAX_ALLOCATION_SIZE;
+	return AlignedSize >= MIN_ALLOCATION_SIZE && AlignedSize < MAX_ALLOCATION_SIZE;
 }
 
 bool bit::MediumSizeAllocator::OwnsAllocation(const void* Ptr)
 {
 #if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
-	return VirtualMemory.OwnsAllocation(Ptr);
+	return Memory.OwnsAddress(Ptr);
 #else
 	for (MemoryPool* Pool = MemoryPoolList; Pool != nullptr; Pool = Pool->Next)
 	{
@@ -227,14 +236,28 @@ void* bit::MediumSizeAllocator::AllocateAligned(SizeType_t Size, SizeType_t Alig
 #if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
 void bit::MediumSizeAllocator::AllocateVirtualMemory(size_t Size)
 {
-	size_t AlignedSize = bit::RoundUp(bit::AlignUint(Size + sizeof(BlockHeader), alignof(BlockHeader)), VirtualMemory.GetPageSize());
-	void* Pages = VirtualMemory.Allocate(AlignedSize);
-	if (Pages != nullptr)
+	size_t PageSize = GetOSPageSize();
+	size_t AlignedSize = bit::RoundUp(bit::AlignUint(Size + sizeof(BlockHeader) + sizeof(VirtualPage), alignof(VirtualPage)), PageSize);
+	void* CommittedPages = Memory.CommitPagesByAddress(bit::OffsetPtr(VirtualMemoryBaseAddress, VirtualMemoryBaseOffset), AlignedSize);
+	if (CommittedPages != nullptr)
 	{
-		BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(Pages);
-		Block->Reset((SizeType_t)AlignedSize - sizeof(BlockFreeHeader) - sizeof(BlockHeader));
-		Block->PrevPhysicalBlock = nullptr;
-		InsertBlock(Block, Mapping(Block->GetSize()));
+		VirtualMemoryBaseOffset += AlignedSize;
+		VirtualPage* VPages = reinterpret_cast<VirtualPage*>(CommittedPages);
+		VPages->Next = PagesInUse;
+		VPages->Prev = nullptr;
+		if (PagesInUse != nullptr) PagesInUse->Prev = VPages;
+		PagesInUse = VPages;
+		VPages->BlockHead.Reset(0);
+		VPages->BlockHead.SetLastPhysicalBlock();
+		VPages->PageSize = AlignedSize;
+
+		void* Offset = bit::OffsetPtr(VPages, sizeof(VirtualPage));
+		BlockFreeHeader* Block = reinterpret_cast<BlockFreeHeader*>(bit::AlignPtr(Offset, alignof(BlockHeader)));
+		void* StartPtr = GetPointerFromBlockHeader(Block);
+		size_t BlockDiff = bit::PtrDiff(StartPtr, bit::OffsetPtr(CommittedPages, AlignedSize));
+		size_t BlockSize = BlockDiff - sizeof(BlockFreeHeader);
+		Block->Reset(BlockSize - sizeof(BlockFreeHeader));
+		Block->PrevPhysicalBlock = &VPages->BlockHead;
 
 		BlockFreeHeader* EndOfBlock = GetNextBlock(Block);
 		EndOfBlock->Reset(0);
@@ -243,15 +266,41 @@ void bit::MediumSizeAllocator::AllocateVirtualMemory(size_t Size)
 		EndOfBlock->NextFree = nullptr;
 		EndOfBlock->PrevFree = nullptr;
 
+		if (Block->GetSize() > MAX_ALLOCATION_SIZE)
+		{
+			if (MAX_ALLOCATION_SIZE - Block->GetSize() >= MIN_ALLOCATION_SIZE + sizeof(BlockHeader))
+			{
+				BlockFreeHeader* Remaining = Split(Block, bit::Min(Size, MAX_ALLOCATION_SIZE));
+				InsertBlock(Block, Mapping(Block->GetSize()));
+				InsertBlock(Remaining, Mapping(Remaining->GetSize()));
+			}
+			else
+			{
+				BIT_PANIC();
+			}
+		}
+		else
+		{
+			InsertBlock(Block, Mapping(Block->GetSize()));
+		}
+
+		BIT_ASSERT(Block->GetSize() < MAX_ALLOCATION_SIZE);
+
 		AvailableSpaceInBytes += Block->GetSize();
 	}
 }
 
 bool bit::MediumSizeAllocator::FreeVirtualMemory(BlockFreeHeader* FreeBlock)
 {
-	if (FreeBlock->PrevPhysicalBlock == nullptr && GetNextBlock(FreeBlock)->IsLastPhysicalBlock())
+	if (FreeBlock->PrevPhysicalBlock->IsLastPhysicalBlock() && GetNextBlock(FreeBlock)->IsLastPhysicalBlock())
 	{
-		VirtualMemory.Free(FreeBlock);
+		VirtualPage* Page = reinterpret_cast<VirtualPage*>(FreeBlock->PrevPhysicalBlock);
+		if (Page->Prev != nullptr) Page->Prev->Next = Page->Next;
+		else PagesInUse = Page->Next;
+
+		if (Page->Next != nullptr) Page->Next->Prev = Page->Prev;
+
+		Memory.DecommitPagesByAddress(Page, Page->PageSize);
 		return true;
 	}
 	return false;
@@ -398,7 +447,11 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::MergeRecurs
 	}
 
 	BlockFreeHeader* Prev = reinterpret_cast<BlockFreeHeader*>(Block->PrevPhysicalBlock);
+#if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
+	if (!Prev->IsLastPhysicalBlock() && Prev->IsFree())
+	#else
 	if (Prev != nullptr && Prev->IsFree())
+#endif
 	{
 		BlockMap Map = Mapping(Prev->GetSize());
 		RemoveBlock(Prev, Map);
@@ -511,6 +564,7 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::SplitAligne
 
 void bit::MediumSizeAllocator::InsertBlock(BlockFreeHeader* Block, BlockMap Map)
 {
+	BIT_ASSERT(!Block->IsLastPhysicalBlock());
 	BlockFreeHeader* Head = FreeBlocks[Map.FL][Map.SL];
 	Block->NextFree = Head;
 	Block->PrevFree = nullptr;

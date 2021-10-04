@@ -24,3 +24,8 @@ size_t bit::CompactMemory()
 {
 	return GetDefaultAllocator().Compact();
 }
+
+size_t bit::GetMallocSize(void* Pointer)
+{
+	return GetDefaultAllocator().GetSize(Pointer);
+}

@@ -26,8 +26,7 @@ extern "C" size_t strlen(const char* Str);
 extern "C" const char* strstr(const char* A, const char* B);
 extern "C" int strcmp(const char* A, const char* B);
 
-#if BIT_PLATFORM_DEFAULT_ALLOCATOR
-#include <malloc.h>
+
 namespace bit
 {
 	struct WindowsHeapAllocator : public bit::IAllocator
@@ -41,12 +40,16 @@ namespace bit
 
 		void* Allocate(size_t Size, size_t Alignment) override
 		{
+		#if BIT_PLATFORM_DEFAULT_ALLOCATOR
 			bit::ScopedLock<Mutex> Lock(&AccessLock);
+		#endif
 			return HeapAlloc(Heap, 0, Size);
 		}
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override
 		{
+		#if BIT_PLATFORM_DEFAULT_ALLOCATOR
 			bit::ScopedLock<Mutex> Lock(&AccessLock);
+		#endif
 			if (Pointer != nullptr)
 				return HeapReAlloc(Heap, 0, Pointer, Size);
 			else
@@ -54,18 +57,24 @@ namespace bit
 		}
 		void Free(void* Pointer) override
 		{
+		#if BIT_PLATFORM_DEFAULT_ALLOCATOR
 			bit::ScopedLock<Mutex> Lock(&AccessLock);
+		#endif
 			HeapFree(Heap, 0, Pointer);
 		}
 		size_t GetSize(void* Pointer) override
 		{
+		#if BIT_PLATFORM_DEFAULT_ALLOCATOR
 			bit::ScopedLock<Mutex> Lock(&AccessLock);
+		#endif
 			return HeapSize(Heap, 0, Pointer);
 		}
 
 		AllocatorMemoryInfo GetMemoryUsageInfo() override
 		{
+		#if BIT_PLATFORM_DEFAULT_ALLOCATOR
 			bit::ScopedLock<Mutex> Lock(&AccessLock);
+		#endif
 			HEAP_SUMMARY Summary = {};
 			AllocatorMemoryInfo Info = {};
 			Summary.cb = sizeof(HEAP_SUMMARY);
@@ -85,20 +94,30 @@ namespace bit
 		HANDLE Heap;
 		Mutex AccessLock;
 	};
-	static uint8_t HeapInitialBuffer[sizeof(WindowsHeapAllocator)];
-	IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) WindowsHeapAllocator(); }
-	static IAllocator* DefaultAllocator = nullptr;
+	static uint8_t WindowsHeapInitialBuffer[sizeof(WindowsHeapAllocator)];
+	IAllocator* CreateWindowsHeapAllocator() { return BitPlacementNew(WindowsHeapInitialBuffer) bit::WindowsHeapAllocator(); }
+	static IAllocator* WindowsHeapAllocator = nullptr;
 }
 
+#if BIT_PLATFORM_DEFAULT_ALLOCATOR
 bit::IAllocator& bit::GetDefaultAllocator()
 {
-	if (DefaultAllocator == nullptr)
+	if (WindowsHeapAllocator == nullptr)
 	{
-		DefaultAllocator = CreateDefaultAllocator();
+		WindowsHeapAllocator = CreateWindowsHeapAllocator();
 	}
-	return *DefaultAllocator;
+	return *WindowsHeapAllocator;
 }
 #endif
+
+bit::IAllocator& GetPlatformHeapAllocator()
+{
+	if (bit::WindowsHeapAllocator == nullptr)
+	{
+		bit::WindowsHeapAllocator = bit::CreateWindowsHeapAllocator();
+	}
+	return *bit::WindowsHeapAllocator;
+}
 
 void* bit::Memcpy(void* Dst, const void* Src, size_t Num)
 {

@@ -1,6 +1,6 @@
 #include <bit/core/os/virtual_memory.h>
 #include <bit/core/memory.h>
-#include <bit/core/os/os.h>
+#include <bit/core/os/debug.h>
 #include "../../windows_common.h"
 
 static DWORD BitGetProtection(bit::PageProtectionType ProtectionType)
@@ -75,14 +75,10 @@ bool bit::VirtualAddressSpace::DecommitPagesByAddress(void* Address, size_t Size
 {
 	if (bit::PtrInRange(Address, BaseAddress, GetEndAddress()) && Size <= ReservedSize)
 	{
-		if (CommittedSize - (int64_t)Size < 0)
-			BIT_DEBUG_BREAK();
 		if (VirtualFree(Address, Size, MEM_DECOMMIT))
 		{
-			if (CommittedSize > 0)
-				CommittedSize -= Size;
-			if (CommittedSize < 0)
-				BIT_DEBUG_BREAK();
+			CommittedSize -= Size;
+			BIT_ASSERT(CommittedSize >= 0);
 			return true;
 		}
 		return false;

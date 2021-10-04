@@ -9,11 +9,15 @@ namespace bit
 {
 	/* Based on Two-Level Segregated Fit Allocator */
 	/* Source: http://www.gii.upv.es/tlsf/files/ecrts04_tlsf.pdf */
-	struct BITLIB_API MediumSizeAllocator : public bit::IAllocator
+	struct BITLIB_API MediumSizeAllocator
 	{
-		static constexpr bool USING_VIRTUAL_MEMORY = BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY;
-
 		using SizeType_t = uint64_t;
+
+		static constexpr SizeType_t MIN_ALLOCATION_SIZE = 512;
+		static constexpr SizeType_t MAX_ALLOCATION_SIZE = 2 MiB;
+		static constexpr SizeType_t ADDRESS_SPACE_SIZE = 8 GiB;
+		static constexpr SizeType_t SLI = 4; // How many bits we assign for second level index
+
 	private:
 		struct BITLIB_API BlockHeader
 		{
@@ -38,7 +42,15 @@ namespace bit
 			BlockFreeHeader* PrevFree;
 		};
 
-#if !BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
+	#if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
+		struct BITLIB_API VirtualPage
+		{
+			BlockHeader BlockHead;
+			size_t PageSize;
+			VirtualPage* Prev;
+			VirtualPage* Next;
+		};
+	#else
 		struct BITLIB_API MemoryPool
 		{
 			BlockHeader BlockHead; /* This must be at the top */
@@ -48,7 +60,7 @@ namespace bit
 			SizeType_t PoolSize;
 			void* BaseAddress;
 		};
-#endif
+	#endif
 
 		struct BITLIB_API BlockMap
 		{
@@ -57,25 +69,21 @@ namespace bit
 		};
 
 	public:
-		static constexpr SizeType_t SLI = 5; // How many bits we assign for second level index
-		static constexpr SizeType_t MAX_ALLOCATION_SIZE = 4 MiB;
-		static constexpr SizeType_t MIN_ALLOCATION_SIZE = 4 KiB;
 		static constexpr SizeType_t COUNT_OFFSET = bit::ConstBitScanReverse(MIN_ALLOCATION_SIZE) + 1;
 		static constexpr SizeType_t FL_COUNT = bit::ConstBitScanReverse(MAX_ALLOCATION_SIZE) - COUNT_OFFSET + 1;
 		static constexpr SizeType_t SL_COUNT = 1 << SLI;
-		static constexpr SizeType_t ADDRESS_SPACE_SIZE = 8 GiB;
 
-		MediumSizeAllocator(const char* Name = "Medium Size Allocator");
+		MediumSizeAllocator();
 		~MediumSizeAllocator();
 
-		void* Allocate(size_t Size, size_t Alignment) override;
-		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
-		void Free(void* Pointer) override;
-		size_t GetSize(void* Pointer) override;
-		AllocatorMemoryInfo GetMemoryUsageInfo() override;
-		bool CanAllocate(size_t Size, size_t Alignment) override;
-		bool OwnsAllocation(const void* Ptr) override;
-		size_t Compact() override;
+		void* Allocate(size_t Size, size_t Alignment);
+		void* Reallocate(void* Pointer, size_t Size, size_t Alignment);
+		void Free(void* Pointer);
+		size_t GetSize(void* Pointer);
+		AllocatorMemoryInfo GetMemoryUsageInfo();
+		bool CanAllocate(size_t Size, size_t Alignment);
+		bool OwnsAllocation(const void* Ptr);
+		size_t Compact();
 	
 	private:
 #if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
@@ -109,7 +117,10 @@ namespace bit
 		SizeType_t SLBitmap[FL_COUNT];
 		BlockFreeHeader* FreeBlocks[FL_COUNT][SL_COUNT];
 #if BIT_MEDIUM_SIZE_ALLOCATOR_ENABLE_VIRTUAL_MEMORY
-		PageAllocator VirtualMemory;
+		VirtualPage* PagesInUse;
+		VirtualAddressSpace Memory;
+		void* VirtualMemoryBaseAddress;
+		size_t VirtualMemoryBaseOffset;
 #else
 		MemoryPool* MemoryPoolList;
 		size_t MemoryPoolCount;

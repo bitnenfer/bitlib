@@ -79,7 +79,7 @@ bit::ThreadLocalStorageHandle bit::ThreadLocalStorageAllocator::Allocate(void* I
 	{
 		AllStorage.AddEmpty();
 		BitPlacementNew(&AllStorage.GetLast()) ThreadLocalStorage(TLSIndex, InitialData);
-		return ThreadLocalStorageHandle(AllStorage.GetCount() - 1);
+		return ThreadLocalStorageHandle((int32_t)AllStorage.GetCount() - 1);
 	}
 	return ThreadLocalStorageHandle(-1);
 }

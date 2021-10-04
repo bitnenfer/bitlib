@@ -321,15 +321,17 @@ namespace bit
 				ClosestBucket = NewSize;
 				BucketType_t* NewBuckets = (BucketType_t*)Storage.AllocateBuckets(sizeof(BucketType_t), NewSize);
 				bit::ConstructArray<BucketType_t>(NewBuckets, NewSize, Storage.GetAllocator());
-				for (SizeType_t Index = 0; Index < BucketCount; ++Index)
+				for (SizeType_t OldIndex = 0; OldIndex < BucketCount; ++OldIndex)
 				{
-					BucketType_t& Bucket = Buckets[Index];
+					BucketType_t& Bucket = Buckets[OldIndex];
+					int32_t TIndex = 0;
 					for (BucketEntryType_t& Entry : Bucket.Container)
 					{
-						SizeType_t Index = Entry.Hash % NewSize;
-						NewBuckets[Index].Container.Insert(Entry);
-						FurthestBucket = bit::Max(FurthestBucket, Index);
-						ClosestBucket = bit::Min(ClosestBucket, Index);
+						SizeType_t NewBucketIndex = Entry.Hash % NewSize;
+						NewBuckets[NewBucketIndex].Container.Insert(Entry);
+						FurthestBucket = bit::Max(FurthestBucket, NewBucketIndex);
+						ClosestBucket = bit::Min(ClosestBucket, NewBucketIndex);
+						TIndex++;
 					}
 				}
 				bit::DestroyArray(Buckets, BucketCount);

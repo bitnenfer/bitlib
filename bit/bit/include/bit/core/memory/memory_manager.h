@@ -22,6 +22,9 @@ namespace bit
 	private:
 		SmallSizeAllocator SmallAllocator;
 		MediumSizeAllocator MediumAllocator;
+
+		uint64_t Small = 0, Medium = 0, Large = 0, Heap = 0;
+
 		Mutex AccessLock;
 	};
 }
