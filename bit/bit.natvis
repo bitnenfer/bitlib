@@ -94,34 +94,7 @@
       </CustomListItems>
     </Expand>
   </Type>
-  
-  <Type Name="bit::pmr::HashTable&lt;*&gt;">
-    <DisplayString>{{ Count={ElementCount}, Capacity={BucketCount} }}</DisplayString>
-    <Expand>
-      <Item Name="[Allocator]">Allocator,na</Item>
-      <Item Name="[Count]">ElementCount</Item>
-      <Item Name="[Capacity]">BucketCount</Item>
-      <Item Name="[Hash]">Hasher</Item>
-      <CustomListItems>
-        <Variable Name="BucketElem" InitialValue="Buckets != nullptr ? Buckets[0].Container.Head : nullptr"/>
-        <Variable Name="BucketIndex" InitialValue="0"/>
-        <Size>ElementCount</Size>
-        <Loop>
-          <Break Condition="BucketIndex &gt;= BucketCount"/>
-          <If Condition="Buckets[BucketIndex].Container.Count != 0">
-            <Exec>BucketElem = Buckets[BucketIndex].Container.Head</Exec>
-            <Loop>
-              <Break Condition="BucketElem==nullptr"/>
-              <Item Name="[{BucketElem->Element.Data.Key}]">BucketElem->Element.Data</Item>
-              <Exec>BucketElem=BucketElem->Next</Exec>
-            </Loop>
-          </If>
-          <Exec>BucketIndex++</Exec>
-        </Loop>
-      </CustomListItems>
-    </Expand>
-  </Type>
-  
+    
   <Type Name="bit::ProfTimer">
     <DisplayString>{{ Start={StartTime} s }}</DisplayString>
   </Type>
@@ -246,6 +219,7 @@
     <DisplayString Condition="(Size &amp; 0b1) &gt; 0">{{ Size={ Size &amp; (~0b11) }, Free }}</DisplayString>
     <DisplayString>{{ Size={Size &amp; (~0b11)}, Used }}</DisplayString>
     <Expand HideRawView="1">
+      <Item Name="[Pointer]">(void*)((char*)this + sizeof(BlockHeader))</Item>
       <Item Condition="(Size &amp; 0b10) == 0" Name="[Size]">Size &amp; (~0b11)</Item>
       <Item Name="[Prev PhysBlock]">PrevPhysicalBlock</Item>
       <Item Condition="(Size &amp; 0b10) == 0" Name="[Next PhysBlock]">(bit::MediumSizeAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
@@ -254,10 +228,11 @@
   
   <Type Name="bit::MediumSizeAllocator::BlockFreeHeader">
     <DisplayString Condition="(Size &amp; 0b10) &gt; 0">{{ End of Pool }}</DisplayString>
-    <DisplayString Condition="(Size &amp; 0b1) &gt; 0 &amp;&amp; NextFree != nullptr &amp;&amp; PrevFree == nullptr">{{ Size={ Size &amp; (~0b11) }, Free, List Head }}</DisplayString>
-    <DisplayString Condition="(Size &amp; 0b1) &gt; 0">{{ Size={ Size &amp; (~0b11) }, Free }}</DisplayString>
-    <DisplayString>{{ Size={Size &amp; (~0b11)}, Used }}</DisplayString>
+    <DisplayString Condition="(Size &amp; 0b1) &gt; 0 &amp;&amp; NextFree != nullptr &amp;&amp; PrevFree == nullptr">{{ Size={ Size &amp; (~0b11) }, Free, List Head, Ptr={(void*)((char*)this + sizeof(BlockHeader))}  }}</DisplayString>
+    <DisplayString Condition="(Size &amp; 0b1) &gt; 0">{{ Size={ Size &amp; (~0b11) }, Free, Ptr={(void*)((char*)this + sizeof(BlockHeader))}  }}</DisplayString>
+    <DisplayString>{{ Size={Size &amp; (~0b11)}, Used, Ptr={(void*)((char*)this + sizeof(BlockHeader))} }}</DisplayString>
     <Expand HideRawView="1">
+      <Item Name="[Pointer]">(void*)((char*)this + sizeof(BlockHeader))</Item>
       <Item Condition="(Size &amp; 0b10) == 0" Name="[Size]">Size &amp; (~0b11)</Item>
       <Synthetic Condition="this != nullptr" Name="[Adjacent Blocks]">
         <Expand>
@@ -279,27 +254,14 @@
       </Synthetic>
     </Expand>
   </Type>
-  
-  <Type Name="bit::MediumSizeAllocator::MemoryPool">
-    <DisplayString Condition="PoolSize &gt; 1024 * 1024 * 1024">{{ Size={(double)PoolSize / 1024.0 / 1024.0 / 1024.0,g} GiB }}</DisplayString>
-    <DisplayString Condition="PoolSize &gt; 1024 * 1024">{{ Size={(double)PoolSize / 1024.0 / 1024.0,g} MiB }}</DisplayString>
-    <DisplayString Condition="PoolSize &gt; 1024">{{ Size={(double)PoolSize / 1024.0,g} KiB }}</DisplayString>
-    <DisplayString>{{ Size={(double)PoolSize,g} B }}</DisplayString>
-    <Expand HideRawView="1">
-      <Synthetic Name="[Available Space]" Condition="PoolSize &lt; 1024">
-        <DisplayString>{ (double)PoolSize,g } B</DisplayString>
-      </Synthetic>
-      <Synthetic Name="[Available Space]" Condition="PoolSize &gt; 1024 &amp;&amp; PoolSize &lt; 1024 * 1024">
-        <DisplayString>{ (double)PoolSize / 1024.0,g } KiB</DisplayString>
-      </Synthetic>
-      <Synthetic Name="[Available Space]" Condition="PoolSize &gt; 1024 * 1024 &amp;&amp; PoolSize &lt; 1024 * 1024 * 1024">
-        <DisplayString>{ (double)PoolSize / 1024.0 / 1024.0,g } MiB</DisplayString>
-      </Synthetic>
-      <Item Name="[Base Address]">BaseAddress</Item>
-      <Item Name="[Next Pool]">Next</Item>
-    </Expand>
+
+  <Type Name="bit::MediumSizeAllocator::VirtualPage">
+    <DisplayString Condition="PageSize &gt; 1024 * 1024 * 1024">{{ PageSize={PageSize/1024/1024/1024,u} GiB }}</DisplayString>
+    <DisplayString Condition="PageSize &gt; 1024 * 1024">{{ PageSize={PageSize/1024/1024,u} MiB }}</DisplayString>
+    <DisplayString Condition="PageSize &gt; 1024">{{ PageSize={PageSize/1024,u} KiB }}</DisplayString>
+    <DisplayString>{{ PageSize={PageSize,u} B }}</DisplayString>
   </Type>
-  
+
   <Type Name="bit::MediumSizeAllocator">
     <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024">{{ UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes, g} B }</DisplayString>
     <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024">{{ UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0,g} KiB }</DisplayString>
@@ -391,19 +353,19 @@
         </Expand>
       </Synthetic>
 
-      <!--<Item Name="[Virtual Memory]">VirtualMemory</Item>-->
-
-      <!--<Synthetic Name="[Memory Pools]">
-        <DisplayString>{{ Count={MemoryPoolCount,d} }}</DisplayString>
+      <Synthetic Name="[Allocated Pages]">
+        <DisplayString>{{ Page Count={PagesInUseCount} }}</DisplayString>
         <Expand>
           <LinkedListItems>
-            <Size>MemoryPoolCount</Size>
-            <HeadPointer>MemoryPoolList</HeadPointer>
+            <Size>PagesInUseCount</Size>
+            <HeadPointer>PagesInUse</HeadPointer>
             <NextPointer>Next</NextPointer>
-            <ValueNode>*this</ValueNode>
+            <ValueNode>this</ValueNode>
           </LinkedListItems>
         </Expand>
-      </Synthetic>-->
+      </Synthetic>
+      
+      <Item Name="[Virtual Memory]">Memory</Item>
       
     </Expand>
   </Type>
@@ -428,56 +390,44 @@
     </Expand>
   </Type>
 
-  <!--<Type Name="bit::SmallSizeAllocator::FreeBlock">
-    --><!--<DisplayString Condition="Next == (~0)">End</DisplayString>
-    <DisplayString>{{ Next={(void*)(((uintptr_t)this &amp; ~0xFFFF)+Next),X} }}</DisplayString>
-    <Expand HideRawView="1">
-      <CustomListItems MaxItemsPerView="32">
-        <Variable Name="Block" InitialValue="this"/>
-        <Variable Name="Index" InitialValue="0" />
-        <Loop Condition="Block != nullptr &amp;&amp; Block->Next != ~0xFFFF">
-          <Item Name="[{Index,u}]">Block</Item>
-          <Exec>Block = (FreeBlock*)(((uintptr_t)Block &amp; ~0xFFFF)+Block->Next)</Exec>
-          <Exec>Index += 1</Exec>
-        </Loop>
-      </CustomListItems>
-    </Expand>--><!--
-    <DisplayString>{{ Next={(void*)Next} }}</DisplayString>
-    <Expand HideRawView="1">
-      <CustomListItems MaxItemsPerView="32">
-        <Variable Name="Block" InitialValue="this"/>
-        <Variable Name="Index" InitialValue="0" />
-        <Loop Condition="Block != nullptr &amp;&amp; Block->Next != nullptr">
-          <Item Name="[{Index,u}]">Block</Item>
-          <Exec>Block = Block->Next</Exec>
-          <Exec>Index += 1</Exec>
-        </Loop>
-      </CustomListItems>
-    </Expand>
-  </Type>-->
+  <Type Name="bit::SmallSizeAllocator::PageAllocationInfo">
+    <DisplayString Condition="!bCommitted">{{ Not Committed }}</DisplayString>
+    <DisplayString Condition="AllocatedBytes &gt; 1024 * 1024 * 1024">{{ Block={AssignedSize} B, Used={AllocatedBytes/1024/1024/1024,u} GiB }}</DisplayString>
+    <DisplayString Condition="AllocatedBytes &gt; 1024 * 1024">{{ Block={AssignedSize} B, Used={AllocatedBytes/1024/1024,u} MiB }}</DisplayString>
+    <DisplayString Condition="AllocatedBytes &gt; 1024">{{ Block={AssignedSize} B, Used={AllocatedBytes/1024,u} KiB }}</DisplayString>
+    <DisplayString>{{ Block={AssignedSize} B, Used={AllocatedBytes,u} B }}</DisplayString>
+  </Type>
+
+  <Type Name="bit::SmallSizeAllocator::BlockInfo">
+    <DisplayString Condition="AllocatedBytes &gt; 1024ULL * 1024ULL * 1024ULL * 1024ULL">{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes/1024.0/1024.0/1024.0/1024.0,g} TiB }}</DisplayString>
+    <DisplayString Condition="AllocatedBytes &gt; 1024ULL * 1024ULL * 1024ULL">{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes/1024.0/1024.0/1024.0,g} GiB }}</DisplayString>
+    <DisplayString Condition="AllocatedBytes &gt; 1024ULL * 1024ULL">{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes/1024.0/1024.0,g} MiB }}</DisplayString>
+    <DisplayString Condition="AllocatedBytes &gt; 1024ULL">{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes/1024.0,g} KiB }}</DisplayString>
+    <DisplayString>{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes,g} B }}</DisplayString>
+  </Type>
 
   <Type Name="bit::SmallSizeAllocator">
-    <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)UsedSpaceInBytes, g} B }</DisplayString>
-    <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0,g} KiB }</DisplayString>
-    <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0 / 1024.0,g} MiB }</DisplayString>
-    <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024 * 1024">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0 / 1024.0 / 1024.0,g} GiB }</DisplayString>
-    <DisplayString Condition="Memory.CommittedSize &gt; 0">{{ {Name,sb}, UsagePct={(float)UsedSpaceInBytes / (float)Memory.CommittedSize * 100.0f, g}% }}</DisplayString>
-    <DisplayString>{{ {Name,sb}, Used=0 B }}</DisplayString>
-    <Expand HideRawView="1">
+    <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; AllocatedBytes &lt; 1024">{{ UsagePct={(float)AllocatedBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)AllocatedBytes, g} B }</DisplayString>
+    <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; AllocatedBytes &lt; 1024 * 1024">{{ UsagePct={(float)AllocatedBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)AllocatedBytes / 1024.0,g} KiB }</DisplayString>
+    <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; AllocatedBytes &lt; 1024 * 1024 * 1024">{{ UsagePct={(float)AllocatedBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)AllocatedBytes / 1024.0 / 1024.0,g} MiB }</DisplayString>
+    <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; AllocatedBytes &lt; 1024 * 1024 * 1024 * 1024">{{ UsagePct={(float)AllocatedBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)AllocatedBytes / 1024.0 / 1024.0 / 1024.0,g} GiB }</DisplayString>
+    <DisplayString Condition="Memory.CommittedSize &gt; 0">{{ UsagePct={(float)AllocatedBytes / (float)Memory.CommittedSize * 100.0f, g}% }}</DisplayString>
+
+    <Expand HideRawView="0">
       <Item Name="[Virtual Memory]">Memory</Item>
-      <Synthetic Name="[Used Space]" Condition="UsedSpaceInBytes &lt; 1024">
-        <DisplayString>{ (double)UsedSpaceInBytes,g } B</DisplayString>
+      <Synthetic Name="[Used Space]" Condition="AllocatedBytes &lt; 1024">
+        <DisplayString>{ (double)AllocatedBytes,g } B</DisplayString>
       </Synthetic>
-      <Synthetic Name="[Used Space]" Condition="UsedSpaceInBytes &gt; 1024 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024">
-        <DisplayString>{ (double)UsedSpaceInBytes / 1024.0,g } KiB</DisplayString>
+      <Synthetic Name="[Used Space]" Condition="AllocatedBytes &gt; 1024 &amp;&amp; AllocatedBytes &lt; 1024 * 1024">
+        <DisplayString>{ (double)AllocatedBytes / 1024.0,g } KiB</DisplayString>
       </Synthetic>
-      <Synthetic Name="[Used Space]" Condition="UsedSpaceInBytes &gt; 1024 * 1024 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024">
-        <DisplayString>{ (double)UsedSpaceInBytes / 1024.0 / 1024.0,g } MiB</DisplayString>
+      <Synthetic Name="[Used Space]" Condition="AllocatedBytes &gt; 1024 * 1024 &amp;&amp; AllocatedBytes &lt; 1024 * 1024 * 1024">
+        <DisplayString>{ (double)AllocatedBytes / 1024.0 / 1024.0,g } MiB</DisplayString>
       </Synthetic>
-      <Synthetic Name="[Used Space]" Condition="UsedSpaceInBytes &gt; 1024 * 1024 * 1024 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024 * 1024">
-        <DisplayString>{ (double)UsedSpaceInBytes / 1024.0 / 1024.0 / 1024.0,g } GiB</DisplayString>
+      <Synthetic Name="[Used Space]" Condition="AllocatedBytes &gt; 1024 * 1024 * 1024 &amp;&amp; AllocatedBytes &lt; 1024 * 1024 * 1024 * 1024">
+        <DisplayString>{ (double)AllocatedBytes / 1024.0 / 1024.0 / 1024.0,g } GiB</DisplayString>
       </Synthetic>
-      <!--<Synthetic Name="[Available Space]" Condition="Memory.CommittedSize &lt; 1024">
+      <Synthetic Name="[Available Space]" Condition="Memory.CommittedSize &lt; 1024">
         <DisplayString>{ (double)Memory.CommittedSize,g } B</DisplayString>
       </Synthetic>
       <Synthetic Name="[Available Space]" Condition="Memory.CommittedSize &gt; 1024 &amp;&amp; Memory.CommittedSize &lt; 1024 * 1024">
@@ -488,8 +438,8 @@
       </Synthetic>
       <Synthetic Name="[Available Space]" Condition="Memory.CommittedSize &gt; 1024 * 1024 * 1024 &amp;&amp; Memory.CommittedSize &lt; 1024 * 1024 * 1024 * 1024">
         <DisplayString>{ (double)Memory.CommittedSize / 1024.0 / 1024.0 / 1024.0,g } GiB</DisplayString>
-      </Synthetic>-->
-      <!--<Synthetic Name="[Virtual Blocks]">
+      </Synthetic>
+      <Synthetic Name="[Blocks]">
         <DisplayString>{{ Min Alloc={MIN_ALLOCATION_SIZE,u} B, Max Alloc={MAX_ALLOCATION_SIZE,u} B }}</DisplayString>
         <Expand>
           <CustomListItems>
@@ -497,41 +447,30 @@
             <Variable Name="BlockSize" InitialValue="0"/>
             <Loop Condition="Index &lt; NUM_OF_SIZES">
               <Exec>BlockSize = ((Index+1) * MIN_ALLOCATION_SIZE)</Exec>
-              <Item Name="[{Index,u}]  [{BlockSize,u} B]">VirtualPages[Index]</Item>
-              <Exec>Index += 1</Exec>
-            </Loop>
-          </CustomListItems>
-        </Expand>
-      </Synthetic>-->
-      <!--<Synthetic Name="[Free List]">
-        <DisplayString>{{ Min Alloc={MIN_ALLOCATION_SIZE,u} B, Max Alloc={MAX_ALLOCATION_SIZE,u} B }}</DisplayString>
-        <Expand>
-          <CustomListItems>
-            <Variable Name="Index" InitialValue="0"/>
-            <Variable Name="BlockSize" InitialValue="0"/>
-            <Loop Condition="Index &lt; NUM_OF_SIZES">
-              <Exec>BlockSize = ((Index+1) * MIN_ALLOCATION_SIZE)</Exec>
-              <Item Condition="FreeLists[Index]!=(~0)" Name="[{Index,u}]  [{BlockSize,u} B]">(FreeBlock*)((uintptr_t)Blocks[Index].Start + FreeLists[Index])</Item>
-              <Exec>Index += 1</Exec>
-            </Loop>
-          </CustomListItems>
-        </Expand>
-      </Synthetic>-->
-
-      <Synthetic Name="[Free List]">
-        <DisplayString>{{ Min Alloc={MIN_ALLOCATION_SIZE,u} B, Max Alloc={MAX_ALLOCATION_SIZE,u} B }}</DisplayString>
-        <Expand>
-          <CustomListItems>
-            <Variable Name="Index" InitialValue="0"/>
-            <Variable Name="BlockSize" InitialValue="0"/>
-            <Loop Condition="Index &lt; NUM_OF_SIZES">
-              <Exec>BlockSize = ((Index+1) * MIN_ALLOCATION_SIZE)</Exec>
-              <Item Condition="FreeLists[Index]!=nullptr" Name="[{Index,u}]  [{BlockSize,u} B]">FreeLists[Index]</Item>
+              <Item Name="[{Index,u}]  [{BlockSize,u} B]">Blocks[Index]</Item>
               <Exec>Index += 1</Exec>
             </Loop>
           </CustomListItems>
         </Expand>
       </Synthetic>
+
+      <Synthetic Name="[Pages]">
+        <DisplayString>{{ Page Size={PAGE_SIZE} }}</DisplayString>
+        <Expand>
+          <Item Name="[Free List]">PageFreeList</Item>
+          <Synthetic Name="[Page Info]">
+            <DisplayString>{{ Pages={NUM_OF_PAGES} }}</DisplayString>
+            <Expand>
+              <ArrayItems>
+                <Size>NUM_OF_PAGES</Size>
+                <ValuePointer>PageInfo</ValuePointer>
+              </ArrayItems>
+            </Expand>
+          </Synthetic>
+
+        </Expand>
+      </Synthetic>
+
     </Expand>
   </Type>
 

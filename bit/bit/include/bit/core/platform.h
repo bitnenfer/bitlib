@@ -21,5 +21,5 @@ inline void operator delete(void*, _BitMemNewDummy_, void*) {}
 
 namespace bit
 {
-	static constexpr size_t DEFAULT_ALIGNMENT = 4;
+	static constexpr size_t DEFAULT_ALIGNMENT = 8;
 };
