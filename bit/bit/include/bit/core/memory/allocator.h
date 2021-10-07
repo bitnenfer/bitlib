@@ -68,7 +68,7 @@ namespace bit
 			return *this;
 		}
 
-		MemoryArena(MemoryArena&& Move)
+		MemoryArena(MemoryArena&& Move) noexcept
 		{
 			RefCounter = Move.RefCounter;
 			Allocator = Move.Allocator;
@@ -80,7 +80,7 @@ namespace bit
 			Move.SizeInBytes = 0;
 		}
 
-		MemoryArena& operator=(MemoryArena&& Move)
+		MemoryArena& operator=(MemoryArena&& Move) noexcept
 		{
 			RefCounter = Move.RefCounter;
 			Allocator = Move.Allocator;

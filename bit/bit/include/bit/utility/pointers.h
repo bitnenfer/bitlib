@@ -242,7 +242,7 @@ namespace bit
 			return *this;
 		}
 
-		TSharedPtr<T>& operator=(TSharedPtr<T>&& Move)
+		TSharedPtr<T>& operator=(TSharedPtr<T>&& Move) noexcept
 		{
 			Reset();
 			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, Move.CtrlBlock);

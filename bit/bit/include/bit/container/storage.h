@@ -24,7 +24,7 @@ namespace bit
 
 	struct BITLIB_API BlockStorage
 	{
-		BlockStorage(BlockStorage&& InBlockAllocator) :
+		BlockStorage(BlockStorage&& InBlockAllocator) noexcept :
 			Block(InBlockAllocator.Block),
 			AllocationSize(InBlockAllocator.AllocationSize),
 			BackingAllocator(InBlockAllocator.BackingAllocator)
@@ -69,7 +69,7 @@ namespace bit
 			return *this;
 		}
 
-		BlockStorage& operator=(BlockStorage&& InBlockAllocator)
+		BlockStorage& operator=(BlockStorage&& InBlockAllocator) noexcept
 		{
 			Block = InBlockAllocator.Block;
 			AllocationSize = InBlockAllocator.AllocationSize;
@@ -299,7 +299,7 @@ namespace bit
 			AllocAlignment(InAlignment)
 		{}
 
-		LinkedListStorage(LinkedListStorage&& Other) :
+		LinkedListStorage(LinkedListStorage&& Other) noexcept :
 			Allocator(Other.Allocator),
 			BlockList(Other.BlockList),
 			BlockData(Other.BlockData),

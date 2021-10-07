@@ -74,12 +74,12 @@ bit::AllocatorMemoryInfo bit::MemoryManager::GetMemoryUsageInfo()
 	Usage.AllocatedBytes = SmallUsage.AllocatedBytes + MediumUsage.AllocatedBytes + HeapUsage.AllocatedBytes;
 	Usage.CommittedBytes = SmallUsage.CommittedBytes + MediumUsage.CommittedBytes + HeapUsage.CommittedBytes;
 	Usage.ReservedBytes = SmallUsage.ReservedBytes + MediumUsage.ReservedBytes + HeapUsage.ReservedBytes;
-	BIT_ALWAYS_LOG(
-		"Small Allocs: %u\n"
-		"Medium Allocs: %u\n"
-		"Heap Allocs: %u\n",
-		Small, Medium, Heap
-	);
+	//BIT_ALWAYS_LOG(
+	//	"Small Allocs: %u\n"
+	//	"Medium Allocs: %u\n"
+	//	"Heap Allocs: %u\n",
+	//	Small, Medium, Heap
+	//);
 	return Usage;
 }
 

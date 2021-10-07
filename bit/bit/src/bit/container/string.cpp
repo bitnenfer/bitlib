@@ -35,14 +35,14 @@ bit::SizeType_t bit::String::GetLength() const
 
 void bit::String::Copy(const CharType_t* RawStr, SizeType_t Len)
 {
-	Storage.Reset();
+	Storage.Clear();
 	Storage.Add(RawStr, Len);
 	Storage.AddEmpty();
 }
 
 void bit::String::Copy(const String& Other)
 {
-	Storage.Reset();
+	Storage.Clear();
 	Storage.Add(Other.Storage);
 }
 

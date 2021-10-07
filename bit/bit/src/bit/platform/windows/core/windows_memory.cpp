@@ -95,7 +95,7 @@ namespace bit
 		Mutex AccessLock;
 	};
 	static uint8_t WindowsHeapInitialBuffer[sizeof(WindowsHeapAllocator)];
-	IAllocator* CreateWindowsHeapAllocator() { return BitPlacementNew(WindowsHeapInitialBuffer) bit::WindowsHeapAllocator(); }
+	IAllocator* CreateWindowsHeapAllocator() { return BitPlacementNew(WindowsHeapInitialBuffer) WindowsHeapAllocator(); }
 	static IAllocator* WindowsHeapAllocator = nullptr;
 }
 

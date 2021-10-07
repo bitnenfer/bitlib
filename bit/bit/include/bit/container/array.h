@@ -90,7 +90,7 @@ namespace bit
 		{
 		}
 
-		Array(SelfType_t&& Move) :
+		Array(SelfType_t&& Move) noexcept :
 			Count(0),
 			Capacity(Storage.GetBlockSize() / sizeof(T)),
 			Data((T*)Storage.GetBlock())
@@ -133,7 +133,11 @@ namespace bit
 
 		bool IsEmpty() const { return Count == 0; }
 
-		void Reset() { Count = 0; }
+		void Clear()
+		{
+			bit::DestroyArray(GetData(), Count);
+			Count = 0;
+		}
 
 		bool IsValid() { return Storage.IsValid(); }
 
@@ -141,9 +145,8 @@ namespace bit
 		{
 			if (IsValid())
 			{
-				bit::DestroyArray(GetData(), Count);
+				Clear();
 				Storage.Free();
-				Reset();
 			}
 		}
 
@@ -266,7 +269,7 @@ namespace bit
 			return *this;
 		}
 
-		SelfType_t& operator=(SelfType_t&& Move)
+		SelfType_t& operator=(SelfType_t&& Move) noexcept
 		{
 			Destroy();
 			Storage = bit::Move(Move.Storage);

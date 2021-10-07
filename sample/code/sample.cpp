@@ -48,6 +48,8 @@ struct CustomDeleter
 	}
 };
 
+#include <stdlib.h>
+
 int main(int32_t Argc, const char* Argv[])
 {
 #if 0
@@ -57,14 +59,52 @@ int main(int32_t Argc, const char* Argv[])
 #else
 	bit::IAllocator& DefaultAllocator = bit::GetDefaultAllocator();
 	bit::ProfTimer Timer;
-	int32_t IterCount = 1;
+	int32_t IterCount = 100;
 	double TotalTime = 0.0;
 	double PeakTime = 0.0;
 
 	for (int32_t TestIndex = 0; TestIndex < IterCount; ++TestIndex)
 	{
+		BIT_ALWAYS_LOG("Iteration %d / %d", TestIndex, IterCount);
 		Timer.Begin();
 		{
+			{
+				bit::Array<void*> Ptrs;
+				Ptrs.Resize(20000);
+
+				auto RandSize = [](size_t MaxSize)
+				{
+					double Rand = (double)rand() / (double)RAND_MAX;
+					return bit::Max((size_t)((double)MaxSize * Rand), 8ULL);
+				};
+
+				for (int32_t Index = 0; Index < 10000; ++Index)
+				{
+					size_t Size = RandSize(32 KiB);
+					void* P = bit::Malloc(Size);
+					Ptrs.Add(P);
+				}
+
+				for (void* P : Ptrs)
+				{
+					bit::Free(P);
+				}
+
+				Ptrs.Clear();
+
+				for (int32_t Index = 0; Index < 10000; ++Index)
+				{
+					size_t Size = RandSize(32 KiB);
+					void* P = bit::Malloc(Size);
+					Ptrs.Add(P);
+				}
+
+				for (void* P : Ptrs)
+				{
+					bit::Free(P);
+				}
+			}
+
 			bit::TempFmtString("Hello %s", "World");
 
 			bit::String MyString = "Testing";
@@ -210,43 +250,25 @@ int main(int32_t Argc, const char* Argv[])
 					"Total Allocated: %s\n\t"
 					"Total Committed: %s\n\t"
 					"Total Reserved: %s\n\t"
-					"Avg. Exec. Time: %.4lf s\n\t"
-					"Peak Exec. Time: %.4lf s\n\t"
-					"Iter. Count: %d\n\t"
 					,
 					*bit::FormatSize(MemInfo.AllocatedBytes),
 					*bit::FormatSize(MemInfo.CommittedBytes),
-					*bit::FormatSize(MemInfo.ReservedBytes),
-					TotalTime / (double)IterCount,
-					PeakTime,
-					IterCount
+					*bit::FormatSize(MemInfo.ReservedBytes)
 				));
 			}
-
 		}
 		double Time = Timer.End();
 		TotalTime += Time;
 		PeakTime = bit::Max(PeakTime, Time);
-		BIT_ALWAYS_LOG("Iteration %d / %d", TestIndex, IterCount);
 
 	}
 
 	bit::AllocatorMemoryInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
 	BIT_ALWAYS_LOG("%s", bit::TempFmtString(
-		"=======\n"
-		"Outside\n"
-		"=======\n"
-		"Memory Usage Info:\n\t"
-		"Total Allocated: %s\n\t"
-		"Total Committed: %s\n\t"
-		"Total Reserved: %s\n\t"
 		"Avg. Exec. Time: %.4lf s\n\t"
 		"Peak Exec. Time: %.4lf s\n\t"
 		"Iter. Count: %d\n\t"
 		,
-		*bit::FormatSize(MemInfo.AllocatedBytes),
-		*bit::FormatSize(MemInfo.CommittedBytes),
-		*bit::FormatSize(MemInfo.ReservedBytes),
 		TotalTime / (double)IterCount,
 		PeakTime,
 		IterCount

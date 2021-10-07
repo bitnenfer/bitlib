@@ -15,7 +15,7 @@ bit::MediumSizeAllocator::MediumSizeAllocator() :
 	UsedSpaceInBytes(0),
 	AvailableSpaceInBytes(0)
 {
-	if (!VirtualReserveSpace((void*)0x80000000ULL, ADDRESS_SPACE_SIZE, Memory))
+	if (!VirtualReserveSpace((void*)nullptr, ADDRESS_SPACE_SIZE, Memory))
 	{
 		BIT_PANIC();
 	}
