@@ -6,7 +6,7 @@
 #include <bit/core/platform_null.h>
 #endif
 
-#define BIT_PLATFORM_DEFAULT_ALLOCATOR 0
+#define BIT_PLATFORM_DEFAULT_ALLOCATOR 1
 
 struct _BitMemNewDummy_ {};
 inline void* operator new(size_t, _BitMemNewDummy_, void* Ptr) { return Ptr; }
