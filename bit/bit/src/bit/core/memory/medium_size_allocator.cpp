@@ -76,7 +76,7 @@ void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
 
 void* bit::MediumSizeAllocator::AllocateAligned(uint64_t Size, uint64_t Alignment)
 {
-	uint64_t RoundedSize = RoundToSlotSize(Size);
+	uint64_t RoundedSize = RoundToSlotSize((Size + Alignment) + MIN_ALLOCATION_SIZE * 2);
 	uint64_t AlignedSize = (uint64_t)bit::AlignUint(RoundedSize, Alignment);
 	BlockMap Map = Mapping(AlignedSize);
 	BlockFreeHeader* Block = FindSuitableBlock(AlignedSize, Map);

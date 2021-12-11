@@ -18,7 +18,7 @@ namespace bit
 
 	struct BITLIB_API CommandArgs
 	{
-		CommandArgs(const char* Args[], uint32_t ArgCount, IAllocator& Allocator = bit::GetDefaultAllocator());
+		CommandArgs(const char* Args[], uint32_t ArgCount, IAllocator& Allocator = bit::GetGlobalAllocator());
 		bool Contains(const char* Arg);
 		const char* GetValue(const char* Arg);
 		int64_t GetArgCount();

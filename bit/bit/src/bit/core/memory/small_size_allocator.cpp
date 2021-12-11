@@ -246,16 +246,6 @@ void* bit::SmallSizeAllocator::AllocateNewPage(size_t BlockSize)
 	return Pages;
 }
 
-void bit::SmallSizeAllocator::SwapPages(PageLink* A, PageLink* B)
-{
-	PageLink* ANext = A->Next;
-	PageLink* APrev = A->Prev;
-	A->Next = B->Next;
-	A->Prev = B->Prev;
-	B->Next = ANext;
-	B->Prev = APrev;
-}
-
 void* bit::SmallSizeAllocator::PopFreeBlock(size_t BlockIndex)
 {
 	PageLink* Pages = Blocks[BlockIndex].Pages;
@@ -274,7 +264,11 @@ void* bit::SmallSizeAllocator::PopFreeBlock(size_t BlockIndex)
 		{
 			if (AvailablePage->FreeList != nullptr)
 			{
-				SwapPages(Pages, AvailablePage);
+				if (AvailablePage->Prev != nullptr) AvailablePage->Prev->Next = AvailablePage->Next;
+				if (AvailablePage->Next != nullptr) AvailablePage->Next->Prev = AvailablePage->Prev;
+				AvailablePage->Next = Pages;
+				AvailablePage->Prev = nullptr;
+				Pages->Prev = AvailablePage;
 				Blocks[BlockIndex].Pages = AvailablePage;
 				Pages = AvailablePage;
 				goto RetryPopFreeBlock;

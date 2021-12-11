@@ -7,25 +7,25 @@ double bit::FromTiB(size_t Value) { return FromGiB(Value) / 1024.0; }
 
 void* bit::Malloc(size_t Size, size_t Alignment)
 {
-	return GetDefaultAllocator().Allocate(Size, Alignment);
+	return GetGlobalAllocator().Allocate(Size, Alignment);
 }
 
 void* bit::Realloc(void* Pointer, size_t Size, size_t Alignment)
 {
-	return GetDefaultAllocator().Reallocate(Pointer, Size, Alignment);
+	return GetGlobalAllocator().Reallocate(Pointer, Size, Alignment);
 }
 
 void bit::Free(void* Pointer)
 {
-	return GetDefaultAllocator().Free(Pointer);
+	return GetGlobalAllocator().Free(Pointer);
 }
 
 size_t bit::CompactMemory()
 {
-	return GetDefaultAllocator().Compact();
+	return GetGlobalAllocator().Compact();
 }
 
 size_t bit::GetMallocSize(void* Pointer)
 {
-	return GetDefaultAllocator().GetSize(Pointer);
+	return GetGlobalAllocator().GetSize(Pointer);
 }

@@ -57,9 +57,9 @@ int main(int32_t Argc, const char* Argv[])
 	bit::Free(B);
 
 #else
-	bit::IAllocator& DefaultAllocator = bit::GetDefaultAllocator();
+	bit::IAllocator& GlobalAllocator = bit::GetGlobalAllocator();
 	bit::ProfTimer Timer;
-	int32_t IterCount = 100;
+	int32_t IterCount = 1;
 	double TotalTime = 0.0;
 	double PeakTime = 0.0;
 
@@ -68,41 +68,18 @@ int main(int32_t Argc, const char* Argv[])
 		BIT_ALWAYS_LOG("Iteration %d / %d", TestIndex, IterCount);
 		Timer.Begin();
 		{
+			bit::Array<bit::UniquePtr<bit::Array<uint8_t>>> Ptrs;
+
+			auto RandSize = [](size_t MaxSize)
 			{
-				bit::Array<void*> Ptrs;
-				Ptrs.Resize(20000);
+				double Rand = (double)rand() / (double)RAND_MAX;
+				return bit::Max((size_t)((double)MaxSize * Rand), 8ULL);
+			};
 
-				auto RandSize = [](size_t MaxSize)
-				{
-					double Rand = (double)rand() / (double)RAND_MAX;
-					return bit::Max((size_t)((double)MaxSize * Rand), 8ULL);
-				};
-
-				for (int32_t Index = 0; Index < 10000; ++Index)
-				{
-					size_t Size = RandSize(32 KiB);
-					void* P = bit::Malloc(Size);
-					Ptrs.Add(P);
-				}
-
-				for (void* P : Ptrs)
-				{
-					bit::Free(P);
-				}
-
-				Ptrs.Clear();
-
-				for (int32_t Index = 0; Index < 10000; ++Index)
-				{
-					size_t Size = RandSize(32 KiB);
-					void* P = bit::Malloc(Size);
-					Ptrs.Add(P);
-				}
-
-				for (void* P : Ptrs)
-				{
-					bit::Free(P);
-				}
+			for (int32_t Index = 0; Index < 10000; ++Index)
+			{
+				size_t Size = RandSize(32 KiB);
+				Ptrs.Add(bit::Move(bit::MakeUnique<bit::Array<uint8_t>>(Size)));
 			}
 
 			bit::TempFmtString("Hello %s", "World");
@@ -113,7 +90,7 @@ int main(int32_t Argc, const char* Argv[])
 
 			BIT_LOG("My Str says = %s\n", *(MyString + "\nWOoo"));
 
-			bit::LinearAllocator LinearAllocator("TestLinearAllocator", DefaultAllocator.AllocateArena(2 MiB));
+			bit::LinearAllocator LinearAllocator("TestLinearAllocator", GlobalAllocator.AllocateArena(2 MiB));
 			bit::FixedMemoryArena<1 KiB> FixedMemoryArena;
 			bit::LinearAllocator FixedAllocator("FixedLinearAllocator", FixedMemoryArena);
 
@@ -244,7 +221,7 @@ int main(int32_t Argc, const char* Argv[])
 
 			if (TestIndex == IterCount - 1)
 			{
-				bit::AllocatorMemoryInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
+				bit::AllocatorMemoryInfo MemInfo = bit::GetGlobalAllocator().GetMemoryUsageInfo();
 				BIT_ALWAYS_LOG("%s", bit::TempFmtString(
 					"Memory Usage Info:\n\t"
 					"Total Allocated: %s\n\t"
@@ -263,7 +240,7 @@ int main(int32_t Argc, const char* Argv[])
 
 	}
 
-	bit::AllocatorMemoryInfo MemInfo = bit::GetDefaultAllocator().GetMemoryUsageInfo();
+	bit::AllocatorMemoryInfo MemInfo = bit::GetGlobalAllocator().GetMemoryUsageInfo();
 	BIT_ALWAYS_LOG("%s", bit::TempFmtString(
 		"Avg. Exec. Time: %.4lf s\n\t"
 		"Peak Exec. Time: %.4lf s\n\t"

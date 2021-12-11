@@ -54,7 +54,7 @@ namespace bit
 
 	public:
 		static constexpr uint64_t COUNT_OFFSET = bit::ConstBitScanReverse(MIN_ALLOCATION_SIZE) + 1;
-		static constexpr uint64_t FL_COUNT = bit::ConstBitScanReverse(MAX_ALLOCATION_SIZE) - COUNT_OFFSET + 1;
+		static constexpr uint64_t FL_COUNT = bit::ConstBitScanReverse(MAX_ALLOCATION_SIZE) - bit::ConstBitScanReverse(MIN_ALLOCATION_SIZE) + 1;
 		static constexpr uint64_t SL_COUNT = 1 << SLI;
 
 		MediumSizeAllocator();

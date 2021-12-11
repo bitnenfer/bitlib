@@ -166,21 +166,21 @@ namespace bit
 
 		void Add(const T& Element)
 		{
-			CheckGrow();
-			GetData()[Count++] = Element;
+			Allocate(Element);
 		}
 
 		void Add(T&& Element)
 		{
-			CheckGrow();
-			GetData()[Count++] = bit::Move(Element);
+			Allocate(bit::Forward<T>(Element));
 		}
 
 		void Add(const T* Buffer, SizeType_t BufferCount)
 		{
 			CheckGrow(BufferCount);
-			bit::Memcpy(&GetData()[Count], Buffer, sizeof(T) * BufferCount);
-			Count += BufferCount;
+			for (SizeType_t Index = 0; Index < BufferCount; ++Index)
+			{
+				Add(Buffer[Index]);
+			}
 		}
 
 		void Add(const SelfType_t& Other)

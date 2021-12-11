@@ -8,7 +8,7 @@ namespace bit
 	struct IAllocator;
 
 	/* Allocation Functions */
-	BITLIB_API IAllocator& GetDefaultAllocator();
+	BITLIB_API IAllocator& GetGlobalAllocator();
 	BITLIB_API void* Malloc(size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
 	BITLIB_API void* Realloc(void* Pointer, size_t Size, size_t Alignment = bit::DEFAULT_ALIGNMENT);
 	BITLIB_API void Free(void* Pointer);

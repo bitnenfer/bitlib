@@ -3,16 +3,11 @@
 #include <bit/core/memory.h>
 #include <bit/utility/scope_lock.h>
 
-extern bit::IAllocator& GetPlatformHeapAllocator();
-
-static bit::IAllocator* HeapAllocator = nullptr;
-
 bit::MemoryManager::MemoryManager() :
 	IAllocator("MemoryManager"),
 	SmallAllocator(),
 	MediumAllocator()
 {
-	HeapAllocator = &GetPlatformHeapAllocator();
 }
 
 void* bit::MemoryManager::Allocate(size_t Size, size_t Alignment)
@@ -28,8 +23,7 @@ void* bit::MemoryManager::Allocate(size_t Size, size_t Alignment)
 		Medium++;
 		return MediumAllocator.Allocate(Size, Alignment);
 	}
-	Heap++;
-	return HeapAllocator->Allocate(Size, Alignment);
+	return nullptr;
 }
 void* bit::MemoryManager::Reallocate(void* Pointer, size_t Size, size_t Alignment)
 {
@@ -53,27 +47,22 @@ void bit::MemoryManager::Free(void* Pointer)
 	{
 		MediumAllocator.Free(Pointer);
 	}
-	else
-	{
-		HeapAllocator->Free(Pointer);
-	}
 }
 size_t bit::MemoryManager::GetSize(void* Pointer)
 {
 	if (SmallAllocator.OwnsAllocation(Pointer)) return SmallAllocator.GetSize(Pointer);
 	else if (MediumAllocator.OwnsAllocation(Pointer)) return MediumAllocator.GetSize(Pointer);
-	return HeapAllocator->GetSize(Pointer);
+	return 0;
 }
 bit::AllocatorMemoryInfo bit::MemoryManager::GetMemoryUsageInfo()
 {
 	bit::ScopedLock<bit::Mutex> Lock(&AccessLock);
 	AllocatorMemoryInfo SmallUsage = SmallAllocator.GetMemoryUsageInfo();
 	AllocatorMemoryInfo MediumUsage = MediumAllocator.GetMemoryUsageInfo();
-	AllocatorMemoryInfo HeapUsage = HeapAllocator->GetMemoryUsageInfo();
 	AllocatorMemoryInfo Usage = {};
-	Usage.AllocatedBytes = SmallUsage.AllocatedBytes + MediumUsage.AllocatedBytes + HeapUsage.AllocatedBytes;
-	Usage.CommittedBytes = SmallUsage.CommittedBytes + MediumUsage.CommittedBytes + HeapUsage.CommittedBytes;
-	Usage.ReservedBytes = SmallUsage.ReservedBytes + MediumUsage.ReservedBytes + HeapUsage.ReservedBytes;
+	Usage.AllocatedBytes = SmallUsage.AllocatedBytes + MediumUsage.AllocatedBytes;
+	Usage.CommittedBytes = SmallUsage.CommittedBytes + MediumUsage.CommittedBytes;
+	Usage.ReservedBytes = SmallUsage.ReservedBytes + MediumUsage.ReservedBytes;
 	//BIT_ALWAYS_LOG(
 	//	"Small Allocs: %u\n"
 	//	"Medium Allocs: %u\n"
@@ -86,36 +75,32 @@ bit::AllocatorMemoryInfo bit::MemoryManager::GetMemoryUsageInfo()
 bool bit::MemoryManager::CanAllocate(size_t Size, size_t Alignment)
 {
 	return SmallAllocator.CanAllocate(Size, Alignment) 
-		|| MediumAllocator.CanAllocate(Size, Alignment) 
-		|| HeapAllocator->CanAllocate(Size, Alignment);
+		|| MediumAllocator.CanAllocate(Size, Alignment);
 }
 
 bool bit::MemoryManager::OwnsAllocation(const void* Ptr)
 {
 	return SmallAllocator.OwnsAllocation(Ptr) 
-		|| MediumAllocator.OwnsAllocation(Ptr) 
-		|| HeapAllocator->OwnsAllocation(Ptr);
+		|| MediumAllocator.OwnsAllocation(Ptr);
 }
 
 size_t bit::MemoryManager::Compact()
 {
-	return SmallAllocator.Compact() + HeapAllocator->Compact() + MediumAllocator.Compact();
+	return SmallAllocator.Compact() + MediumAllocator.Compact();
 }
 
-#if !BIT_PLATFORM_DEFAULT_ALLOCATOR
 namespace bit
 {
 	static uint8_t HeapInitialBuffer[sizeof(MemoryManager)];
-	bit::IAllocator* CreateDefaultAllocator() { return BitPlacementNew(HeapInitialBuffer) MemoryManager(); }
-	static IAllocator* DefaultAllocator = nullptr;
+	bit::IAllocator* CreateGlobalAllocator() { return BitPlacementNew(HeapInitialBuffer) MemoryManager(); }
+	static IAllocator* GlobalAllocator = nullptr;
 }
 
-bit::IAllocator& bit::GetDefaultAllocator()
+bit::IAllocator& bit::GetGlobalAllocator()
 {
-	if (DefaultAllocator == nullptr)
+	if (GlobalAllocator == nullptr)
 	{
-		DefaultAllocator = CreateDefaultAllocator();
+		GlobalAllocator = CreateGlobalAllocator();
 	}
-	return *DefaultAllocator;
+	return *GlobalAllocator;
 }
-#endif

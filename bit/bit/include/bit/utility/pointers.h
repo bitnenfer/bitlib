@@ -137,9 +137,12 @@ namespace bit
 		}
 		SelfType& operator=(SelfType&& Move)
 		{
-			Reset();
-			AssignPtr::Assign<T>(&Ptr, Move.Release());
-			Deleter = bit::Move(Move.Deleter);
+			if (this != &Move)
+			{
+				Reset();
+				AssignPtr::Assign<T>(&Ptr, Move.Release());
+				Deleter = bit::Move(Move.Deleter);
+			}
 			return *this;
 		}
 		~UniquePtr()
@@ -236,17 +239,23 @@ namespace bit
 
 		TSharedPtr<T>& operator=(const TSharedPtr<T>& Copy)
 		{
-			Reset();
-			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, Copy.CtrlBlock);
-			if (IsValid()) CtrlBlock->IncStrongRef();
+			if (this != &Copy)
+			{
+				Reset();
+				AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, Copy.CtrlBlock);
+				if (IsValid()) CtrlBlock->IncStrongRef();
+			}
 			return *this;
 		}
 
 		TSharedPtr<T>& operator=(TSharedPtr<T>&& Move) noexcept
 		{
-			Reset();
-			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, Move.CtrlBlock);
-			AssignPtr::Assign<ControlBlockBaseType_t>(&Move.CtrlBlock, nullptr);
+			if (this != &Move)
+			{
+				Reset();
+				AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, Move.CtrlBlock);
+				AssignPtr::Assign<ControlBlockBaseType_t>(&Move.CtrlBlock, nullptr);
+			}
 			return *this;
 		}
 
@@ -368,25 +377,34 @@ namespace bit
 
 		TWeakPtr<T>& operator=(const TSharedPtr<T>& SharedPtr)
 		{
-			Reset();
-			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, SharedPtr.CtrlBlock);
-			if (CtrlBlock != nullptr) CtrlBlock->IncWeakRef();
+			if (CtrlBlock != SharedPtr.CtrlBlock)
+			{
+				Reset();
+				AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, SharedPtr.CtrlBlock);
+				if (CtrlBlock != nullptr) CtrlBlock->IncWeakRef();
+			}
 			return *this;
 		}
 
 		TWeakPtr<T>& operator=(const TWeakPtr<T>& WeakPtr)
 		{
-			Reset();
-			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, WeakPtr.CtrlBlock);
-			if (CtrlBlock != nullptr) CtrlBlock->IncWeakRef();
+			if (this != &WeakPtr)
+			{
+				Reset();
+				AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, WeakPtr.CtrlBlock);
+				if (CtrlBlock != nullptr) CtrlBlock->IncWeakRef();
+			}
 			return *this;
 		}
 
 		TWeakPtr<T>&& operator=(TWeakPtr<T>&& WeakPtr)
 		{
-			Reset();
-			AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, WeakPtr.CtrlBlock);
-			AssignPtr::Assign<ControlBlockBaseType_t>(&WeakPtr.CtrlBlock, nullptr);
+			if (this != &WeakPtr)
+			{
+				Reset();
+				AssignPtr::Assign<ControlBlockBaseType_t>(&CtrlBlock, WeakPtr.CtrlBlock);
+				AssignPtr::Assign<ControlBlockBaseType_t>(&WeakPtr.CtrlBlock, nullptr);
+			}
 			return *this;
 		}
 

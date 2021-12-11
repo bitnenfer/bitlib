@@ -35,7 +35,7 @@ static bit::ProcessorArch BitGetProcArch()
 void BitOSInit()
 {
 	QueryPerformanceFrequency((LARGE_INTEGER*)&GTimerFrequency);
-	bit::GetDefaultAllocator();
+	bit::GetGlobalAllocator();
 }
 
 size_t bit::GetOSPageSize()

@@ -37,7 +37,7 @@ namespace bit
 		BlockStorage(const BlockStorage& InAllocator) :
 			Block(nullptr),
 			AllocationSize(0),
-			BackingAllocator(&bit::GetDefaultAllocator())
+			BackingAllocator(&bit::GetGlobalAllocator())
 		{
 			if (InAllocator.IsValid())
 			{
@@ -83,7 +83,7 @@ namespace bit
 		BlockStorage() :
 			Block(nullptr),
 			AllocationSize(0),
-			BackingAllocator(&bit::GetDefaultAllocator())
+			BackingAllocator(&bit::GetGlobalAllocator())
 		{}
 
 		BlockStorage(IAllocator* Allocator) :
@@ -280,7 +280,7 @@ namespace bit
 		};
 
 		LinkedListStorage(size_t InAllocSize, size_t InAllocCount, size_t InAlignment) :
-			Allocator(&bit::GetDefaultAllocator()),
+			Allocator(&bit::GetGlobalAllocator()),
 			BlockList(nullptr),
 			BlockData(nullptr),
 			BlockUsed(0),
@@ -370,7 +370,7 @@ namespace bit
 	struct BITLIB_API HashTableStorage
 	{
 		HashTableStorage() :
-			Allocator(&bit::GetDefaultAllocator())
+			Allocator(&bit::GetGlobalAllocator())
 		{}
 
 		HashTableStorage(IAllocator& InAllocator) :
