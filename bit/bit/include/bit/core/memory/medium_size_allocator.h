@@ -10,7 +10,7 @@ namespace bit
 	struct BITLIB_API MediumSizeAllocator
 	{
 		static constexpr uint64_t MIN_ALLOCATION_SIZE = 512;
-		static constexpr uint64_t MAX_ALLOCATION_SIZE = 2 MiB;
+		static constexpr uint64_t MAX_ALLOCATION_SIZE = 10 MiB;
 		static constexpr uint64_t ADDRESS_SPACE_SIZE = 8 GiB;
 		static constexpr uint64_t SLI = 5; // How many bits we assign for second level index
 
