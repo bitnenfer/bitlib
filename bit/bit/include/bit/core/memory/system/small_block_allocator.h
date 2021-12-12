@@ -9,7 +9,7 @@
 
 namespace bit
 {
-	struct BITLIB_API SmallSizeAllocator
+	struct BITLIB_API SmallBlockAllocator
 	{
 		struct FreePageLink
 		{
@@ -48,7 +48,7 @@ namespace bit
 		static constexpr size_t NUM_OF_SIZES = MAX_ALLOCATION_SIZE / MIN_ALLOCATION_SIZE;
 		static_assert((MAX_ALLOCATION_SIZE% MIN_ALLOCATION_SIZE) == 0, "MAX_ALLOCATION_SIZE must be divisible by MIN_ALLOCATION_SIZE");
 
-		SmallSizeAllocator();
+		SmallBlockAllocator();
 		void* Allocate(size_t Size, size_t Alignment);
 		void Free(void* Pointer);
 		size_t GetSize(void* Pointer);
@@ -78,7 +78,7 @@ namespace bit
 	private:
 		BlockMetadata Blocks[NUM_OF_SIZES];
 		PageMetadata Pages[NUM_OF_PAGES];
-		VirtualAddressSpace Memory;
+		VirtualMemoryBlock Memory;
 		PageMetadata* PageDecommitList;
 		FreePageLink* PageFreeList;
 		void* BaseVirtualAddress;

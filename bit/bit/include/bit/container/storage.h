@@ -99,7 +99,17 @@ namespace bit
 
 		void Allocate(SizeType_t Size, SizeType_t Count)
 		{
-			Block = BackingAllocator->Reallocate(Block, Size * Count, bit::DEFAULT_ALIGNMENT);
+			if (AllocationSize > 0)
+			{
+				void* NewBlock = BackingAllocator->Allocate(Size * Count, bit::DEFAULT_ALIGNMENT);
+				Memcpy(NewBlock, Block, Size * Count);
+				BackingAllocator->Free(Block);
+				Block = NewBlock;
+			}
+			else
+			{
+				Block = BackingAllocator->Allocate(Size * Count, bit::DEFAULT_ALIGNMENT);
+			}
 			AllocationSize = Size * Count;
 		}
 

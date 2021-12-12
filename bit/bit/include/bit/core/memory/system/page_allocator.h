@@ -19,7 +19,6 @@ namespace bit
 		~PageAllocator();
 
 		void* Allocate(size_t Size, size_t Alignment = DEFAULT_PAGE_ALIGNMENT) override;
-		void* Reallocate(void* Pointer, size_t Size, size_t Alignment = DEFAULT_PAGE_ALIGNMENT) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
 		AllocatorMemoryInfo GetMemoryUsageInfo() override;
@@ -79,8 +78,8 @@ namespace bit
 		size_t RoundToPageGranularity(size_t Size);
 
 	private:
-		VirtualAddressSpace VirtualAddress;
-		VirtualAddressSpace BitArray;
+		VirtualMemoryBlock VirtualAddress;
+		VirtualMemoryBlock BitArray;
 		size_t PageGranularity;
 		size_t PageCount;
 		size_t LevelCount;

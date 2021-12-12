@@ -78,7 +78,7 @@
     <ClInclude Include="bit\include\bit\core\os\virtual_memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\core\memory\page_allocator.h">
+    <ClInclude Include="bit\include\bit\core\memory\system\page_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bit\include\bit\utility\pointers.h">
@@ -111,19 +111,19 @@
     <ClInclude Include="bit\include\bit\core\os\debug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\core\memory\small_size_allocator.h">
+    <ClInclude Include="bit\include\bit\core\memory\system\small_block_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\core\memory\memory_manager.h">
+    <ClInclude Include="bit\include\bit\core\memory\system\memory_manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bit\include\bit\utility\prof_timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\core\memory\medium_size_allocator.h">
+    <ClInclude Include="bit\include\bit\core\memory\system\tlsf_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bit\include\bit\core\memory\large_size_allocator.h">
+    <ClInclude Include="bit\include\bit\core\memory\system\large_page_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -170,7 +170,7 @@
     <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_virtual_memory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\core\memory\page_allocator.cpp">
+    <ClCompile Include="bit\src\bit\core\memory\system\page_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bit\src\bit\container\string.cpp">
@@ -188,16 +188,16 @@
     <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_thread_local_storage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\core\memory\memory_manager.cpp">
+    <ClCompile Include="bit\src\bit\core\memory\system\memory_manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\core\memory\small_size_allocator.cpp">
+    <ClCompile Include="bit\src\bit\core\memory\system\small_block_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bit\src\bit\utility\prof_timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bit\src\bit\core\memory\medium_size_allocator.cpp">
+    <ClCompile Include="bit\src\bit\core\memory\system\tlsf_allocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

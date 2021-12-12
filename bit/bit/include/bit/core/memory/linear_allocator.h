@@ -13,7 +13,6 @@ namespace bit
 
 		void Reset();
 		void* Allocate(size_t Size, size_t Alignment) override;
-		void* Reallocate(void* Pointer, size_t Size, size_t Alignment) override;
 		void Free(void* Pointer) override;
 		size_t GetSize(void* Pointer) override;
 		AllocatorMemoryInfo GetMemoryUsageInfo() override;

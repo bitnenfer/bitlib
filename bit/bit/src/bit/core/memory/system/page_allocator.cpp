@@ -1,4 +1,4 @@
-#include <bit/core/memory/page_allocator.h>
+#include <bit/core/memory/system/page_allocator.h>
 #include <bit/core/memory.h>
 #include <bit/core/os/debug.h>
 
@@ -6,7 +6,7 @@ bit::PageAllocator::PageAllocator(const char* Name, void* StartAddress, size_t R
 	IAllocator(Name),
 	PageGranularity(AllocationGranularity)
 {
-	BIT_ASSERT(bit::VirtualReserveSpace(StartAddress, RegionSize, VirtualAddress));
+	BIT_ASSERT(bit::VirtualAllocateBlock(StartAddress, RegionSize, VirtualAddress));
 	BIT_ASSERT(VirtualAddress.GetReservedSize() > 0); // Can't be 0
 	BIT_ASSERT(VirtualAddress.IsValid());
 	BIT_ASSERT(bit::IsPow2(VirtualAddress.GetReservedSize())); // ***  TotalSize is not a power of 2 value. TotalSize MUST be power of 2. *** 
@@ -18,7 +18,7 @@ bit::PageAllocator::PageAllocator(const char* Name, void* StartAddress, size_t R
 	// TODO: Since levels are store contigously we could dynamically allocate levels as pages.
 	// The only situation when we would need to allocate all levels is when a allocation
 	// of size Granularity is made.
-	BIT_ASSERT(bit::VirtualReserveSpace(nullptr, PageByteCount, BitArray)); // Failed to allocate space for bit array ?
+	BIT_ASSERT(bit::VirtualAllocateBlock(nullptr, PageByteCount, BitArray)); // Failed to allocate space for bit array ?
 	BitArray.CommitAll();
 	bit::Memset(BitArray.GetBaseAddress(), 0, PageByteCount);
 #if BIT_BUILD_DEBUG
@@ -28,8 +28,8 @@ bit::PageAllocator::PageAllocator(const char* Name, void* StartAddress, size_t R
 
 bit::PageAllocator::~PageAllocator()
 {
-	bit::VirtualReleaseSpace(VirtualAddress);
-	bit::VirtualReleaseSpace(BitArray);
+	bit::VirtualFreeBlock(VirtualAddress);
+	bit::VirtualFreeBlock(BitArray);
 }
 
 void* bit::PageAllocator::CommitPage(void* Address, size_t Size)
@@ -178,20 +178,6 @@ void* bit::PageAllocator::Allocate(size_t Size, size_t Alignment)
 	}
 	BIT_PANIC(); // Out of memory ??
 	return nullptr;
-}
-
-void* bit::PageAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
-{
-	BIT_UNUSED_VAR(Alignment); // Alignment will be page size.
-	if (Pointer != nullptr)
-	{
-		size_t OldSize = GetSize(Pointer);
-		void* NewBlock = Allocate(Size, Alignment);
-		bit::Memcpy(NewBlock, Pointer, OldSize);
-		Free(Pointer);
-		return NewBlock;
-	}
-	return Allocate(Size, Alignment);
 }
 
 void bit::PageAllocator::Free(void* Address)

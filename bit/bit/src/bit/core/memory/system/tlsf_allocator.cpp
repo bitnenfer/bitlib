@@ -1,4 +1,4 @@
-#include <bit/core/memory/medium_size_allocator.h>
+#include <bit/core/memory/system/tlsf_allocator.h>
 #include <bit/core/memory.h>
 #include <bit/utility/scope_lock.h>
 #include <bit/core/os/debug.h>
@@ -6,7 +6,7 @@
 
 #define BIT_ENABLE_BLOCK_MARKING 0
 
-bit::MediumSizeAllocator::MediumSizeAllocator() :
+bit::TLSFAllocator::TLSFAllocator() :
 	FLBitmap(0),
 	PagesInUse(nullptr),
 	VirtualMemoryBaseAddress(nullptr),
@@ -15,7 +15,7 @@ bit::MediumSizeAllocator::MediumSizeAllocator() :
 	UsedSpaceInBytes(0),
 	AvailableSpaceInBytes(0)
 {
-	if (!VirtualReserveSpace((void*)nullptr, ADDRESS_SPACE_SIZE, Memory))
+	if (!VirtualAllocateBlock(ADDRESS_SPACE_SIZE, Memory))
 	{
 		BIT_PANIC();
 	}
@@ -25,12 +25,12 @@ bit::MediumSizeAllocator::MediumSizeAllocator() :
 	bit::Memset(FreeBlocks, 0, sizeof(FreeBlocks));
 }
 
-bit::MediumSizeAllocator::~MediumSizeAllocator()
+bit::TLSFAllocator::~TLSFAllocator()
 {
-	VirtualReleaseSpace(Memory);
+	VirtualFreeBlock(Memory);
 }
 
-void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
+void* bit::TLSFAllocator::Allocate(size_t Size, size_t Alignment)
 {
 	uint64_t RoundedSize = RoundToSlotSize(Size);
 	uint64_t AdjustedSize = (uint64_t)bit::Max((uint64_t)RoundedSize, MIN_ALLOCATION_SIZE);
@@ -74,7 +74,7 @@ void* bit::MediumSizeAllocator::Allocate(size_t Size, size_t Alignment)
 	return nullptr; /* Out of memory */
 }
 
-void* bit::MediumSizeAllocator::AllocateAligned(uint64_t Size, uint64_t Alignment)
+void* bit::TLSFAllocator::AllocateAligned(uint64_t Size, uint64_t Alignment)
 {
 	uint64_t RoundedSize = RoundToSlotSize((Size + Alignment) + MIN_ALLOCATION_SIZE * 2);
 	uint64_t AlignedSize = (uint64_t)bit::AlignUint(RoundedSize, Alignment);
@@ -118,7 +118,7 @@ void* bit::MediumSizeAllocator::AllocateAligned(uint64_t Size, uint64_t Alignmen
 	return nullptr; /* Out of memory */
 }
 
-void* bit::MediumSizeAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
+void* bit::TLSFAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
 {
 	if (Pointer == nullptr) return Allocate(Size, Alignment);
 	size_t BlockSize = GetSize(Pointer);
@@ -129,7 +129,7 @@ void* bit::MediumSizeAllocator::Reallocate(void* Pointer, size_t Size, size_t Al
 	return NewBlock;
 }
 
-void bit::MediumSizeAllocator::Free(void* Pointer)
+void bit::TLSFAllocator::Free(void* Pointer)
 {
 	if (Pointer != nullptr)
 	{
@@ -147,7 +147,7 @@ void bit::MediumSizeAllocator::Free(void* Pointer)
 	}
 }
 
-size_t bit::MediumSizeAllocator::GetSize(void* Pointer)
+size_t bit::TLSFAllocator::GetSize(void* Pointer)
 {
 	if (Pointer != nullptr)
 	{
@@ -156,7 +156,7 @@ size_t bit::MediumSizeAllocator::GetSize(void* Pointer)
 	return 0;
 }
 
-bit::AllocatorMemoryInfo bit::MediumSizeAllocator::GetMemoryUsageInfo()
+bit::AllocatorMemoryInfo bit::TLSFAllocator::GetMemoryUsageInfo()
 {
 	AllocatorMemoryInfo Usage = {};
 	Usage.CommittedBytes = Memory.GetCommittedSize();
@@ -165,24 +165,24 @@ bit::AllocatorMemoryInfo bit::MediumSizeAllocator::GetMemoryUsageInfo()
 	return Usage;
 }
 
-bool bit::MediumSizeAllocator::CanAllocate(size_t Size, size_t Alignment)
+bool bit::TLSFAllocator::CanAllocate(size_t Size, size_t Alignment)
 {
-	size_t AlignedSize = bit::AlignUint(Size, bit::Max(Alignment, alignof(BlockHeader)));
-	return AlignedSize >= MIN_ALLOCATION_SIZE && AlignedSize < MAX_ALLOCATION_SIZE;
+	size_t AlignedSize = bit::AlignUint(Size, bit::Max(Alignment, sizeof(BlockHeader)));
+	return AlignedSize <= MAX_ALLOCATION_SIZE;
 }
 
-bool bit::MediumSizeAllocator::OwnsAllocation(const void* Ptr)
+bool bit::TLSFAllocator::OwnsAllocation(const void* Ptr)
 {
 	return Memory.OwnsAddress(Ptr);
 }
 
-size_t bit::MediumSizeAllocator::Compact()
+size_t bit::TLSFAllocator::Compact()
 {
 	size_t Total = 0;
 	return Total;
 }
 
-size_t bit::MediumSizeAllocator::RoundToSlotSize(size_t Size)
+size_t bit::TLSFAllocator::RoundToSlotSize(size_t Size)
 {
 	BlockMap Map = MappingNoOffset(Size);
 	size_t MinSize = 1ULL << Map.FL;
@@ -193,7 +193,7 @@ size_t bit::MediumSizeAllocator::RoundToSlotSize(size_t Size)
 	return RoundedSize;
 }
 
-bit::MediumSizeAllocator::BlockMap bit::MediumSizeAllocator::MappingNoOffset(size_t Size) const
+bit::TLSFAllocator::BlockMap bit::TLSFAllocator::MappingNoOffset(size_t Size) const
 {
 	// First level index is the last set bit
 	uint64_t FL = bit::BitScanReverse((uint64_t)Size);
@@ -207,7 +207,7 @@ bit::MediumSizeAllocator::BlockMap bit::MediumSizeAllocator::MappingNoOffset(siz
 	return { FL, SL };
 }
 
-void bit::MediumSizeAllocator::AllocateVirtualMemory(size_t Size)
+void bit::TLSFAllocator::AllocateVirtualMemory(size_t Size)
 {
 	size_t PageSize = GetOSPageSize();
 	size_t AdjustedSize = Size + sizeof(BlockHeader) + sizeof(BlockFreeHeader) + sizeof(VirtualPage);
@@ -253,7 +253,7 @@ void bit::MediumSizeAllocator::AllocateVirtualMemory(size_t Size)
 	}
 }
 
-bool bit::MediumSizeAllocator::FreeVirtualMemory(BlockFreeHeader* FreeBlock)
+bool bit::TLSFAllocator::FreeVirtualMemory(BlockFreeHeader* FreeBlock)
 {
 	if (FreeBlock->PrevPhysicalBlock->IsLastPhysicalBlock() && GetNextBlock(FreeBlock)->IsLastPhysicalBlock())
 	{
@@ -272,29 +272,29 @@ bool bit::MediumSizeAllocator::FreeVirtualMemory(BlockFreeHeader* FreeBlock)
 	return false;
 }
 
-bit::MediumSizeAllocator::BlockMap bit::MediumSizeAllocator::Mapping(size_t Size) const
+bit::TLSFAllocator::BlockMap bit::TLSFAllocator::Mapping(size_t Size) const
 {
 	BlockMap Map = MappingNoOffset(Size);
 	Map.FL -= COUNT_OFFSET - 1; // We need to adjust index so it maps to min alloc size range to max alloc size
 	return Map;
 }
 
-bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::GetBlockHeaderFromPointer(void* Block) const
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::GetBlockHeaderFromPointer(void* Block) const
 {
 	return bit::OffsetPtr<BlockFreeHeader>(Block, -(intptr_t)sizeof(BlockHeader));
 }
 
-void* bit::MediumSizeAllocator::GetPointerFromBlockHeader(BlockHeader* Block) const
+void* bit::TLSFAllocator::GetPointerFromBlockHeader(BlockHeader* Block) const
 {
 	return bit::OffsetPtr(Block, sizeof(BlockHeader));
 }
 
-bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::Merge(BlockFreeHeader* Block)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::Merge(BlockFreeHeader* Block)
 {
 	return MergeRecursive(Block);
 }
 
-bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::MergeRecursive(BlockFreeHeader* Block)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::MergeRecursive(BlockFreeHeader* Block)
 {
 	BlockFreeHeader* Next = GetNextBlock(Block);
 	if (Next->GetSize() > 0 && Next->IsFree())
@@ -317,7 +317,7 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::MergeRecurs
 	return Block;
 }
 
-bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::FindSuitableBlock(size_t Size, BlockMap& Map)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::FindSuitableBlock(size_t Size, BlockMap& Map)
 {
 	uint64_t FL = Map.FL;
 	uint64_t SL = Map.SL;
@@ -360,7 +360,7 @@ RetrySearch:
 	return Block;
 }
 
-void bit::MediumSizeAllocator::RemoveBlock(BlockFreeHeader* Block, BlockMap Map)
+void bit::TLSFAllocator::RemoveBlock(BlockFreeHeader* Block, BlockMap Map)
 {
 	Block->SetUsed();
 	BlockFreeHeader* Prev = Block->PrevFree;
@@ -384,7 +384,7 @@ void bit::MediumSizeAllocator::RemoveBlock(BlockFreeHeader* Block, BlockMap Map)
 	}
 }
 
-bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::Split(BlockFreeHeader* Block, uint64_t Size)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::Split(BlockFreeHeader* Block, uint64_t Size)
 {
 	uint64_t BlockSize = Block->GetSize();
 	uint64_t FullBlockSize = Block->GetFullSize();
@@ -405,7 +405,7 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::Split(Block
 	return Block;
 }
 
-bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::SplitAligned(BlockFreeHeader* Block, uint64_t Size, uint64_t Alignment)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::SplitAligned(BlockFreeHeader* Block, uint64_t Size, uint64_t Alignment)
 {
 	uint64_t BlockSize = Block->GetSize();
 	uint64_t FullBlockSize = Block->GetFullSize();
@@ -437,7 +437,7 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::SplitAligne
 	return Block;
 }
 
-void bit::MediumSizeAllocator::InsertBlock(BlockFreeHeader* Block, BlockMap Map)
+void bit::TLSFAllocator::InsertBlock(BlockFreeHeader* Block, BlockMap Map)
 {
 	BIT_ASSERT(!Block->IsLastPhysicalBlock());
 	BlockFreeHeader* Head = FreeBlocks[Map.FL][Map.SL];
@@ -450,7 +450,7 @@ void bit::MediumSizeAllocator::InsertBlock(BlockFreeHeader* Block, BlockMap Map)
 	SLBitmap[Map.FL] |= Pow2(Map.SL);
 }
 
-bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::MergeBlocks(BlockFreeHeader* Left, BlockFreeHeader* Right)
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::MergeBlocks(BlockFreeHeader* Left, BlockFreeHeader* Right)
 {
 	Left->SetSize(Left->GetSize() + Right->GetFullSize());
 	BlockFreeHeader* NextBlock = GetNextBlock(Left);
@@ -459,17 +459,17 @@ bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::MergeBlocks
 	return Left;
 }
 
-bit::MediumSizeAllocator::BlockFreeHeader* bit::MediumSizeAllocator::GetNextBlock(BlockFreeHeader* Block) const
+bit::TLSFAllocator::BlockFreeHeader* bit::TLSFAllocator::GetNextBlock(BlockFreeHeader* Block) const
 {
 	return bit::OffsetPtr<BlockFreeHeader>(Block, Block->GetSize() + sizeof(BlockHeader));
 }
 
-size_t bit::MediumSizeAllocator::AdjustSize(size_t Size)
+size_t bit::TLSFAllocator::AdjustSize(size_t Size)
 {
 	return sizeof(BlockHeader) + Size;
 }
 
-void bit::MediumSizeAllocator::FillBlock(BlockHeader* Block, uint8_t Value) const
+void bit::TLSFAllocator::FillBlock(BlockHeader* Block, uint8_t Value) const
 {
 	/* For debugging purpose */
 	bit::Memset(GetPointerFromBlockHeader(Block), Value, Block->GetSize());

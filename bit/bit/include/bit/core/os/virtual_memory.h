@@ -11,12 +11,12 @@ namespace bit
 		PROTECTION_TYPE_READ_ONLY
 	};
 
-	struct BITLIB_API VirtualAddressSpace
+	struct BITLIB_API VirtualMemoryBlock
 	{
-		VirtualAddressSpace();
-		VirtualAddressSpace(void* BaseAddress, size_t ReservedSize);
-		VirtualAddressSpace(VirtualAddressSpace&& Move);
-		VirtualAddressSpace& operator=(VirtualAddressSpace&& Move);
+		VirtualMemoryBlock();
+		VirtualMemoryBlock(void* BaseAddress, size_t ReservedSize);
+		VirtualMemoryBlock(VirtualMemoryBlock&& Move);
+		VirtualMemoryBlock& operator=(VirtualMemoryBlock&& Move);
 		void* CommitAll();
 		bool DecommitAll();
 		void* CommitPagesByAddress(void* Address, size_t Size);
@@ -36,15 +36,15 @@ namespace bit
 		bool OwnsAddress(const void* Ptr) const;
 
 	private:
-		VirtualAddressSpace(const VirtualAddressSpace&) = delete;
-		VirtualAddressSpace& operator=(const VirtualAddressSpace&) = delete;
+		VirtualMemoryBlock(const VirtualMemoryBlock&) = delete;
+		VirtualMemoryBlock& operator=(const VirtualMemoryBlock&) = delete;
 
 		void* BaseAddress = nullptr;
 		size_t ReservedSize = 0;
 		int64_t CommittedSize = 0;
 	};
 
-	BITLIB_API bool VirtualReserveSpace(void* Address, size_t Size, VirtualAddressSpace& OutVirtualMemorySpace);
-	BITLIB_API void VirtualReleaseSpace(VirtualAddressSpace& VirtualMemorySpace);
-	BITLIB_API void* VirtualRandomAddress();
+	BITLIB_API bool VirtualAllocateBlock(void* Address, size_t Size, VirtualMemoryBlock& OutVirtualMemorySpace);
+	BITLIB_API bool VirtualAllocateBlock(size_t Size, VirtualMemoryBlock& OutVirtualMemorySpace);
+	BITLIB_API void VirtualFreeBlock(VirtualMemoryBlock& VirtualMemorySpace);
 }

@@ -181,9 +181,9 @@
   <ItemGroup>
     <ClInclude Include="bit\include\bit\core\memory\allocator.h" />
     <ClInclude Include="bit\include\bit\container\array.h" />
-    <ClInclude Include="bit\include\bit\core\memory\large_size_allocator.h" />
-    <ClInclude Include="bit\include\bit\core\memory\small_size_allocator.h" />
-    <ClInclude Include="bit\include\bit\core\memory\memory_manager.h" />
+    <ClInclude Include="bit\include\bit\core\memory\system\large_page_allocator.h" />
+    <ClInclude Include="bit\include\bit\core\memory\system\small_block_allocator.h" />
+    <ClInclude Include="bit\include\bit\core\memory\system\memory_manager.h" />
     <ClInclude Include="bit\include\bit\core\os\atomics.h" />
     <ClInclude Include="bit\include\bit\utility\command_args.h" />
     <ClInclude Include="bit\include\bit\container\storage.h" />
@@ -198,7 +198,7 @@
     <ClInclude Include="bit\include\bit\core\os\debug.h" />
     <ClInclude Include="bit\include\bit\core\os\mutex.h" />
     <ClInclude Include="bit\include\bit\core\os\os.h" />
-    <ClInclude Include="bit\include\bit\core\memory\page_allocator.h" />
+    <ClInclude Include="bit\include\bit\core\memory\system\page_allocator.h" />
     <ClInclude Include="bit\include\bit\core\platform.h" />
     <ClInclude Include="bit\include\bit\core\platform_null.h" />
     <ClInclude Include="bit\include\bit\core\platform_windows.h" />
@@ -210,7 +210,7 @@
     <ClInclude Include="bit\include\bit\container\string.h" />
     <ClInclude Include="bit\include\bit\core\os\thread.h" />
     <ClInclude Include="bit\include\bit\core\os\thread_local_storage.h" />
-    <ClInclude Include="bit\include\bit\core\memory\medium_size_allocator.h" />
+    <ClInclude Include="bit\include\bit\core\memory\system\tlsf_allocator.h" />
     <ClInclude Include="bit\include\bit\container\tuple.h" />
     <ClInclude Include="bit\include\bit\core\types.h" />
     <ClInclude Include="bit\include\bit\utility\utility.h" />
@@ -222,17 +222,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bit\src\bit\core\memory\allocator.cpp" />
-    <ClCompile Include="bit\src\bit\core\memory\memory_manager.cpp" />
-    <ClCompile Include="bit\src\bit\core\memory\small_size_allocator.cpp" />
+    <ClCompile Include="bit\src\bit\core\memory\system\memory_manager.cpp" />
+    <ClCompile Include="bit\src\bit\core\memory\system\small_block_allocator.cpp" />
     <ClCompile Include="bit\src\bit\utility\command_args.cpp" />
     <ClCompile Include="bit\src\bit\core\memory\linear_allocator.cpp" />
     <ClCompile Include="bit\src\bit\core\memory.cpp" />
     <ClCompile Include="bit\src\bit\utility\murmur_hash.cpp" />
-    <ClCompile Include="bit\src\bit\core\memory\page_allocator.cpp" />
+    <ClCompile Include="bit\src\bit\core\memory\system\page_allocator.cpp" />
     <ClCompile Include="bit\src\bit\core\os\rw_lock.cpp" />
     <ClCompile Include="bit\src\bit\utility\prof_timer.cpp" />
     <ClCompile Include="bit\src\bit\container\string.cpp" />
-    <ClCompile Include="bit\src\bit\core\memory\medium_size_allocator.cpp" />
+    <ClCompile Include="bit\src\bit\core\memory\system\tlsf_allocator.cpp" />
     <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_atomics.cpp" />
     <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_critical_section.cpp" />
     <ClCompile Include="bit\src\bit\platform\windows\core\os\windows_entry_point.cpp" />

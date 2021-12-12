@@ -55,23 +55,6 @@ void* bit::LinearAllocator::Allocate(size_t Size, size_t Alignment)
 	return nullptr;
 }
 
-void* bit::LinearAllocator::Reallocate(void* Pointer, size_t Size, size_t Alignment)
-{
-	if (Pointer == nullptr)
-	{
-		return Allocate(Size, Alignment);
-	}
-	else if (Size == 0)
-	{
-		Free(Pointer);
-		return nullptr;
-	}
-	void* NewPtr = Allocate(Size, Alignment);
-	bit::Memcpy(NewPtr, Pointer, bit::LinearAllocatorHeader::GetHeader(Pointer)->RequestedSize);
-	Free(Pointer);
-	return NewPtr;
-}
-
 void bit::LinearAllocator::Free(void* Pointer) 
 { 
 	LinearAllocatorHeader* Header = LinearAllocatorHeader::GetHeader(Pointer);

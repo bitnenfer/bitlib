@@ -1,15 +1,14 @@
 #include <bit/core/os/virtual_memory.h>
 #include <bit/core/memory/allocator.h>
 #include <bit/core/os/mutex.h>
-#include <bit/core/memory/page_allocator.h>
 
 namespace bit
 {
 	/* Based on Two-Level Segregated Fit Allocator */
 	/* Source: http://www.gii.upv.es/tlsf/files/ecrts04_tlsf.pdf */
-	struct BITLIB_API MediumSizeAllocator
+	struct BITLIB_API TLSFAllocator
 	{
-		static constexpr uint64_t MIN_ALLOCATION_SIZE = 512;
+		static constexpr uint64_t MIN_ALLOCATION_SIZE = 16;
 		static constexpr uint64_t MAX_ALLOCATION_SIZE = 10 MiB;
 		static constexpr uint64_t ADDRESS_SPACE_SIZE = 8 GiB;
 		static constexpr uint64_t SLI = 5; // How many bits we assign for second level index
@@ -57,8 +56,8 @@ namespace bit
 		static constexpr uint64_t FL_COUNT = bit::ConstBitScanReverse(MAX_ALLOCATION_SIZE) - bit::ConstBitScanReverse(MIN_ALLOCATION_SIZE) + 1;
 		static constexpr uint64_t SL_COUNT = 1 << SLI;
 
-		MediumSizeAllocator();
-		~MediumSizeAllocator();
+		TLSFAllocator();
+		~TLSFAllocator();
 
 		void* Allocate(size_t Size, size_t Alignment);
 		void* Reallocate(void* Pointer, size_t Size, size_t Alignment);
@@ -94,7 +93,7 @@ namespace bit
 		uint64_t SLBitmap[FL_COUNT];
 		BlockFreeHeader* FreeBlocks[FL_COUNT][SL_COUNT];
 		VirtualPage* PagesInUse;
-		VirtualAddressSpace Memory;
+		VirtualMemoryBlock Memory;
 		void* VirtualMemoryBaseAddress;
 		size_t PagesInUseCount;
 		size_t VirtualMemoryBaseOffset;

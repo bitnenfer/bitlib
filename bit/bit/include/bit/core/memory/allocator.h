@@ -123,7 +123,6 @@ namespace bit
 		IAllocator(const char* Name);
 
 		virtual void* Allocate(size_t Size, size_t Alignment) = 0;
-		virtual void* Reallocate(void* Pointer, size_t Size, size_t Alignment) = 0;
 		virtual void Free(void* Pointer) = 0;
 		virtual size_t GetSize(void* Pointer) = 0;
 		virtual AllocatorMemoryInfo GetMemoryUsageInfo() = 0;

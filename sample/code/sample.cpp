@@ -12,7 +12,7 @@
 #include <bit/container/intrusive_linked_list.h>
 #include <bit/core/memory/linear_allocator.h>
 #include <bit/core/os/virtual_memory.h>
-#include <bit/core/memory/page_allocator.h>
+#include <bit/core/memory/system/page_allocator.h>
 #include <bit/utility/pointers.h>
 #include <bit/container/string.h>
 #include <bit/utility/scope_lock.h>

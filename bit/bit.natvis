@@ -125,7 +125,7 @@
     </Expand>
   </Type>
   
-  <Type Name="bit::VirtualAddressSpace">
+  <Type Name="bit::VirtualMemoryBlock">
     <DisplayString>{{ Range=[{BaseAddress,X}, {(uintptr_t)BaseAddress+ReservedSize,X}], UsagePct={(float)CommittedSize/(float)ReservedSize*100.0,g}% } }}</DisplayString>
     <Expand>
       <Item Name="[Start]">BaseAddress,X</Item>
@@ -136,14 +136,14 @@
   </Type>
   
   <Type Name="bit::PageAllocator">
-    <DisplayString>{{ {Name,sb}, UsagePct={(float)VirtualAddressSpace.CommittedSize/(float)VirtualAddressSpace.ReservedSize*100.0,g}% } }}</DisplayString>
+    <DisplayString>{{ {Name,sb}, UsagePct={(float)VirtualMemoryBlock.CommittedSize/(float)VirtualMemoryBlock.ReservedSize*100.0,g}% } }}</DisplayString>
     <Expand>
       <Item Name="[Name]">Name,sb</Item>
-      <Item Name="[BaseAddress]">VirtualAddressSpace.BaseAddress,X</Item>
+      <Item Name="[BaseAddress]">VirtualMemoryBlock.BaseAddress,X</Item>
       <Item Name="[PageGranularity]">PageGranularity</Item>
-      <Item Name="[CommittedPages]">VirtualAddressSpace.CommittedSize / PageGranularity</Item>
+      <Item Name="[CommittedPages]">VirtualMemoryBlock.CommittedSize / PageGranularity</Item>
       <Item Name="[TotalPages]">PageCount</Item>
-      <Item Name="[VirtualAddressSpace]">VirtualAddressSpace</Item>
+      <Item Name="[VirtualMemoryBlock]">VirtualMemoryBlock</Item>
     </Expand>
   </Type>
   
@@ -214,7 +214,7 @@
     </Expand>
   </Type>
   
-  <Type Name="bit::MediumSizeAllocator::BlockHeader">
+  <Type Name="bit::TLSFAllocator::BlockHeader">
     <DisplayString Condition="(Size &amp; 0b10) &gt; 0">{{ End of Pool }}</DisplayString>
     <DisplayString Condition="(Size &amp; 0b1) &gt; 0">{{ Size={ Size &amp; (~0b11) }, Free }}</DisplayString>
     <DisplayString>{{ Size={Size &amp; (~0b11)}, Used }}</DisplayString>
@@ -222,11 +222,11 @@
       <Item Name="[Pointer]">(void*)((char*)this + sizeof(BlockHeader))</Item>
       <Item Condition="(Size &amp; 0b10) == 0" Name="[Size]">Size &amp; (~0b11)</Item>
       <Item Name="[Prev PhysBlock]">PrevPhysicalBlock</Item>
-      <Item Condition="(Size &amp; 0b10) == 0" Name="[Next PhysBlock]">(bit::MediumSizeAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
+      <Item Condition="(Size &amp; 0b10) == 0" Name="[Next PhysBlock]">(bit::TLSFAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
     </Expand>
   </Type>
   
-  <Type Name="bit::MediumSizeAllocator::BlockFreeHeader">
+  <Type Name="bit::TLSFAllocator::BlockFreeHeader">
     <DisplayString Condition="(Size &amp; 0b10) &gt; 0">{{ End of Pool }}</DisplayString>
     <DisplayString Condition="(Size &amp; 0b1) &gt; 0 &amp;&amp; NextFree != nullptr &amp;&amp; PrevFree == nullptr">{{ Size={ Size &amp; (~0b11) }, Free, List Head, Ptr={(void*)((char*)this + sizeof(BlockHeader))}  }}</DisplayString>
     <DisplayString Condition="(Size &amp; 0b1) &gt; 0">{{ Size={ Size &amp; (~0b11) }, Free, Ptr={(void*)((char*)this + sizeof(BlockHeader))}  }}</DisplayString>
@@ -237,7 +237,7 @@
       <Synthetic Condition="this != nullptr" Name="[Adjacent Blocks]">
         <Expand>
           <Item Name="[Prev]">PrevPhysicalBlock</Item>
-          <Item Condition="(Size &amp; 0b10) == 0" Name="[Next]">(bit::MediumSizeAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
+          <Item Condition="(Size &amp; 0b10) == 0" Name="[Next]">(bit::TLSFAllocator::BlockHeader*)((char*)this + sizeof(BlockHeader) + (Size &amp; (~0b11)))</Item>
         </Expand>
       </Synthetic>
       <Synthetic Condition="PrevFree == nullptr &amp;&amp; NextFree != nullptr" Name="[Free List]">
@@ -255,14 +255,14 @@
     </Expand>
   </Type>
 
-  <Type Name="bit::MediumSizeAllocator::VirtualPage">
+  <Type Name="bit::TLSFAllocator::VirtualPage">
     <DisplayString Condition="PageSize &gt; 1024 * 1024 * 1024">{{ PageSize={PageSize/1024/1024/1024,u} GiB }}</DisplayString>
     <DisplayString Condition="PageSize &gt; 1024 * 1024">{{ PageSize={PageSize/1024/1024,u} MiB }}</DisplayString>
     <DisplayString Condition="PageSize &gt; 1024">{{ PageSize={PageSize/1024,u} KiB }}</DisplayString>
     <DisplayString>{{ PageSize={PageSize,u} B }}</DisplayString>
   </Type>
 
-  <Type Name="bit::MediumSizeAllocator">
+  <Type Name="bit::TLSFAllocator">
     <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024">{{ UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes, g} B }</DisplayString>
     <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024">{{ UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0,g} KiB }</DisplayString>
     <DisplayString Condition="AvailableSpaceInBytes &gt; 0 &amp;&amp; UsedSpaceInBytes &lt; 1024 * 1024 * 1024">{{ UsagePct={(float)UsedSpaceInBytes / (float)AvailableSpaceInBytes * 100.0f, g}% }, Used={(double)UsedSpaceInBytes / 1024.0 / 1024.0,g} MiB }</DisplayString>
@@ -378,7 +378,7 @@
     </Expand>
   </Type>
    
-  <Type Name="bit::SmallSizeAllocator::VirtualBlock">
+  <Type Name="bit::SmallBlockAllocator::VirtualBlock">
     <DisplayString Condition="Allocated &gt; 1024 * 1024 * 1024">{{ Allocated={Allocated/1024/1024/1024,u} GiB, Used Pages={PageCount,u} }}</DisplayString>
     <DisplayString Condition="Allocated &gt; 1024 * 1024">{{ Allocated={Allocated/1024/1024,u} MiB, Used Pages={PageCount,u} }}</DisplayString>
     <DisplayString Condition="Allocated &gt; 1024">{{ Allocated={Allocated/1024,u} KiB, Used Pages={PageCount,u} }}</DisplayString>
@@ -390,7 +390,7 @@
     </Expand>
   </Type>
 
-  <Type Name="bit::SmallSizeAllocator::PageAllocationInfo">
+  <Type Name="bit::SmallBlockAllocator::PageAllocationInfo">
     <DisplayString Condition="!bCommitted">{{ Not Committed }}</DisplayString>
     <DisplayString Condition="AllocatedBytes &gt; 1024 * 1024 * 1024">{{ Block={AssignedSize} B, Used={AllocatedBytes/1024/1024/1024,u} GiB }}</DisplayString>
     <DisplayString Condition="AllocatedBytes &gt; 1024 * 1024">{{ Block={AssignedSize} B, Used={AllocatedBytes/1024/1024,u} MiB }}</DisplayString>
@@ -398,7 +398,7 @@
     <DisplayString>{{ Block={AssignedSize} B, Used={AllocatedBytes,u} B }}</DisplayString>
   </Type>
 
-  <Type Name="bit::SmallSizeAllocator::BlockInfo">
+  <Type Name="bit::SmallBlockAllocator::BlockInfo">
     <DisplayString Condition="AllocatedBytes &gt; 1024ULL * 1024ULL * 1024ULL * 1024ULL">{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes/1024.0/1024.0/1024.0/1024.0,g} TiB }}</DisplayString>
     <DisplayString Condition="AllocatedBytes &gt; 1024ULL * 1024ULL * 1024ULL">{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes/1024.0/1024.0/1024.0,g} GiB }}</DisplayString>
     <DisplayString Condition="AllocatedBytes &gt; 1024ULL * 1024ULL">{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes/1024.0/1024.0,g} MiB }}</DisplayString>
@@ -406,7 +406,7 @@
     <DisplayString>{{ Used=[{AllocatedBytes}]  {(double)AllocatedBytes,g} B }}</DisplayString>
   </Type>
 
-  <Type Name="bit::SmallSizeAllocator">
+  <Type Name="bit::SmallBlockAllocator">
     <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; AllocatedBytes &lt; 1024">{{ UsagePct={(float)AllocatedBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)AllocatedBytes, g} B }</DisplayString>
     <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; AllocatedBytes &lt; 1024 * 1024">{{ UsagePct={(float)AllocatedBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)AllocatedBytes / 1024.0,g} KiB }</DisplayString>
     <DisplayString Condition="Memory.CommittedSize &gt; 0 &amp;&amp; AllocatedBytes &lt; 1024 * 1024 * 1024">{{ UsagePct={(float)AllocatedBytes / (float)Memory.CommittedSize * 100.0f, g}% }, Used={(double)AllocatedBytes / 1024.0 / 1024.0,g} MiB }</DisplayString>
